@@ -106,7 +106,7 @@
     if (!t) return '';
     const tone = t.leftMs < 24 * App.HOUR ? 'danger' : (t.leftMs < 72 * App.HOUR ? 'warn' : '');
     return `<div class="timer" data-tone="${tone}" style="margin-top:12px" data-deadline="${App.parse(t.deadline)}">
-      <div class="grow"><div class="lb">${App.esc(t.label)} · 还剩</div><div class="big" data-left>${App.short(t.leftMs)}</div></div>
+      <div class="grow"><div class="lb">${App.tlabel(t)} · 还剩</div><div class="big" data-left>${App.short(t.leftMs)}</div></div>
       <div style="text-align:right"><div class="lb">截止</div><div class="sk">${App.when(t.deadline)}</div></div>
     </div>
     <div class="sk" style="margin-top:6px">超时系统自动验收，不用你操作</div>`;

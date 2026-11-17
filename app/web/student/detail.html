@@ -124,7 +124,7 @@
         ${rows.map(x => {
           const tone = x.leftMs < 24 * App.HOUR ? 'danger' : (x.leftMs < 72 * App.HOUR ? 'warn' : '');
           return `<div class="timer" data-tone="${tone}" data-deadline="${App.parse(x.deadline)}">
-            <div class="grow"><div class="lb">${App.esc(x.label)}</div><div class="big" data-left>${App.short(x.leftMs)}</div></div>
+            <div class="grow"><div class="lb">${App.tlabel(x)}</div><div class="big" data-left>${App.short(x.leftMs)}</div></div>
             <div style="text-align:right"><div class="lb">截止</div><div class="sk">${App.when(x.deadline)}</div></div>
           </div>`;
         }).join('')}

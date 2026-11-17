@@ -83,6 +83,15 @@
     return `${m}m`;
   }
 
+  /** 计时器名字：接口里 t1 叫"验收超时"（契约用语），给人看改成"验收倒计时" */
+  function tlabel(t) {
+    if (!t) return '';
+    if (t.t1) return '验收倒计时';
+    if (t.t2) return '归档倒计时';
+    const s = t.label || '';
+    return s === '验收超时' ? '验收倒计时' : s;
+  }
+
   /** "2026-11-17 20:37:51" → "11-17 20:37" */
   function when(str) {
     const t = parse(str);
@@ -259,15 +268,16 @@
     user: '<circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c1.4-3.6 4.2-5.5 7.5-5.5s6.1 1.9 7.5 5.5"/>',
     building: '<path d="M4 21V6l8-3 8 3v15"/><path d="M9 21v-5h6v5M8 9h.01M12 9h.01M16 9h.01M8 13h.01M12 13h.01M16 13h.01"/>',
     wrench: '<path d="M15 4a5 5 0 0 0-4.6 7L4 17.4V20h2.6l6.4-6.4A5 5 0 1 0 15 4z"/>',
-    box: '<path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/>'
+    box: '<path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11.2v5.3"/><path d="M12 8.2h.01"/>'
   };
 
   function nav(role, active, cta) {
     const items = role === 'student'
       ? [['index.html', 'home', '首页'], ['list.html', 'list', '我的报修'],
-         ['new.html', 'plus', '报修', 'cta'], ['../lab.html', 'user', '说明']]
+         ['new.html', 'plus', '报修', 'cta'], ['../lab.html', 'info', '说明']]
       : [['index.html', 'home', '工作台'], ['building.html', 'building', '本楼'],
-         ['parts.html', 'box', '待配件'], ['../lab.html', 'user', '说明']];
+         ['parts.html', 'box', '待配件'], ['../lab.html', 'info', '说明']];
 
     const html = items.map(([href, icon, label, kind]) => {
       const on = href.split('/').pop() === active ? ' on' : '';
@@ -303,7 +313,7 @@
   global.App = {
     API, api, ApiError,
     getSession, setSession, clearSession, logout,
-    parse, human, short, when, clock, MIN, HOUR, DAY,
+    parse, human, short, tlabel, when, clock, MIN, HOUR, DAY,
     esc, statusPill, levelPill, steps, STATUS_TEXT, STATUS_ORDER, STEP_LABEL,
     $, $$, h, toast, explainErr, EVENT_CN, sheet, nav, whoBar, bindWho, start, pickIdentity, tickLoop
   };

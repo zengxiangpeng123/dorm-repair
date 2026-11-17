@@ -52,7 +52,7 @@
         ${App.levelPill(o.level)}
       </div>
       ${tl ? `<div class="meterline" data-tone="${tone}">
-        <span>${App.esc(tl.label)}</span><div class="grow"></div>
+        <span>${App.tlabel(tl)}</span><div class="grow"></div>
         <span style="color:${tone === 'danger' ? 'var(--danger)' : 'var(--ink-2)'}">${App.short(tl.leftMs)}</span>
       </div>` : ''}
     </a>`;

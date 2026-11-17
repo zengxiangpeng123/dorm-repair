@@ -241,7 +241,7 @@ window.addEventListener('error', function (e) {
   function timerLine(o) {
     const t = (o.timers && (o.timers.t1 || o.timers.t2)) || null;
     if (!t) return '';
-    return `<div class="muted" style="font-size:10.5px;margin-top:2px">${t.label} 剩 ${App.short(t.leftMs)}</div>`;
+    return `<div class="muted" style="font-size:10.5px;margin-top:2px">${App.tlabel(t)} 剩 ${App.short(t.leftMs)}</div>`;
   }
 
   function manualCount(o) {
