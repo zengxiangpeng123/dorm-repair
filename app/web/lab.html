@@ -110,6 +110,7 @@ window.addEventListener('error', function (e) {
 <script>
 (async function () {
   let meta, MTX, TRS, ORDS = [], sel = null;
+  const TRIG = {};                   // 事件 → 合法触发方，从 13 条转移里反查
 
   const tokens = {};                 // id → token，按需登录，避免每次都要密码
   async function tokenFor(role, id) {
@@ -150,6 +151,7 @@ window.addEventListener('error', function (e) {
       App.api.get('/admin/orders?pageSize=200', { token: await tokenFor('admin', 'A001') })
     ]);
     MTX = m; TRS = t.transitions; ORDS = o.items;
+    for (const tr of TRS) TRIG[tr.event] = tr.trigger;   // 每个事件只出现一次，直接反查
 
     App.$('#meta').textContent = `${m.rows.length} 行 × ${m.rows[0].cells.length} 事件 = ${m.total} 种组合，其中 ${m.legal} 条合法`;
     renderMatrix();
@@ -186,8 +188,14 @@ window.addEventListener('error', function (e) {
 
     const deny = ['ASSIGN', 'ARRIVE', 'NO_SHOW', 'FINISH', 'NEED_PARTS', 'PARTS_ARRIVED', 'ACCEPT', 'REJECT', 'CANCEL']
       .filter(ev => !allow.some(t => t.event === ev));
-    App.$('#denyBox').innerHTML = deny.map(ev => `<button class="dbtn evbtn" data-bad="${ev}">
-      <b>${App.esc(ev)}</b><span>现在点应该被 409 拒</span></button>`).join('');
+    App.$('#denyBox').innerHTML = deny.map(ev => {
+      const role = (TRIG[ev] || ['student'])[0];
+      const noActor = role === 'worker' && !o.worker;
+      const hint = noActor ? '这单还没派师傅：只会得到 403 权限拒绝' : '现在点应该是 409 状态机拒绝';
+      return `<button class="dbtn evbtn" data-bad="${ev}" ${noActor ? 'disabled' : ''}>
+        <b>${App.esc(ev)}</b><span>${App.esc(hint)}</span></button>`;
+    }).join('') + `<div style="grid-column:1/-1;font-size:11px;color:#94a3b8;margin-top:2px">
+      409 = 状态机说这条边不存在；403 = 你这个身份不能调这个接口。两种都不是 200。</div>`;
 
     App.$('#allowBox').querySelectorAll('[data-ev]').forEach(b => b.onclick = () => push(b.dataset.ev, false));
     App.$('#denyBox').querySelectorAll('[data-bad]').forEach(b => b.onclick = () => push(b.dataset.bad, true));
@@ -196,8 +204,9 @@ window.addEventListener('error', function (e) {
   async function push(event, expectFail) {
     const o = cur();
     const t = TRS.find(x => x.from === o.status && x.event === event);
-    const role = t ? t.trigger[0] : (event === 'ASSIGN' || event === 'PARTS_ARRIVED' ? 'admin' : 'student');
-    const actorId = role === 'student' ? o.student.id : role === 'worker' ? o.worker.id : 'A001';
+    // 走不通的边也按"这条边本来的触发方"去调，才拿得到状态机的 409 而不是权限的 403
+    const role = t ? t.trigger[0] : (TRIG[event] ? TRIG[event][0] : 'admin');
+    const actorId = role === 'student' ? o.student.id : role === 'worker' ? (o.worker && o.worker.id) : 'A001';
     const path = '/orders/' + encodeURIComponent(o.no) + '/' + EP[event];
     const body = Object.assign({}, PAYLOAD[event] || {}, { version: o.version });
 
@@ -214,6 +223,9 @@ window.addEventListener('error', function (e) {
       if (d.reason) lines.push(`reason = <b>${App.esc(d.reason)}</b>`);
       if (d.allowed) lines.push('这单现在只能做：' + (d.allowed.length ? d.allowed.map(x => App.esc(x)).join(' / ') : '（什么都不能做）'));
       if (d.changeRequest) lines.push('要改状态得先过变更单 ' + App.esc(d.changeRequest));
+      lines.push(e.status === 403
+        ? `换身份没换成：${App.esc(role)} ${App.esc(actorId || '（这单没有这个身份）')} 调不了这个接口。`
+        : `工单一个字没动：仍是 <b>${App.esc(o.status)}</b>，version 仍是 ${o.version}。`);
       res(lines.join('<br>'), expectFail && e.status === 409 ? 'bad' : 'bad');
     }
   }

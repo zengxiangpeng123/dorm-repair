@@ -638,8 +638,13 @@ function exceptions(db, kind = 'ALL') {
     if (['VERIFYING', 'DONE', 'CLOSED'].includes(o.status) && o.photosAfter.length === 0) {
       push(o, 'MISMATCH', `状态已是「${o.statusLabel}」，完工照 0 张（照片没落库）`, o.finishAt || o.statusAt);
     }
-    if (o.parts && Number(o.parts.amount) > Number(cfg.budgetLine) && o.status === 'PARTS') {
-      push(o, 'OVER_BUDGET', `${o.parts.name}　${o.parts.amount} 元 > 预算线 ${cfg.budgetLine} 元`, o.statusAt);
+    // 超预算采购：这件事发生过就是发生过，配件到了也还挂在清单上，
+    // 一直到工单归档（CLOSED）才交给"最近归档"和事后抽查去承接。
+    if (o.parts && Number(o.parts.amount) > Number(cfg.budgetLine) && !['CLOSED', 'CANCELLED'].includes(o.status)) {
+      const arrived = String(o.parts.status || '').toUpperCase() === 'ARRIVED';
+      push(o, 'OVER_BUDGET',
+        `${o.parts.name}　${o.parts.amount} 元 > 预算线 ${cfg.budgetLine} 元` + (arrived ? '（配件已到、单已回队列，这条留到归档）' : ''),
+        o.statusAt);
     }
     if ((o.reworkCount || 0) >= 2 && !o.reworkOf) {
       push(o, 'REPEAT_REWORK', `同一原单第 ${o.reworkCount} 次返修，建议查根因`, o.statusAt);

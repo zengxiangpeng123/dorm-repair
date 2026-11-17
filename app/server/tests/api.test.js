@@ -296,6 +296,14 @@ test('G. 缺件：预算内自动过、超预算进例外；到货回队列保�
   await env.login('admin');
   const ex = await env.call('GET', '/admin/exceptions?kind=OVER_BUDGET', { role: 'admin' });
   assert.ok(ex.data.items.some(i => i.no === pricey), '超预算要进例外清单');
+
+  // 一次花超预算，这笔账就得留到归档：配件到了也还挂在清单上
+  const arrived = await env.call('POST', `/orders/${pricey}/parts-arrived`, { system: true });
+  assert.equal(arrived.data.status, 'PENDING');
+  const ex2 = await env.call('GET', '/admin/exceptions?kind=OVER_BUDGET', { role: 'admin' });
+  const row = ex2.data.items.find(i => i.no === pricey);
+  assert.ok(row, '配件到了也不能把超预算记录一起消掉（事后抽查要能对上账）');
+  assert.match(row.detail, /配件已到/);
 });
 
 test('H. 楼栋打卡：一次点击 N 条单级 ARRIVE，已进楼的跳过', async (t) => {

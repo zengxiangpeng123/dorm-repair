@@ -65,7 +65,7 @@
           <div class="hd">
             <h2>${App.esc(o.building)} ${App.esc(o.room)} 室</h2>
             <div class="grow"></div>
-            ${over ? '<span class="pill lv" data-lv="较急">等管理员批</span>' : '<span class="pill lv" data-lv="普通">已下单</span>'}
+            ${over ? '<span class="pill lv" data-lv="较急">超预算·已进清单</span>' : '<span class="pill lv" data-lv="普通">已下单</span>'}
           </div>
           <div class="pd">
             <div style="font-size:14px;color:var(--ink-2);margin-bottom:10px">${App.esc(o.desc)}</div>
@@ -81,7 +81,7 @@
             </div>
           </div>
           <div class="ft">${over
-            ? `超预算要管理员批——批了才能下单，这正是管理端"例外清单"里的那一条。`
+            ? `超 ${meta.budgetLine} 元线：这单已经进了管理端「例外清单」，事后抽查就查这一条。货到照常收，账一直留到归档。`
             : `预算线内不用人批，商家直接下单。到货后这单会回队列，重新派给你，紧急度不降。`}</div>
         </div>`;
       }).join('')}
