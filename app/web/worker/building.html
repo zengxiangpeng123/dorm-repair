@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<title>本楼清单 · 宿舍维修</title>
+<link rel="stylesheet" href="/assets/ui.css">
+</head>
+<body>
+<div class="stage">
+  <header class="top">
+    <div><h1 id="bn">本楼</h1><div class="sub" id="sub">—</div></div>
+    <div class="grow"></div>
+    <div id="who"></div>
+  </header>
+
+  <main class="body" id="main"><div class="empty">加载中…</div></main>
+</div>
+
+<script src="/assets/app.js"></script>
+<script>
+(async function () {
+  let meta, user;
+  try { ({ meta, user } = await App.start('worker')); }
+  catch (e) { document.body.innerHTML = '<div class="empty">启动失败：' + App.esc(App.explainErr(e)) + '</div>'; return; }
+
+  const bName = (meta.buildings.find(b => b.id === user.building) || {}).name || '本楼';
+  App.$('#bn').textContent = bName;
+  App.$('#who').innerHTML = App.whoBar('worker', user);
+  App.bindWho(document, 'worker');
+  App.nav('worker', 'building.html');
+
+  const main = App.$('#main');
+
+  async function load() {
+    let d;
+    try { d = await App.api.get('/buildings/' + encodeURIComponent(user.building) + '/board', { role: 'worker' }); }
+    catch (e) { main.innerHTML = `<div class="empty">${App.esc(App.explainErr(e))}</div>`; return; }
+
+    const allFloors = d.floors || [];
+    const all = allFloors.flatMap(f => f.orders);
+    const arrived = all.some(o => o.arriveAt);
+
+    // 上楼只看这几类；等验收 / 返修中 / 已归档的不用上楼，收成一行
+    const WALK = ['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS'];
+    const orders = all.filter(o => WALK.includes(o.status));
+    const rest = all.length - orders.length;
+    const floors = allFloors
+      .map(f => ({ floor: f.floor, orders: f.orders.filter(o => WALK.includes(o.status)) }))
+      .filter(f => f.orders.length);
+
+    App.$('#sub').textContent = arrived
+      ? `已在楼内 · 要上楼 ${orders.length} 单`
+      : `还没进楼 · 要上楼 ${orders.length} 单`;
+
+    if (!orders.length) {
+      main.innerHTML = `<div class="empty"><div class="big">本楼没有要上楼的活</div>
+        ${rest ? `另有 ${rest} 单在等学生验收或返修，不用跑。` : '下一单派过来会显示在这儿'}</div>`;
+      return;
+    }
+
+    main.innerHTML = `
+      ${arrived ? '' : `<div class="note" data-tone="warn" style="margin-bottom:14px"><span class="i">!</span>
+        <div>还没进楼打卡。到楼下先打卡，打卡之后本楼待上门的单会一起转成维修中。</div></div>
+        <button class="btn primary big block" id="btnArrive" style="margin-bottom:16px">进楼打卡 · ${App.esc(bName)}</button>`}
+
+      ${floors.map(f => `
+        <div class="floor-h"><b>${f.floor}F</b><span>${f.orders.length} 间</span></div>
+        ${f.orders.map(o => `<a class="ticket" data-st="${App.esc(o.status)}" href="task.html?no=${encodeURIComponent(o.no)}">
+          <div class="l1">
+            <span class="no">${App.esc(o.room)} 室</span><div class="grow"></div>${App.statusPill(o.status)}
+          </div>
+          <div class="d">${App.esc(o.desc)}</div>
+          <div class="m"><span>${App.esc(o.category)}</span><span class="dot">·</span><span>${App.esc(o.window)}</span><span class="dot">·</span>${App.levelPill(o.level)}</div>
+          ${o.parts ? `<div class="meterline"><span>缺件：${App.esc(o.parts.name)}</span></div>` : ''}
+          ${o.cancelRequest ? `<div class="meterline"><span style="color:var(--warn)">学生申请撤销，等管理员</span></div>` : ''}
+        </a>`).join('')}
+      `).join('')}
+
+      ${(d.emptyFloors || []).length ? `<div class="sk" style="text-align:center;margin:14px 0 4px">${d.emptyFloors.map(f => f + 'F').join('、')} 本层没有单，不用上去</div>` : ''}
+      ${rest ? `<div class="sk" style="text-align:center;margin:6px 0 4px">另有 ${rest} 单在等学生验收或返修，不用上楼</div>` : ''}
+
+      <div class="note" data-tone="info" style="margin-top:6px"><span class="i">i</span>
+        <div>点任意一间进去，就是这单的作业页：能不能进场、能不能当场修好，两个判断走完这单就推到了下一步。</div></div>
+    `;
+
+    const btn = App.$('#btnArrive');
+    if (btn) btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = '打卡中…';
+      try {
+        const r = await App.api.post('/buildings/' + encodeURIComponent(user.building) + '/arrive', {}, { role: 'worker' });
+        App.toast(`已打卡 ${r.ok.length} 单${r.skipped.length ? `，${r.skipped.length} 单本来就在修` : ''}`);
+        await load();
+      } catch (e) { App.toast(App.explainErr(e), 'bad'); btn.disabled = false; btn.textContent = '进楼打卡'; }
+    });
+  }
+
+  await load();
+})();
+</script>
+</body>
+</html>

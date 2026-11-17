@@ -7,7 +7,7 @@
  */
 
 const db = require('./db');
-const { fmt, fmtDay, makeNo, makeReworkNo, HOUR, DAY } = require('./util');
+const { fmt, fmtDay, fmtDate, makeNo, makeReworkNo, HOUR, DAY } = require('./util');
 
 const USERS = [
   { id: 'S001', role: 'student', name: '张同学', building: 'B7', room: '402', phone: '138****0412' },
@@ -40,6 +40,7 @@ function order(o, at, event, actorType, actorId, actorName, note, extra) {
 function build(now) {
   const day = fmtDay(now);
   const T = (msAgo) => fmt(now - msAgo);
+const D = (msAhead) => fmtDate(now + msAhead);
   let seq = 0;
   const n = () => makeNo(day, ++seq);
 
@@ -104,7 +105,7 @@ function build(now) {
       aiBasis: '命中「花洒」，归给排水；不影响基本生活，定普通',
       aiConfidence: 0.72, worker: ['W0428', '李建国', '水电班'],
       createdAt: T(26 * HOUR), assignedAt: T(25 * HOUR), arriveAt: T(24 * HOUR),
-      parts: ['花洒头', 38, null, 'ORDERED'],
+      parts: ['花洒头', 38, D(2 * DAY), 'ORDERED'],
       events: [
         order(null, T(26 * HOUR), 'SUBMIT', 'student', 'S004', '赵同学', '提交报修'),
         order('PENDING', T(25 * HOUR), 'ASSIGN', 'system', 'system', '派工引擎', '本楼栋当班：李建国'),
@@ -138,7 +139,7 @@ function build(now) {
       aiBasis: '命中「洗衣机」，归电器；提到「门都撞开了」，影响使用且有风险，定较急',
       aiConfidence: 0.8, worker: ['W0428', '李建国', '水电班'],
       createdAt: T(3 * DAY), assignedAt: T(3 * DAY - HOUR), arriveAt: T(2.8 * DAY),
-      parts: ['滚筒减震器 ×4', 480, null, 'PENDING_APPROVAL'],
+      parts: ['滚筒减震器 ×4', 480, D(4 * DAY), 'PENDING_APPROVAL'],
       events: [
         order(null, T(3 * DAY), 'SUBMIT', 'student', 'S004', '赵同学', '提交报修'),
         order('PENDING', T(3 * DAY - HOUR), 'ASSIGN', 'system', 'system', '派工引擎', '本楼栋当班：李建国'),
@@ -223,7 +224,7 @@ function build(now) {
       aiBasis: '命中「门/滑轮」，归门窗家具；不影响基本生活，定普通',
       aiConfidence: 0.72, worker: ['W0512', '王海涛', '综合班'],
       createdAt: T(12 * DAY), assignedAt: T(12 * DAY - HOUR), arriveAt: T(11.54 * DAY),
-      parts: ['推拉门滑轮组', 60, null, 'ARRIVED'],
+      parts: ['推拉门滑轮组', 60, D(-1 * DAY), 'ARRIVED'],
       finishAt: T(11.5 * DAY), signAt: T(11 * DAY), closedAt: T(4 * DAY),
       events: [
         order(null, T(12 * DAY), 'SUBMIT', 'student', 'S007', '吴同学', '提交报修'),

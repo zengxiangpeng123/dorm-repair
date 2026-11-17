@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<title>工作台 · 宿舍维修</title>
+<link rel="stylesheet" href="/assets/ui.css">
+</head>
+<body>
+<div class="stage">
+  <header class="top">
+    <div><h1 id="hi">师傅</h1><div class="sub" id="loc">—</div></div>
+    <div class="grow"></div>
+    <div id="who"></div>
+  </header>
+
+  <main class="body" id="main"><div class="empty">加载中…</div></main>
+</div>
+
+<script src="/assets/app.js"></script>
+<script>
+(async function () {
+  let meta, user;
+  try { ({ meta, user } = await App.start('worker')); }
+  catch (e) { document.body.innerHTML = '<div class="empty">启动失败：' + App.esc(App.explainErr(e)) + '</div>'; return; }
+
+  App.$('#hi').textContent = user.name;
+  App.$('#loc').textContent = (user.team || '维修班') + ' · ' + ((meta.buildings.find(b => b.id === user.building) || {}).name || '未排班');
+  App.$('#who').innerHTML = App.whoBar('worker', user);
+  App.bindWho(document, 'worker');
+  App.nav('worker', 'index.html');
+
+  const main = App.$('#main');
+
+  async function load() {
+    let d;
+    try { d = await App.api.get('/worker/todo', { role: 'worker' }); }
+    catch (e) { main.innerHTML = `<div class="empty">${App.esc(App.explainErr(e))}</div>`; return; }
+
+    const b = d.buildings[0];
+    if (!b) {
+      main.innerHTML = `<div class="empty"><div class="big">今天没有派给你的单</div>本楼有单会自动派过来</div>`;
+      return;
+    }
+
+    // 按"该干谁"排序：先在修的，再没上门的，最后等配件的
+    const rank = { REPAIRING: 0, ASSIGNED: 1, PARTS: 2 };
+    const list = b.orders.slice().sort((x, y) => (rank[x.status] ?? 9) - (rank[y.status] ?? 9) || y.floor - x.floor);
+
+    main.innerHTML = `
+      <div class="stats">
+        <div class="stat"><div class="num">${d.summary.todo}</div><div class="lb">待我上门</div></div>
+        <div class="stat"><div class="num">${d.summary.repairing}</div><div class="lb">正在维修</div></div>
+        <div class="stat"><div class="num">${d.summary.parts}</div><div class="lb">等配件</div></div>
+      </div>
+
+      <div class="card">
+        <div class="hd"><h2>${App.esc(b.buildingName)}</h2><div class="grow"></div>
+          <span class="sk">本楼 ${b.progress.total} 单，已完工 ${b.progress.done}</span></div>
+        <div class="pd">
+          <div class="sk" style="margin-bottom:8px">按楼层分布（从上往下跑，少爬楼梯）</div>
+          <div class="chips">
+            ${b.floors.map(f => `<span class="chip">${f.floor}F　<b>${f.count}</b> 单</span>`).join('')}
+          </div>
+        </div>
+        <div class="ft">
+          ${b.arrived
+            ? `<span style="color:var(--ok)">✓ 已在楼内</span>　进楼打卡 ${App.when(b.orders[0].arriveAt || '')} 起`
+            : `<b>还没进楼打卡。</b>到了楼下点一下，本楼待上门的单会一起变成“维修中”。`}
+        </div>
+      </div>
+
+      ${b.arrived ? '' : `<button class="btn primary big block" id="btnArrive" style="margin-bottom:14px">
+        进楼打卡 · ${App.esc(b.buildingName)}
+      </button>`}
+
+      <div class="section-t"><b>今天要跑的</b><span>${list.length} 单</span></div>
+      ${list.map(row).join('')}
+    `;
+
+    const btn = App.$('#btnArrive');
+    if (btn) btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = '打卡中…';
+      try {
+        const r = await App.api.post('/buildings/' + encodeURIComponent(user.building) + '/arrive', {}, { role: 'worker' });
+        const msg = r.ok.length
+          ? `已打卡，${r.ok.length} 单转维修中${r.skipped.length ? `（${r.skipped.length} 单本来就在修）` : ''}`
+          : '打了卡，但没有待上门的单';
+        App.toast(msg);
+        await load();
+      } catch (e) {
+        App.toast(App.explainErr(e), 'bad');
+        btn.disabled = false; btn.textContent = '进楼打卡';
+      }
+    });
+  }
+
+  function row(o) {
+    const st = o.status;
+    const hint = st === 'REPAIRING' ? '接着修'
+      : st === 'PARTS' ? '等配件到货'
+      : '还没上门';
+    return `<a class="ticket" data-st="${App.esc(st)}" href="task.html?no=${encodeURIComponent(o.no)}">
+      <div class="l1">
+        <span class="pill plain" style="background:#eef1f5">${o.floor}F · ${App.esc(o.room)}</span>
+        <div class="grow"></div>
+        ${App.statusPill(st)}
+      </div>
+      <div class="d">${App.esc(o.desc)}</div>
+      <div class="m">
+        <span>${App.esc(o.student.name)}</span><span class="dot">·</span>
+        <span>${App.esc(o.window)}</span><span class="dot">·</span>
+        ${App.levelPill(o.level)}
+      </div>
+      <div class="meterline">
+        <span>${hint}</span><div class="grow"></div>
+        <span>${{ ASSIGNED: '已派', REPAIRING: '已修', PARTS: '等件' }[o.status] || '已停留'} ${App.human(o.timers.stayedMs)}</span>
+      </div>
+      ${o.cancelRequest ? `<div class="note" data-tone="warn" style="margin-top:10px"><span class="i">!</span>
+        <div>学生申请撤销，等管理员定——先别去。</div></div>` : ''}
+    </a>`;
+  }
+
+  await load();
+})();
+</script>
+</body>
+</html>

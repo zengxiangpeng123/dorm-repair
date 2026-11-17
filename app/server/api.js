@@ -98,8 +98,11 @@ on('GET', '/admin/config', ['admin'], (c) => store.getConfig(c.db));
 on('PUT', '/admin/config', ['admin'], (c) => store.setConfig(c.db, c.body || {}));
 on('GET', '/admin/orders', ['admin'], (c) => {
   const status = c.query.status && c.query.status !== 'ALL' ? c.query.status.split(',') : null;
-  const list = store.listOrders(c.db, { status });
-  return biz.pageOf ? biz.pageOf(list.map(o => biz.dto(c.db, o, { shortDesc: true })), c.query.page, c.query.pageSize) : list;
+  const items = store.listOrders(c.db, { status }).map(o => biz.dto(c.db, o, { shortDesc: true }));
+  const page = Math.max(1, Number(c.query.page) || 1);
+  const pageSize = Math.min(500, Math.max(1, Number(c.query.pageSize) || 50));
+  const start = (page - 1) * pageSize;
+  return { items: items.slice(start, start + pageSize), page, pageSize, total: items.length };
 });
 
 /* 演示（DEMO=1 才注册） */
@@ -149,7 +152,9 @@ const ctx = { db: null };
 
 function send(res, code, obj) {
   const body = JSON.stringify(obj);
-  res.writeHead(code, {
+  // 兜底：非法状态码会让 writeHead 抛错并带崩进程，宁可当 500 回
+  const status = Number.isInteger(code) && code >= 100 && code <= 599 ? code : 500;
+  res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(body),
     'Cache-Control': 'no-store'
@@ -252,10 +257,17 @@ async function handle(req, res, db, opts = {}) {
 
   try {
     const out = await hit.route.handler({ db, actor, params: hit.params, query, body, req });
-    const [code, data] = Array.isArray(out) ? out : [200, out];
+    // handler 可以返回裸数据，也可以返回 [状态码, 数据]。
+    // 早先无条件解构数组，某个 handler 返回数组时会把第一条数据当状态码，
+    // writeHead 抛出 ERR_HTTP_INVALID_STATUS_CODE 直接把进程带崩。
+    let code = 200, data = out;
+    if (Array.isArray(out) && typeof out[0] === 'number') { code = out[0]; data = out[1]; }
     send(res, code, { ok: true, data });
   } catch (e) {
-    if (e instanceof S.ApiError || e.code) {
+    // 注意：只有 ApiError 的 code 是 HTTP 码（数字）。
+    // Node 自己的错误也带 code（字符串，如 ERR_HTTP_INVALID_STATUS_CODE），
+    // 早先这里写成 `|| e.code` 会把字符串当状态码塞给 writeHead，直接崩服务。
+    if (e instanceof S.ApiError || typeof e.code === 'number') {
       const code = e.code || 500;
       const error = { code, message: e.message, ...(e.extra || {}) };
       send(res, code, { ok: false, error });

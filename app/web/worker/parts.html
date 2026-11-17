@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<title>等配件 · 宿舍维修</title>
+<link rel="stylesheet" href="/assets/ui.css">
+</head>
+<body>
+<div class="stage">
+  <header class="top">
+    <a class="back" href="index.html" aria-label="返回">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <div><h1>等配件</h1><div class="sub" id="sub">—</div></div>
+    <div class="grow"></div>
+  </header>
+
+  <main class="body" id="main"><div class="empty">加载中…</div></main>
+</div>
+
+<script src="/assets/app.js"></script>
+<script>
+(async function () {
+  let meta, user;
+  try { ({ meta, user } = await App.start('worker')); }
+  catch (e) { document.body.innerHTML = '<div class="empty">启动失败：' + App.esc(App.explainErr(e)) + '</div>'; return; }
+
+  App.nav('worker', 'parts.html');
+  const main = App.$('#main');
+
+  /** 缺件登记是师傅动作，但"配件到货"是仓管/管理员的动作。
+      这里为了 demo 能一键演示，用管理员身份点一下——界面上写清楚是谁在操作。 */
+  async function asAdmin(fn) {
+    const KEY = 'hx.session.admin';
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { }
+    if (!s || !s.token) {
+      const r = await App.api.post('/login', { role: 'admin', id: 'A001' });
+      localStorage.setItem(KEY, JSON.stringify({ token: r.token, user: r.user }));
+    }
+    return fn();
+  }
+
+  async function load() {
+    let d;
+    try { d = await App.api.get('/worker/todo', { role: 'worker' }); }
+    catch (e) { main.innerHTML = `<div class="empty">${App.esc(App.explainErr(e))}</div>`; return; }
+
+    const parts = (d.buildings || []).flatMap(b => b.orders).filter(o => o.status === 'PARTS');
+    const sum = d.summary || {};
+    App.$('#sub').textContent = `${sum.parts || 0} 单在等件 · 待上门 ${sum.todo || 0} · 在修 ${sum.repairing || 0}`;
+
+    if (!parts.length) {
+      main.innerHTML = `<div class="empty"><div class="big">没有在等件的单</div>缺件登记过的单会出现在这儿</div>`;
+      return;
+    }
+
+    main.innerHTML = `
+      ${parts.map(o => {
+        const p = o.parts || {};
+        const over = p.status === 'PENDING_APPROVAL' || String(p.amount) > meta.budgetLine;
+        return `<div class="card" style="margin-bottom:12px">
+          <div class="hd">
+            <h2>${App.esc(o.building)} ${App.esc(o.room)} 室</h2>
+            <div class="grow"></div>
+            ${over ? '<span class="pill lv" data-lv="较急">等管理员批</span>' : '<span class="pill lv" data-lv="普通">已下单</span>'}
+          </div>
+          <div class="pd">
+            <div style="font-size:14px;color:var(--ink-2);margin-bottom:10px">${App.esc(o.desc)}</div>
+            <div class="rows" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+              <div class="row"><div class="k">配件</div><div class="v">${App.esc(p.name || '—')}</div></div>
+              <div class="row"><div class="k">金额</div><div class="v">¥ ${App.esc(p.amount || '—')}${over ? ` <span class="sk">超 ${meta.budgetLine} 元线</span>` : ''}</div></div>
+              <div class="row"><div class="k">预计到货</div><div class="v">${App.esc(p.etaDate || '—')}</div></div>
+              <div class="row"><div class="k">单号</div><div class="v no">${App.esc(o.no)}</div></div>
+            </div>
+            <div style="display:grid;gap:8px;margin-top:12px">
+              <button class="btn primary block" data-arrive="${App.esc(o.no)}">到货了，确认收货</button>
+              <a class="btn block" href="task.html?no=${encodeURIComponent(o.no)}">看这单详情</a>
+            </div>
+          </div>
+          <div class="ft">${over
+            ? `超预算要管理员批——批了才能下单，这正是管理端"例外清单"里的那一条。`
+            : `预算线内不用人批，商家直接下单。到货后这单会回队列，重新派给你，紧急度不降。`}</div>
+        </div>`;
+      }).join('')}
+
+      <div class="note" data-tone="info"><span class="i">i</span>
+        <div>为什么让你填金额：填了才能自动跟预算线比，不用另外找人签字。这也是事后抽查时唯一能对上的数。</div></div>
+    `;
+
+    main.querySelectorAll('[data-arrive]').forEach(b => b.addEventListener('click', async () => {
+      const no = b.dataset.arrive;
+      b.disabled = true; b.textContent = '确认中…';
+      try {
+        await asAdmin(() => App.api.post('/orders/' + encodeURIComponent(no) + '/parts-arrived', {}, { role: 'admin' }));
+        App.toast('已确认到货，这单回队列了');
+        await load();
+      } catch (e) { App.toast(App.explainErr(e), 'bad'); b.disabled = false; b.textContent = '到货了，确认收货'; }
+    }));
+  }
+
+  await load();
+})();
+</script>
+</body>
+</html>
