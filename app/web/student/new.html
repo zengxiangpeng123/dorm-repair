@@ -134,11 +134,9 @@
       const o = await App.api.post('/orders', {
         desc: desc.value.trim(),
         photoUrls: photos.map(p => p.url),
-        window: win
+        window: win,
+        autoAssign: true           // 服务端自动受理：本楼有当班师傅就直接派工
       }, { role: 'student' });
-
-      // 提交后立刻自动派工（本楼有当班师傅就派）
-      try { await App.api.post('/orders/' + encodeURIComponent(o.no) + '/assign', {}, { role: 'system' }); } catch (e) {}
 
       const s = App.sheet({
         title: '报好了',
@@ -148,6 +146,7 @@
             <div class="row"><div class="k">故障类型</div><div class="v">${App.esc(o.ai.category)}</div></div>
             <div class="row"><div class="k">紧急程度</div><div class="v">${App.levelPill(o.ai.level)}</div></div>
             <div class="row"><div class="k">可上门</div><div class="v">${App.esc(win)}</div></div>
+            <div class="row"><div class="k">谁上门</div><div class="v">${o.worker ? App.esc(o.worker.name) + '（' + App.esc(o.worker.team) + '）' : '等派工'}</div></div>
             <div class="row"><div class="k">现在状态</div><div class="v">${App.statusPill(o.status)}</div></div>
           </div>
           <div class="note" data-tone="info" style="margin:12px 0 0"><span class="i">AI</span><div>

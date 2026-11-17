@@ -116,7 +116,6 @@ function submit(db, actor, body = {}) {
   if (!before.length) throw new ApiError(422, '现场照片至少 1 张');
   if (desc.length < 4) throw new ApiError(422, '描述至少 4 个字');
   const win = body.window && WINDOWS.includes(body.window) ? body.window : WINDOWS[0];
-
   const me = store.getUser(db, actor.id) || {};
   const building = body.building || me.building;
   const room = body.room || me.room;
@@ -126,9 +125,8 @@ function submit(db, actor, body = {}) {
   const nowMs = store.nowMs(db);
   const day = util.fmtDay(nowMs);
 
-  return withTx(db, () => {
-    const no = util.makeNo(day, store.nextSeq(db, day));
-    store.insertOrder(db, {
+  const created = withTx(db, () => {
+    const no = util.makeNo(day, store.nextSeq(db, day));    store.insertOrder(db, {
       no,
       status: S.next('NEW', 'SUBMIT'),
       version: 1,
@@ -148,6 +146,17 @@ function submit(db, actor, body = {}) {
     });
     return detail(db, no);
   });
+
+  // 系统自动受理：带 autoAssign 时，本楼有当班师傅就直接派工（PENDING → ASSIGNED，actor=system）
+  if (body.autoAssign) {
+    try {
+      assign(db, { type: 'system', id: 'system', name: '系统自动派工' }, created.no);
+    } catch (e) {
+      /* 没有当班师傅 / 状态不对：单子留在待派工，不拦学生提交 */
+    }
+    return detail(db, created.no);
+  }
+  return created;
 }
 
 /** 2 ASSIGN 派工 */

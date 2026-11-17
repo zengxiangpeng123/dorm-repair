@@ -405,3 +405,32 @@ test('K. 师傅的任务列表与查询', async (t) => {
   const bad = await env.call('GET', '/orders/BX20260101001', { role: 'worker' });
   assert.equal(bad.status, 404);
 });
+
+test('L. 建单时带 autoAssign = 服务端自动受理并派工', async (t) => {
+  const env = await boot({ empty: true });
+  t.after(() => env.close());
+
+  // 没有种子单时先补两个账号，否则没人可派
+  await env.call('POST', '/demo/reset', { role: 'admin' });
+
+  await env.login('student');
+  const plain = await env.call('POST', '/orders', {
+    body: { desc: '洗手池下面的软管一直滴水，快接满了', photoUrls: ['demo://a.jpg'] }
+  });
+  assert.equal(plain.status, 201);
+  assert.equal(plain.data.status, 'PENDING', '不带 autoAssign 必须是待派工，行为不变');
+  assert.equal(plain.data.worker, null);
+
+  const auto = await env.call('POST', '/orders', {
+    body: { desc: '洗手池下面的软管一直滴水，快接满了', photoUrls: ['demo://b.jpg'], autoAssign: true }
+  });
+  assert.equal(auto.status, 201);
+  assert.equal(auto.data.status, 'ASSIGNED', '带 autoAssign 时服务端自己派工');
+  assert.ok(auto.data.worker && auto.data.worker.id, '返回体里要带派给了谁');
+
+  const evs = await env.call('GET', `/orders/${auto.data.no}/events`, { role: 'student' });
+  const assignEv = evs.data.items.find((e) => e.event === 'ASSIGN');
+  assert.ok(assignEv, '要留下 ASSIGN 事件');
+  assert.equal(assignEv.actorType, 'system');
+  assert.equal(assignEv.manual, 0, '系统自动派工要算 manual=0，不能算人的功劳');
+});
