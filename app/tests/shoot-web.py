@@ -12,7 +12,8 @@ EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 BASE = os.environ.get("APP_BASE", "http://localhost:5173")
 TMP = os.path.join(tempfile.gettempdir(), "pv5web")
 OUT = os.path.join(tempfile.gettempdir(), "pv5", "crop")
-BG = (246, 247, 249)          # --bg
+BG = (246, 247, 249)          # --bg（手机页）
+BG2 = (244, 246, 249)         # 桌面页 body 底色 #f4f6f9
 PAD = 60                      # 内容下方多留一点
 
 
@@ -48,6 +49,7 @@ def shoot(url, w, h, out, dsf):
     udd = os.path.join(TMP, "udd_" + uuid.uuid4().hex)
     cmd = [EDGE, "--headless=new", "--disable-gpu", "--no-sandbox", "--hide-scrollbars",
            "--force-device-scale-factor=%d" % dsf,
+           "--virtual-time-budget=4000",
            "--user-data-dir=" + udd,
            "--screenshot=" + out,
            "--window-size=%d,%d" % (w, h),
@@ -69,7 +71,7 @@ def last_row(im, x0, x1, y0=0):
     for y in range(h - 1, y0, -1):
         for x in range(x0, min(x1, w), 3):
             p = px[x, y]
-            if any(abs(p[i] - BG[i]) > 7 for i in range(3)):
+            if any(abs(p[i] - BG[i]) > 7 for i in range(3)) and any(abs(p[i] - BG2[i]) > 7 for i in range(3)):
                 return y
     return y0
 
@@ -91,10 +93,10 @@ def shot(url_path, mode="m", guess=None, name=None):
         guess = guess or 1200
         url = "%s%s%sshot=1" % (BASE, url_path, "&" if "?" in url_path else "?")
         im = shoot(url, w, guess, os.path.join(TMP, "d.png"), dsf)
-        last = last_row(im, 0, im.size[0])
+        last = last_row(im, 300, im.size[0])          # 从 x=300 起采样：左侧深色导航整列到底都是非背景色
         if last >= im.size[1] - 30:
             im = shoot(url, w, int(guess * 1.7), os.path.join(TMP, "d2.png"), dsf)
-            last = last_row(im, 0, im.size[0])
+            last = last_row(im, 300, im.size[0])
         im = im.crop((0, 0, im.size[0], min(im.size[1], last + PAD)))
 
     dst = os.path.join(OUT, (name or url_path.strip("/").replace("/", "-").replace(".html", "")) + ".png")

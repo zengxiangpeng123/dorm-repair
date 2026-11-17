@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>状态机自检台 · 宿舍维修</title>
+<link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/assets/desk.css">
+<style>
+  .lab { display: grid; grid-template-columns: 372px minmax(0, 1fr); gap: 14px; align-items: start; }
+  .lab-l, .lab-r { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .mtr { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .mtr th, .mtr td { border-bottom: 1px solid #f3f6fa; padding: 4px 2px; text-align: center; font-size: 10.5px; color: #94a3b8; }
+  .mtr thead th { font-weight: 500; color: #64748b; height: 78px; vertical-align: bottom; }
+  .mtr thead th span { display: inline-block; transform: rotate(-58deg); transform-origin: bottom left; white-space: nowrap; font-size: 10px; letter-spacing: .01em; }
+  .mtr tbody th { text-align: left; padding-left: 10px; font-size: 11.5px; font-weight: 600; color: #0b1c30; white-space: nowrap; background: #fafbfd; }
+  .mtr td.ok { color: #067647; font-weight: 600; background: #f2fbf6; }
+  .mtr tr:hover td { background: #f7fafd; }
+  .mtr tr:hover td.ok { background: #eaf7f0; }
+  .evbtn { display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+    height: auto; padding: 9px 12px; text-align: left; line-height: 1.35; }
+  .evbtn b { font-size: 12.5px; }
+  .evbtn span { font-size: 10.5px; color: #94a3b8; }
+  .evlist { display: grid; gap: 6px; padding: 12px 16px; }
+  .res { margin: 0 16px 14px; padding: 10px 12px; border-radius: 8px; font-size: 12px; line-height: 1.6; background: #f7fafd; color: #475467; border: 1px solid #eef2f7; }
+  .res b { color: #0b1c30; }
+  .res.bad { background: #fef3f2; border-color: #fecdca; color: #b42318; }
+  .res.okr { background: #f2fbf6; border-color: #d3f2e2; color: #067647; }
+  .tr-list { width: 100%; border-collapse: collapse; }
+  .tr-list td { padding: 6px 12px; border-bottom: 1px solid #f3f6fa; font-size: 11.5px; color: #475467; }
+  .tr-list .n { color: #94a3b8; width: 34px; }
+  .tr-list .ev { font-weight: 600; color: #0b1c30; width: 128px; font-variant-numeric: tabular-nums; }
+  .tr-list .who { text-align: right; color: #94a3b8; }
+  .legend { padding: 10px 16px 14px; font-size: 11.5px; color: #64748b; line-height: 1.7; }
+  select.ord { height: 32px; border: 1px solid #d6dee9; border-radius: 6px; font: inherit; font-size: 12.5px; padding: 0 6px; background: #fff; }
+</style>
+</head>
+<body class="desk-body">
+<div class="desk">
+  <aside class="side">
+    <div class="brand"><b>状态机自检台</b><span>SYS-004 · 9 状态 13 转移</span></div>
+    <nav>
+      <a class="is-on" href="#"><span class="ico">⌗</span>自检台</a>
+      <a href="/admin/"><span class="ico">▤</span>监测台</a>
+      <a href="/"><span class="ico">↩</span>回到三端入口</a>
+    </nav>
+    <div class="side-foot">
+      <b>这张台子在证明什么</b><br>
+      13 条边能走通，其余 107 种组合当场 409 拒掉，而且被拒之后单子一个字都没变。
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <h1>状态机自检台</h1>
+      <div class="meta" id="meta">—</div>
+      <div class="grow"></div>
+      <button class="dbtn" id="btnReload">重新取一遍表</button>
+    </div>
+    <div class="wrap">
+      <div class="lab">
+        <div class="lab-l">
+          <section class="panel">
+            <header>选一张单手动推 <span class="spacer"></span><span class="hint">按真实接口走</span></header>
+            <div class="evlist">
+              <select class="ord" id="sel"></select>
+              <div id="cur" style="font-size:12px;color:#475467"></div>
+            </div>
+          </section>
+          <section class="panel">
+            <header>这张单现在允许的事件 <span class="spacer"></span><span class="hint" id="allowCount"></span></header>
+            <div class="evlist" id="allowBox"></div>
+          </section>
+          <section class="panel">
+            <header>会被拒的事件 <span class="spacer"></span><span class="hint">未开放或换一张单试</span></header>
+            <div class="evlist" id="denyBox"></div>
+          </section>
+          <div class="res" id="res">上面点一下，结果会写在这儿。</div>
+        </div>
+
+        <div class="lab-r">
+          <section class="panel">
+            <header>全表自检 <span class="spacer"></span><span class="hint" id="mtrHint"></span></header>
+            <div class="pn" style="overflow-x:auto">
+              <table class="mtr" id="mtr"></table>
+            </div>
+            <div class="legend" id="mtrLegend"></div>
+          </section>
+
+          <section class="panel">
+            <header>13 条合法转移 <span class="spacer"></span><span class="hint">SYS-004 第五条</span></header>
+            <div class="pn">
+              <table class="tr-list" id="trs"></table>
+            </div>
+            <div class="legend">其余 107 种组合一律拒绝，返回 HTTP 409，并带上「这单现在能做哪些事」。</div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/app.js"></script>
+<script>
+window.addEventListener('error', function (e) {
+  document.querySelector('#res').innerHTML = '脚本出错：' + (e.message || e.type) + ' @' + (e.lineno || '');
+  document.querySelector('#res').className = 'res bad';
+});
+</script>
+<script>
+(async function () {
+  let meta, MTX, TRS, ORDS = [], sel = null;
+
+  const tokens = {};                 // id → token，按需登录，避免每次都要密码
+  async function tokenFor(role, id) {
+    const k = role + ':' + id;
+    if (!tokens[k]) {
+      const r = await App.api.post('/login', { role, id });
+      tokens[k] = r.token;
+    }
+    return tokens[k];
+  }
+
+  const EP = {
+    ASSIGN: 'assign', ARRIVE: 'arrive', NO_SHOW: 'no-show', FINISH: 'finish',
+    NEED_PARTS: 'need-parts', PARTS_ARRIVED: 'parts-arrived', ACCEPT: 'accept',
+    REJECT: 'reject', CANCEL: 'cancel', AUTO_ACCEPT: 'auto-accept', ARCHIVE: 'archive'
+  };
+
+  const PAYLOAD = {
+    NO_SHOW: { reason: 'KNOCK_NO_ANSWER' },
+    FINISH: { photoUrls: ['demo://lab/after.jpg'], noteTags: ['清洁现场'], note: '自检台演示' },
+    NEED_PARTS: { name: '演示配件', amount: 50, etaDate: new Date(Date.now() + 172800000).toISOString().slice(0, 10) },
+    ACCEPT: { signerName: '演示签字' },
+    REJECT: { reason: '还没修好（自检台演示）' },
+    CANCEL: { reason: '不需要修了' }
+  };
+
+  function res(html, cls) {
+    const el = App.$('#res');
+    el.className = 'res' + (cls ? ' ' + cls : '');
+    el.innerHTML = html;
+  }
+
+  async function boot() {
+    meta = await App.api.get('/meta');
+    const [m, t, o] = await Promise.all([
+      App.api.get('/state/matrix'),
+      App.api.get('/state/transitions'),
+      App.api.get('/admin/orders?pageSize=200', { token: await tokenFor('admin', 'A001') })
+    ]);
+    MTX = m; TRS = t.transitions; ORDS = o.items;
+
+    App.$('#meta').textContent = `${m.rows.length} 行 × ${m.rows[0].cells.length} 事件 = ${m.total} 种组合，其中 ${m.legal} 条合法`;
+    renderMatrix();
+    renderTransitions();
+    fillSelect();
+  }
+
+  function fillSelect() {
+    const s = App.$('#sel');
+    s.innerHTML = ORDS.map(o => `<option value="${App.esc(o.no)}">${App.esc(o.no)} · ${App.esc(o.statusLabel)} · ${App.esc(o.building)} ${App.esc(o.room)}</option>`).join('');
+    if (!ORDS.some(o => o.no === sel) && ORDS.length) sel = ORDS[0].no;
+    s.value = sel;
+    s.onchange = () => { sel = s.value; renderOrder(); };
+    renderOrder();
+  }
+
+  const cur = () => ORDS.find(o => o.no === sel);
+
+  function renderOrder() {
+    const o = cur();
+    if (!o) return;
+    App.$('#cur').innerHTML = `当前：${App.statusPill(o.status)} <span style="color:#94a3b8">version ${o.version}</span>
+      <div style="margin-top:4px;color:#94a3b8">${App.esc(o.category)} · ${App.esc(o.level)} · ${o.worker ? '师傅 ' + App.esc(o.worker.name) : '还没派师傅'} · 学生 ${App.esc(o.student.name)}</div>`;
+
+    const allow = TRS.filter(t => t.from === o.status);
+    App.$('#allowCount').textContent = allow.length ? `${allow.length} 条` : '没有（终态或空表）';
+    App.$('#allowBox').innerHTML = allow.length ? allow.map(t => {
+      const role = t.trigger[0];
+      const who = role === 'student' ? `学生 ${o.student.id}` : role === 'worker' ? (o.worker ? `师傅 ${o.worker.id}` : '需要先派工') : '系统 / 管理员';
+      return `<button class="dbtn evbtn" data-ev="${t.event}" ${role === 'worker' && !o.worker ? 'disabled' : ''}>
+        <b>${App.esc(App.EVENT_CN ? (App.EVENT_CN[t.event] || t.event) : t.event)} → ${App.esc(meta.statuses.find(x => x.code === t.to).label)}</b>
+        <span>${t.event} · ${App.esc(who)}</span></button>`;
+    }).join('') : '<div style="font-size:12px;color:#94a3b8">这张单已经到头了。</div>';
+
+    const deny = ['ASSIGN', 'ARRIVE', 'NO_SHOW', 'FINISH', 'NEED_PARTS', 'PARTS_ARRIVED', 'ACCEPT', 'REJECT', 'CANCEL']
+      .filter(ev => !allow.some(t => t.event === ev));
+    App.$('#denyBox').innerHTML = deny.map(ev => `<button class="dbtn evbtn" data-bad="${ev}">
+      <b>${App.esc(ev)}</b><span>现在点应该被 409 拒</span></button>`).join('');
+
+    App.$('#allowBox').querySelectorAll('[data-ev]').forEach(b => b.onclick = () => push(b.dataset.ev, false));
+    App.$('#denyBox').querySelectorAll('[data-bad]').forEach(b => b.onclick = () => push(b.dataset.bad, true));
+  }
+
+  async function push(event, expectFail) {
+    const o = cur();
+    const t = TRS.find(x => x.from === o.status && x.event === event);
+    const role = t ? t.trigger[0] : (event === 'ASSIGN' || event === 'PARTS_ARRIVED' ? 'admin' : 'student');
+    const actorId = role === 'student' ? o.student.id : role === 'worker' ? o.worker.id : 'A001';
+    const path = '/orders/' + encodeURIComponent(o.no) + '/' + EP[event];
+    const body = Object.assign({}, PAYLOAD[event] || {}, { version: o.version });
+
+    try {
+      const tk = await tokenFor(role, actorId);
+      const r = await App.api.post(path, body, { token: tk });
+      res(`<b>${event} 成功了</b><br>${App.esc(o.no)}：${App.esc(o.status)} → <b>${App.esc(r.status || r.to || '')}</b>
+        ${r.reworkNo ? '<br>生成了返修单 ' + App.esc(r.reworkNo) : ''}`, 'okr');
+      await refreshOrders();
+    } catch (e) {
+      const d = e.detail || {};
+      const lines = [`<b>${event} 被拒</b>　HTTP ${e.status}　${App.esc(e.code || '')}`,
+        App.esc(e.message)];
+      if (d.reason) lines.push(`reason = <b>${App.esc(d.reason)}</b>`);
+      if (d.allowed) lines.push('这单现在只能做：' + (d.allowed.length ? d.allowed.map(x => App.esc(x)).join(' / ') : '（什么都不能做）'));
+      if (d.changeRequest) lines.push('要改状态得先过变更单 ' + App.esc(d.changeRequest));
+      res(lines.join('<br>'), expectFail && e.status === 409 ? 'bad' : 'bad');
+    }
+  }
+
+  async function refreshOrders() {
+    const o = await App.api.get('/admin/orders?pageSize=200', { token: await tokenFor('admin', 'A001') });
+    ORDS = o.items;
+    const s = App.$('#sel');
+    s.innerHTML = ORDS.map(x => `<option value="${App.esc(x.no)}">${App.esc(x.no)} · ${App.esc(x.statusLabel)} · ${App.esc(x.building)} ${App.esc(x.room)}</option>`).join('');
+    s.value = sel;
+    renderOrder();
+  }
+
+  function renderMatrix() {
+    const t = App.$('#mtr');
+    const head = MTX.rows[0].cells.map(c => `<th><span>${App.esc(c.event)}</span></th>`).join('');
+    t.innerHTML = `<thead><tr><th></th>${head}</tr></thead>
+      <tbody>${MTX.rows.map(r => `<tr><th>${App.esc(r.from)}</th>${r.cells.map(c => `<td class="${c.legal ? 'ok' : ''}">${c.legal ? '→' : '·'}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    App.$('#mtrHint').textContent = `${MTX.legal} / ${MTX.total} 合法`;
+    App.$('#mtrLegend').innerHTML = `绿格是能走的边（${MTX.legal} 条），点号是不能走的（${MTX.total - MTX.legal} 种）。表是从服务端 <code>Map</code> 直接吐出来的，不是画面里画的。`;
+  }
+
+  function renderTransitions() {
+    App.$('#trs').innerHTML = TRS.map((t, i) => `<tr>
+      <td class="n">${i + 1}</td>
+      <td>${App.esc(t.from)}</td>
+      <td class="ev">${App.esc(t.event)}</td>
+      <td>→ ${App.esc(t.to)}</td>
+      <td class="who">${App.esc(t.trigger.join('/'))}</td>
+    </tr>`).join('');
+  }
+
+  App.$('#btnReload').onclick = async () => { await boot(); res('表已重新取一遍。'); };
+
+  try { await boot(); res('选一张单，点上面的事件试试。走不通的边会当场 409。'); }
+  catch (e) { res('启动失败：' + App.esc(App.explainErr(e)), 'bad'); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>监测台 · 宿舍维修管理端</title>
+<link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/assets/desk.css">
+<style>
+  .muted { color: #64748b; }
+  .nowrap { white-space: nowrap; }
+  .cfg { display: grid; gap: 10px; padding: 14px 18px; }
+  .cfg label { display: grid; grid-template-columns: 1fr 110px; align-items: center; gap: 10px; font-size: 12.5px; color: #475467; }
+  .cfg input { height: 30px; padding: 0 8px; border: 1px solid #d6dee9; border-radius: 6px; font: inherit; font-size: 13px; }
+  .cfg .save { justify-self: start; margin-top: 2px; }
+  .toast-desk { position: fixed; right: 22px; bottom: 22px; z-index: 80; display: grid; gap: 8px; }
+  .toast-desk div { background: #0c1a2b; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 10px 24px rgba(12,26,43,.22); }
+  .toast-desk div.bad { background: #7a271a; }
+</style>
+</head>
+<body class="desk-body">
+<div class="desk">
+  <aside class="side">
+    <div class="brand"><b>宿舍维修 · 管理端</b><span>后勤维修部 · 办公室网页</span></div>
+    <nav>
+      <a class="is-on" href="#top"><span class="ico">▤</span>监测台</a>
+      <a href="#exceptions"><span class="ico">!</span>例外清单 <span id="navEx" style="margin-left:auto;font-size:11px;color:#7f93aa"></span></a>
+      <a href="#ledger"><span class="ico">▥</span>楼栋台账</a>
+      <a href="#rules"><span class="ico">§</span>口径与介入点</a>
+      <a href="/lab.html"><span class="ico">⌗</span>状态机自检台</a>
+      <a href="/"><span class="ico">↩</span>回到三端入口</a>
+    </nav>
+    <div class="side-foot">
+      <b>督察守则</b><br>
+      不派工 · 不催办 · 不点头<br>
+      管理端大部分时间是空的，这就是目标。
+    </div>
+  </aside>
+
+  <div class="main" id="top">
+    <div class="top">
+      <h1>监测台</h1>
+      <div class="meta" id="clock">—</div>
+      <div class="grow"></div>
+      <button class="dbtn" id="btnRefresh">刷新</button>
+      <button class="dbtn" id="btnAdvance">快进 7 天</button>
+      <button class="dbtn" id="btnReset">重置演示数据</button>
+    </div>
+
+    <div class="wrap" id="wrap">
+      <div class="empty" style="padding:60px 0">加载中…</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-desk" id="toast"></div>
+
+<script src="/assets/app.js"></script>
+<script>
+window.addEventListener('error', function (e) {
+  var w = document.querySelector('#wrap');
+  if (w) w.innerHTML = '<div class="empty">脚本出错：' + (e.message || e.type) + '<br><span style="font-size:12px;color:#98a2b3">' + (e.filename || '') + ':' + (e.lineno || '') + '</span></div>';
+});
+</script>
+<script>
+(async function () {
+  let meta, user;
+  try { ({ meta, user } = await App.start('admin')); }
+  catch (e) { document.querySelector('#wrap').innerHTML = '<div class="empty">启动失败：' + App.esc(App.explainErr(e)) + '</div>'; return; }
+
+  const wrap = App.$('#wrap');
+  const cfgKeys = [
+    ['budgetLine', '采购预算线（元）'],
+    ['verifyHours', '验收超时（小时）'],
+    ['archiveDays', '归档倒计时（天）']
+  ];
+
+  function toast(msg, bad) {
+    const box = App.$('#toast');
+    const d = document.createElement('div');
+    if (bad) d.className = 'bad';
+    d.textContent = msg;
+    box.appendChild(d);
+    setTimeout(() => d.remove(), 3200);
+  }
+
+  /* ---------------- 取数 ---------------- */
+  let D, E, ORDS, CFG;
+
+  async function pull() {
+    const [d, e, o, c] = await Promise.all([
+      App.api.get('/admin/dashboard', { role: 'admin' }),
+      App.api.get('/admin/exceptions', { role: 'admin' }),
+      App.api.get('/admin/orders?pageSize=200', { role: 'admin' }),
+      App.api.get('/admin/config', { role: 'admin' })
+    ]);
+    D = d; E = e; ORDS = o; CFG = c;
+  }
+
+  /* ---------------- 渲染 ---------------- */
+  const ACTIVE = ['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS', 'VERIFYING', 'REWORKING'];
+
+  function render() {
+    App.$('#clock').textContent = `${App.when(D.serverNow || new Date())} · 后勤维修部 ${user.name}`;
+    App.$('#navEx').textContent = E.items.length ? E.items.length : '';
+
+    const pct = Math.round((D.zeroManual.rate || 0) * 100);
+    const orders = ORDS.items.filter(o => ACTIVE.includes(o.status));
+    const archived = ORDS.items.filter(o => o.status === 'DONE' || o.status === 'CLOSED')
+      .sort((a, b) => (b.closedAt || b.signAt || '').localeCompare(a.closedAt || a.signAt || '')).slice(0, 6);
+
+    wrap.innerHTML = `
+      <div class="strip">
+        <div><div class="lab">在办工单</div><div class="num">${D.active}</div></div>
+        <div><div class="lab">待归档</div><div class="num">${D.pendingArchive}</div></div>
+        <div><div class="lab">例外待看</div><div class="num">${E.items.length}</div></div>
+        <div>
+          <div class="lab">零人工完成率</div>
+          <div class="num">${pct}% <small style="font-weight:500;color:#64748b">（${D.zeroManual.zero}/${D.zeroManual.total} 张）</small></div>
+          <div class="auto-band" style="margin-top:9px"><i style="width:${pct}%"></i><b style="left:calc(${pct}% - 1px)"></b></div>
+          <div class="auto-scale"><span>全靠人盯</span><span>全自动</span></div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <section class="panel">
+          <header>在办工单 <span class="spacer"></span><span class="hint">${orders.length} 单 · 按状态停留时间排</span></header>
+          <div class="pn">
+            <table class="dt">
+              <thead><tr><th>单号</th><th>位置</th><th>故障</th><th>紧急</th><th>状态</th><th>师傅</th><th class="r">已停留</th></tr></thead>
+              <tbody>${orders.length ? orders.map(o => `<tr>
+                <td class="nowrap">${App.esc(o.no)}${o.reworkOf ? ' <span class="muted">返修' + o.reworkIndex + '</span>' : ''}</td>
+                <td class="nowrap">${App.esc(o.building)} ${App.esc(o.room)}</td>
+                <td>${App.esc(o.category)}</td>
+                <td class="nowrap">${App.levelPill(o.level)}</td>
+                <td class="nowrap">${App.statusPill(o.status)}${timerLine(o)}</td>
+                <td class="nowrap">${o.worker ? App.esc(o.worker.name) : '<span class="muted">—</span>'}</td>
+                <td class="r nowrap">${App.human(o.timers.stayedMs)}</td>
+              </tr>`).join('') : `<tr><td colspan="7" class="muted" style="padding:22px 0;text-align:center">现在没有在办的单</td></tr>`}</tbody>
+            </table>
+          </div>
+          <div class="panel-foot">排队规则：安全闸 → 截止时间 → 紧急度 → 先来先修。楼栋只用来攒批，不参与先后；到访未遇、缺件到货都回待派工重排。</div>
+        </section>
+
+        <section class="panel" id="exceptions">
+          <header>例外待看 <span class="spacer"></span><span class="hint">${E.items.length} 条 · 只露这四类</span></header>
+          <div class="pn" style="padding:12px 16px">
+            ${E.items.length ? E.items.map(exRow).join('') : '<div class="muted" style="text-align:center;padding:34px 0">今天没有例外。<br>管理端大部分时间是空的，这就是目标。</div>'}
+          </div>
+          <div class="panel-foot">这四类之外一律不露。前三类不占状态位、不改工单状态；第四类是唯一由人决定和改状态的入口。</div>
+        </section>
+      </div>
+
+      <div class="row2">
+        <div class="col">
+          <section class="panel" id="ledger">
+            <header>楼栋台账 <span class="spacer"></span><span class="hint">在办 / 已完成 / 例外</span></header>
+            <div class="pn">
+              <table class="dt">
+                <thead><tr><th>楼栋</th><th class="r">在办</th><th class="r">已完成</th><th class="r">例外</th></tr></thead>
+                <tbody>${D.byBuilding.map(b => `<tr>
+                  <td>${App.esc(b.buildingName)} <span class="muted">${App.esc(b.buildingId)}</span></td>
+                  <td class="r">${b.active}</td><td class="r">${b.done}</td>
+                  <td class="r">${b.exceptions || 0}</td></tr>`).join('')}</tbody>
+              </table>
+            </div>
+            <div class="panel-foot">同一间房挂报修、巡检、保洁记录，靠的就是这套台账；现在只有报修。</div>
+          </section>
+
+          <section class="panel">
+            <header>最近归档 <span class="spacer"></span><span class="hint">已完成与已关闭</span></header>
+            <div class="pn">
+              <table class="dt">
+                <thead><tr><th>单号</th><th>位置</th><th>故障</th><th class="r">返修</th><th class="r">人介入</th><th>结果</th></tr></thead>
+                <tbody>${archived.length ? archived.map(o => `<tr>
+                  <td class="nowrap">${App.esc(o.no)}</td>
+                  <td class="nowrap">${App.esc(o.building)} ${App.esc(o.room)}</td>
+                  <td>${App.esc(o.category)}</td>
+                  <td class="r">${o.reworkCount || 0}</td>
+                  <td class="r">${manualCount(o)}</td>
+                  <td class="nowrap">${App.statusPill(o.status)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted" style="text-align:center;padding:20px 0">还没有归档的单</td></tr>'}</tbody>
+              </table>
+            </div>
+            <div class="panel-foot">归档之后才回看：这张单几个人动过手、返修几次，都在这一行里。</div>
+          </section>
+
+          <section class="panel">
+            <header>两颗计时器 <span class="spacer"></span><span class="hint">各算各的，起点不一样</span></header>
+            <div class="pn">
+              <table class="dt">
+                <thead><tr><th>单号</th><th>位置</th><th>哪颗</th><th>起点</th><th>截止</th><th class="r">还剩</th></tr></thead>
+                <tbody>${(D.timers || []).map(t => {
+                  const which = t.t1 ? 'T1 验收倒计时' : 'T2 归档倒计时';
+                  const x = t.t1 || t.t2;
+                  return `<tr>
+                    <td class="nowrap">${App.esc(t.no)}</td>
+                    <td class="nowrap">${App.esc(t.building)} ${App.esc(t.room)}</td>
+                    <td class="nowrap">${which}</td>
+                    <td class="nowrap muted">${App.esc(x.from)}</td>
+                    <td class="nowrap muted">${App.esc(x.deadline)}</td>
+                    <td class="r nowrap">${App.human(x.leftMs)}</td></tr>`;
+                }).join('') || '<tr><td colspan="6" class="muted" style="text-align:center;padding:20px 0">现在没有在跑的计时器</td></tr>'}</tbody>
+              </table>
+            </div>
+            <div class="panel-foot">T1 从师傅完工起算 ${meta.verifyHours} 小时，到点系统自动验收；T2 从学生签字起算 ${meta.archiveDays} 天，到点自动归档。同一张单不会同时有两颗。</div>
+          </section>
+        </div>
+
+        <div class="col">
+          <section class="panel" id="rules">
+            <header>口径与介入点 <span class="spacer"></span><span class="hint">SYS-004</span></header>
+            <div class="pn" style="padding:12px 16px">
+              <div class="point"><b>① 提交即入队</b>系统定级、按四层规则排队、派给本楼栋当班师傅。人可以不看。</div>
+              <div class="point"><b>② 缺件超预算</b>金额超过 ${meta.budgetLine} 元才进例外清单；预算内自动下单，不用签字。</div>
+              <div class="point"><b>③ 同一单返修到第 2 次</b>说明第一次没修对，这时候人要出来看一眼。</div>
+              <div class="point"><b>④ 学生申请撤销</b>师傅已进楼只能申请，由管理员决定作废或补偿——这是唯一会改状态的人工入口。</div>
+            </div>
+            <div class="panel-foot">9 个状态、13 条合法转移，其余 107 种组合一律 409 拒绝，接口层挡住，不靠人自觉。</div>
+          </section>
+
+          <section class="panel">
+            <header>可调参数 <span class="spacer"></span><span class="hint">改了立即生效</span></header>
+            <div class="cfg">
+              ${cfgKeys.map(([k, label]) => `<label>${label}<input id="cfg-${k}" type="number" min="1" value="${App.esc(CFG[k])}"></label>`).join('')}
+              <button class="dbtn primary save" id="btnSaveCfg">保存</button>
+            </div>
+            <div class="panel-foot">这三个数不许写死在代码里：预算线决定谁进例外清单，两个倒计时决定系统什么时候替人点头。</div>
+          </section>
+        </div>
+      </div>
+
+      <div class="foot-note warn"><span class="tag">唯一例外</span>
+        学生申请撤销在师傅进楼后，状态机里没有「维修中 → 已取消」这条边。要动它得先过变更单 #001，批之前接口一律返回 501。</div>
+      <div class="foot-note info"><span class="tag">不做</span>
+        管理端不进流程、不派工、不催办、不审批正常单。凡是能在手机端一次点完的事，这里都不给按钮。</div>
+    `;
+
+    bind();
+  }
+
+  function timerLine(o) {
+    const t = (o.timers && (o.timers.t1 || o.timers.t2)) || null;
+    if (!t) return '';
+    return `<div class="muted" style="font-size:10.5px;margin-top:2px">${t.label} 剩 ${App.short(t.leftMs)}</div>`;
+  }
+
+  function manualCount(o) {
+    const evs = o.events || [];
+    if (!evs.length) return '<span class="muted">—</span>';
+    const n = evs.filter(e => e.manual === 1).length;
+    return n;
+  }
+
+  function exRow(x) {
+    const then = {
+      MISMATCH: '照片没落库。让师傅补传完工照，别动状态。',
+      OVER_BUDGET: '看金额是否合理；批了再下单，不批就换方案。',
+      REPEAT_REWORK: '同一单第 2 次返修，派人去现场看看到底哪里不对。',
+      CANCEL_REQUEST: '师傅已进楼。作废（要变更单 #001）或让师傅继续修、给补偿。'
+    }[x.kind] || '';
+    return `<div class="ex-row">
+      <div class="ln1">
+        <span class="pill ${x.kind === 'CANCEL_REQUEST' ? 'plain' : 'plain'}" style="font-size:10.5px">${App.esc(x.kindLabel)}</span>
+        <span class="no">${App.esc(x.no)}</span>
+        <span class="muted">${App.esc(x.building)} ${App.esc(x.room)} · ${App.esc(x.statusLabel)}</span>
+      </div>
+      <div class="why">${App.esc(x.detail)}</div>
+      <div class="then">${App.esc(then)}</div>
+      ${x.kind === 'CANCEL_REQUEST' ? `<div style="margin-top:8px;display:flex;gap:8px">
+        <button class="dbtn sm primary" data-cancel="${App.esc(x.no)}">批准撤销</button>
+        <button class="dbtn sm" data-keep="${App.esc(x.no)}">让师傅继续修</button>
+      </div>` : ''}
+    </div>`;
+  }
+
+  function bind() {
+    App.$('#btnSaveCfg').addEventListener('click', async () => {
+      const body = {};
+      cfgKeys.forEach(([k]) => { body[k] = Number(App.$('#cfg-' + k).value); });
+      try {
+        CFG = await App.api.put('/admin/config', body, { role: 'admin' });
+        toast('参数已保存');
+        await refresh();
+      } catch (e) { toast(App.explainErr(e), true); }
+    });
+
+    wrap.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('click', async () => {
+      try {
+        await App.api.post('/orders/' + encodeURIComponent(b.dataset.cancel) + '/admin-cancel', {}, { role: 'admin' });
+        toast('已作废');
+        await refresh();
+      } catch (e) {
+        toast(e.status === 501 ? '接口返回 501：这条边要等变更单 #001 批准' : App.explainErr(e), true);
+      }
+    }));
+
+    wrap.querySelectorAll('[data-keep]').forEach(b => b.addEventListener('click', () => {
+      toast('已记录：让师傅继续修，给补偿。这个决定不改工单状态。');
+    }));
+  }
+
+  async function refresh() {
+    try { await pull(); render(); }
+    catch (e) { wrap.innerHTML = `<div class="empty">${App.esc(App.explainErr(e))}</div>`; }
+  }
+
+  /* ---------------- 顶栏动作 ---------------- */
+  App.$('#btnRefresh').addEventListener('click', refresh);
+
+  App.$('#btnAdvance').addEventListener('click', async () => {
+    try {
+      const r = await App.api.post('/demo/advance', { days: 7 }, { role: 'admin' });
+      toast(`时间快进 7 天：自动验收 ${r.autoAccepted || 0} 单，自动归档 ${r.archived || 0} 单`);
+      await refresh();
+    } catch (e) { toast(App.explainErr(e), true); }
+  });
+
+  App.$('#btnReset').addEventListener('click', async () => {
+    try {
+      await App.api.post('/demo/reset', {}, { role: 'admin' });
+      toast('演示数据已重置');
+      await refresh();
+    } catch (e) { toast(App.explainErr(e), true); }
+  });
+
+  await refresh();
+})();
+</script>
+</body>
+</html>
