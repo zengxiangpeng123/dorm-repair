@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>状态机自检台 · 宿舍维修系统</title>
+<link rel="stylesheet" href="assets/ui.css">
+<style>
+  body { background: #f4f6f9; }
+  .lab { max-width: 1440px; margin: 0 auto; padding: 22px 28px 44px; }
+
+  .lab-top { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #e3e8ef; }
+  .lab-top .back {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid #d8e0ea; background: #fff;
+    font-size: 16px; line-height: 1; color: #475569; cursor: pointer;
+  }
+  .lab-top .back:hover { background: #f6f8fb; }
+  .lab-top h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.01em; color: #0b1c30; }
+  .lab-top .sub { margin-top: 2px; font-size: 12px; color: #64748b; }
+  .lab-top .grow { flex: 1; }
+
+  .lab-grid { margin-top: 18px; display: grid; grid-template-columns: 372px minmax(0,1fr); gap: 16px; align-items: start; }
+  .lab-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  .pane { background: #fff; border: 1px solid #e3e8ef; border-radius: 10px; overflow: hidden; }
+  .pane > header {
+    display: flex; align-items: center; gap: 8px; padding: 11px 16px; border-bottom: 1px solid #eef2f7;
+    font-size: 13px; font-weight: 600; color: #0b1c30;
+  }
+  .pane > header .spacer { flex: 1; }
+  .pane > header .hint { font-size: 11px; font-weight: 400; color: #94a3b8; }
+  .pane .pb { padding: 14px 16px; }
+
+  .matrix { overflow-x: auto; }
+  .matrix table { border-collapse: collapse; font-size: 10.5px; white-space: nowrap; width: 100%; }
+  .matrix th, .matrix td { border: 1px solid #eef2f7; padding: 5px 4px; text-align: center; }
+  .matrix thead th { background: #fafbfd; color: #64748b; font-weight: 600; font-size: 10px; }
+  .matrix tbody th {
+    background: #fff; text-align: left; font-weight: 600; color: #334155; font-size: 11.5px;
+    position: sticky; left: 0; z-index: 1; padding-left: 12px; min-width: 96px;
+  }
+  .matrix td.ok { background: #ecfdf5; color: #047857; font-weight: 700; }
+  .matrix td.no { color: #cbd5e1; }
+  .matrix tbody tr:hover td { background: #f8fafc; }
+  .matrix tbody tr:hover td.ok { background: #d1fae5; }
+
+  .legend { display: flex; gap: 18px; font-size: 11.5px; color: #64748b; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid #eef2f7; background: #fafbfd; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+  .ev-list { display: flex; flex-direction: column; gap: 6px; }
+  .ev-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 7px; border: 1px solid #e3e8ef;
+    background: #fff; font-size: 12.5px; font-weight: 600; color: #334155; cursor: pointer; text-align: left;
+  }
+  .ev-btn:hover { background: #f8fafc; }
+  .ev-btn.ok { border-color: #a7f3d0; background: #f0fdf9; color: #047857; }
+  .ev-btn.ok:hover { background: #dcfce7; }
+  .ev-btn.bad { color: #94a3b8; font-weight: 500; }
+  .ev-btn small { margin-left: auto; font-weight: 500; font-size: 10.5px; color: #94a3b8; }
+  .ev-btn.ok small { color: #059669; }
+  .ev-btn:active { transform: scale(.995); }
+
+  .lab-kv { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: #64748b; }
+
+  .tr-list table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .tr-list td { padding: 6px 16px; border-bottom: 1px solid #f3f6fa; color: #334155; white-space: nowrap; }
+  .tr-list tr:last-child td { border-bottom: 0; }
+  .tr-list tr:hover td { background: #fafbfd; }
+  .tr-list .n { width: 40px; color: #94a3b8; font-variant-numeric: tabular-nums; }
+  .tr-list .ev { width: 130px; font-weight: 600; color: #0b1c30; }
+  .tr-list .ar { width: 24px; color: #cbd5e1; text-align: center; }
+  .tr-list .to { width: 90px; }
+  .tr-list .who { color: #64748b; text-align: right; }
+</style>
+</head>
+<body>
+
+<div class="lab">
+
+  <div class="lab-top">
+    <button class="back" onclick="location.href='index.html'">‹</button>
+    <div>
+      <h1>状态机自检台</h1>
+      <div class="sub">9 个状态 + 1 个新建入口，12 个事件，只有 13 种组合被允许</div>
+    </div>
+    <span class="grow"></span>
+    <button class="btn btn-ghost btn-sm" id="btnMatrix">跑一遍 120 种组合</button>
+    <button class="btn btn-sm" id="btnReset">重置数据</button>
+  </div>
+
+  <div class="lab-grid">
+
+    <!-- 左：手动推一个事件 -->
+    <div class="lab-col">
+      <div class="pane">
+        <header>选一张单，手动推一下</header>
+        <div class="pb">
+          <div class="field">
+            <label class="label">工单</label>
+            <select class="select" id="orderSel"></select>
+          </div>
+          <div class="lab-kv" style="margin-top:10px">
+            <span>当前状态</span>
+            <span id="curStatus"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane">
+        <header>允许的事件<span class="spacer"></span><span class="hint">点一下就推过去</span></header>
+        <div class="pb"><div class="ev-list" id="okEvents"></div></div>
+      </div>
+
+      <div class="pane">
+        <header>不接受的事件<span class="spacer"></span><span class="hint">点了会当场 409</span></header>
+        <div class="pb"><div class="ev-list" id="badEvents"></div></div>
+      </div>
+
+      <div id="result"></div>
+    </div>
+
+    <!-- 右：全表 + 事件流 -->
+    <div class="lab-col">
+      <div class="pane">
+        <header>全表自检<span class="spacer"></span><span class="hint">纯查表，不动数据</span></header>
+        <div class="matrix" id="matrixOut"></div>
+        <div class="legend">
+          <span><i style="background:#a7f3d0"></i>允许（✓）</span>
+          <span><i style="background:#e2e8f0"></i>拒绝 409（·）</span>
+          <span class="mono"><span id="legalCount"></span> 组合合法</span>
+        </div>
+      </div>
+
+      <div class="pane">
+        <header>这张单的事件流<span class="spacer"></span><span class="hint" id="logCount"></span></header>
+        <div class="pb" id="log"></div>
+      </div>
+
+      <div class="pane">
+        <header>13 条合法转移<span class="spacer"></span><span class="hint">SYS-004 第五条那 13 条，按状态分组列出</span></header>
+        <div class="tr-list" id="transfers"></div>
+        <div class="legend" style="justify-content:space-between">
+          <span>其余 107 种组合一律拒绝，返回 HTTP 409</span>
+          <span class="mono">9 状态 + 1 新建 = 10 × 12 事件 = 120</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="data/seed.js"></script>
+<script src="assets/app.js"></script>
+<script>
+  const EVENTS = Object.keys(App.EVENT_LABEL);
+  const ACTOR = { student: 'student:张同学', worker: 'worker:李建国', system: 'system', admin: 'admin:王主任' };
+  const sel = App.el('#orderSel');
+
+  function fillOrders() {
+    sel.innerHTML = App.orders().map(o =>
+      `<option value="${o.no}">${o.no} · ${App.STATUS_LABEL[o.status]} · ${App.roomLabel(o)}</option>`
+    ).join('');
+  }
+
+  function actorFor(event) {
+    const kinds = App.TRIGGER[event] || ['system'];
+    return ACTOR[kinds[0]] || 'system';
+  }
+
+  function render() {
+    const o = App.order(sel.value);
+    if (!o) return;
+    App.el('#curStatus').innerHTML = App.pill(o.status) +
+      `<span class="tiny muted mono" style="margin-left:6px">${o.status}</span>`;
+
+    const ok = App.allowedEvents(o.status);
+    const bad = EVENTS.filter(e => ok.indexOf(e) < 0);
+
+    App.el('#okEvents').innerHTML = ok.map(e => {
+      const to = App.next(o.status, e);
+      return `<button class="ev-btn ok" data-ev="${e}">${App.EVENT_LABEL[e]}<small>→ ${App.STATUS_LABEL[to]}</small></button>`;
+    }).join('') || '<div class="tiny muted">这个状态是终点，没有出边。</div>';
+
+    App.el('#badEvents').innerHTML = bad.map(e =>
+      `<button class="ev-btn bad" data-ev="${e}">${App.EVENT_LABEL[e]}<small>会被拒绝</small></button>`
+    ).join('');
+
+    App.els('.ev-btn').forEach(b => { b.onclick = () => push(b.getAttribute('data-ev')); });
+
+    const evs = (o.events || []).slice().reverse();
+    App.el('#logCount').textContent = `${evs.length} 条事件`;
+    App.el('#log').innerHTML = evs.length ? `<div class="tl">${evs.map((e, i) => `
+      <div class="tl-item" data-state="${i === 0 ? 'active' : 'done'}">
+        <div class="tl-dot"></div>
+        <div class="tl-body">
+          <div class="tl-title">${App.EVENT_LABEL[e.event] || e.event}
+            <span class="pill" data-tone="${e.manual ? 'muted' : 'ok'}">${e.manual ? '人工' : '系统'}</span>
+          </div>
+          <div class="tl-time mono">${e.at}　·　${App.actorLabel(e.actor)}</div>
+          ${e.note ? `<div class="tl-note">${App.esc(e.note)}</div>` : ''}
+        </div>
+      </div>`).join('')}</div>` : '<div class="tiny muted">还没有事件。</div>';
+  }
+
+  function push(event) {
+    const no = sel.value;
+    const o = App.order(no);
+    const actor = actorFor(event);
+    try {
+      const r = App.fire(no, event, actor, '自检台手动触发');
+      App.el('#result').innerHTML = `
+        <div class="notice" data-tone="ok">
+          <div><b>转移成功</b>　${App.STATUS_LABEL[r.from]} → ${App.STATUS_LABEL[r.to]}
+          <div class="tiny" style="margin-top:2px">${App.EVENT_LABEL[event]}　由 ${App.actorLabel(actor)} 触发；事件流已记录，manual=${actor === 'system' ? 0 : 1}</div></div>
+        </div>`;
+      App.toast(`${App.STATUS_LABEL[r.from]} → ${App.STATUS_LABEL[r.to]}`, 'ok');
+    } catch (err) {
+      const allowed = (err.extra && err.extra.allowed || []).map(k => App.EVENT_LABEL[k] || k).join('、') || '无';
+      App.el('#result').innerHTML = `
+        <div class="blocked">
+          <b>已拒绝：${err.code} </b>${App.esc(err.message)}
+          <div class="tiny" style="margin-top:4px">当前状态「${App.STATUS_LABEL[o.status]}」只接受：${allowed}。
+          这不是前端拦截，是状态机里没有这条边。</div>
+          <div class="tiny mono" style="margin-top:4px">HTTP 409 · 状态已变化，请刷新</div>
+        </div>`;
+      App.toast(`${err.code} 已拒绝`, 'err');
+    }
+    fillOrdersKeep(no);
+    render();
+  }
+
+  function fillOrdersKeep(no) {
+    const cur = no || sel.value;
+    fillOrders();
+    if (App.order(cur)) sel.value = cur;
+  }
+
+  sel.onchange = () => { App.el('#result').innerHTML = ''; render(); };
+
+  function runMatrix() {
+    let total = 0, legal = 0;
+    const rows = ['NEW'].concat(App.STATUS).map(from => {
+      const cells = EVENTS.map(ev => {
+        total++;
+        try {
+          const to = App.next(from, ev);
+          legal++;
+          return `<td class="ok" title="${from} --${App.EVENT_LABEL[ev]}--> ${to}">✓</td>`;
+        } catch (e) {
+          return `<td class="no" title="${from} × ${App.EVENT_LABEL[ev]}">·</td>`;
+        }
+      }).join('');
+      return `<tr><th>${App.STATUS_LABEL[from]}</th>${cells}</tr>`;
+    }).join('');
+
+    App.el('#matrixOut').innerHTML = `
+      <table>
+        <thead><tr><th>状态 \\ 事件</th>${EVENTS.map(e => `<th>${App.EVENT_LABEL[e]}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    App.el('#legalCount').textContent = `${legal} / ${total}`;
+    return { total, legal };
+  }
+
+  App.el('#btnMatrix').onclick = () => {
+    const r = runMatrix();
+    App.toast(`跑完 ${r.total} 种组合，合法 ${r.legal} 条`, r.legal === 13 ? 'ok' : 'warn');
+  };
+
+  App.el('#btnReset').onclick = () => { App.reset(); location.reload(); };
+
+  function renderTransfers() {
+    const WHO = { student: '学生', worker: '师傅', system: '系统', admin: '管理员' };
+    let n = 0;
+    const rows = ['NEW'].concat(App.STATUS).map(from => EVENTS.map(ev => {
+      let to;
+      try { to = App.next(from, ev); } catch (e) { return ''; }
+      n++;
+      const who = (App.TRIGGER[ev] || ['system']).map(k => WHO[k] || k).join(' / ');
+      return `<tr>
+        <td class="n">${n}</td>
+        <td>${App.STATUS_LABEL[from]}</td>
+        <td class="ev">${App.EVENT_LABEL[ev]}</td>
+        <td class="ar">→</td>
+        <td class="to">${App.STATUS_LABEL[to]}</td>
+        <td class="who">${who}</td>
+      </tr>`;
+    }).join('')).join('');
+    App.el('#transfers').innerHTML = `<table><tbody>${rows}</tbody></table>`;
+    return n;
+  }
+
+  App.tick(true);
+  fillOrders();
+  render();
+  runMatrix();
+  renderTransfers();
+</script>
+</body>
+</html>

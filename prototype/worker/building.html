@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>楼内清单 · 宿舍维修</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<style>
+  .floor-hd {
+    display: flex; align-items: center; gap: var(--s2);
+    padding: var(--s2) var(--s4); background: var(--canvas);
+    font-size: 11px; font-weight: 700; color: var(--ink-3); letter-spacing: .04em;
+    border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);
+    position: relative; z-index: 1;
+  }
+  .room-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4);
+              background: #fff; cursor: pointer; border-bottom: 1px solid var(--line-soft); }
+  .room-row:last-child { border-bottom: 0; }
+  .room-row:active { background: var(--canvas); }
+  .room-no { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+             flex: 0 0 46px; }
+  .room-row .grow { flex: 1; min-width: 0; }
+  .room-row .what { font-size: 12px; color: var(--ink-3); }
+  .batch-bar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-direction: column; gap: var(--s2);
+    padding: var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(248,250,252,0), var(--canvas) 26%); }
+</style>
+</head>
+<body>
+<main class="stage" style="padding-bottom:0">
+  <div class="topbar">
+    <button class="back" onclick="location.href='index.html'">‹</button>
+    <div>
+      <h1>东区7号楼</h1>
+      <div class="sub" id="subLine">本楼清单</div>
+    </div>
+  </div>
+
+  <div class="body" id="main" style="padding:0"></div>
+</main>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+  App.tick(true);
+  const ME = 'W0428', ME_NAME = '李建国', BLD = App.qs('b', 'B7');
+  const ICON = { '给排水': '💧', '电气': '⚡', '电器': '🔌', '门窗家具': '🚪', '网络': '🌐' };
+
+  function list() {
+    return App.orders({ building: BLD }).filter(o => o.workerId === ME &&
+      ['ASSIGNED', 'REPAIRING', 'PARTS'].indexOf(o.status) >= 0);
+  }
+
+  function render() {
+    const b = App.building(BLD);
+    const all = list();
+    const assigned = all.filter(o => o.status === 'ASSIGNED');
+    const inBuilding = all.filter(o => o.status === 'REPAIRING');
+    const bldName = b ? b.name : BLD;
+
+    App.el('#subLine').textContent = inBuilding.length
+      ? `已在楼内 · 本楼 ${all.length} 单，待上门 ${assigned.length}、在修 ${inBuilding.length}`
+      : `还没进楼 · 本楼 ${all.length} 单，待上门 ${assigned.length}`;
+
+    const floors = (b ? b.floors : [2, 3, 4, 5]).slice().sort((x, y) => y - x);
+
+    let html = '';
+
+    // 进楼打卡 / 离楼
+    html += `<div style="padding:var(--s4)">
+      <div class="card hero">
+        <div class="card-bd">
+          <div class="between">
+            <span class="small strong">进楼打卡</span>
+            ${inBuilding.length ? '<span class="pill" data-tone="ok">已在楼内</span>' : '<span class="pill" data-tone="warn">未进楼</span>'}
+          </div>
+          <div class="small muted">共 ${all.length} 单 · 待上门 ${assigned.length} · 在修 ${inBuilding.length}</div>
+          ${assigned.length ? `
+            <button class="btn btn-primary btn-block" id="btnArrive">
+              ✓ 进楼打卡 · 一次打完本批 ${assigned.length} 单
+            </button>
+            <div class="tiny muted center">点一次，本批每张单各记一条「到门打卡」。撤销的分界线就在这一步。</div>`
+          : inBuilding.length ? `
+            <button class="btn btn-block" id="btnLeave">离楼打卡</button>
+            <div class="tiny muted center">离楼只是记录行程，不影响工单状态。</div>`
+          : `<div class="notice" data-tone="ok"><div>本楼没有待上门的单，可以走了。</div></div>`}
+        </div>
+      </div>
+    </div>`;
+
+    // 按楼层
+    html += `<div class="card flat" style="border-radius:0;border-left:0;border-right:0">`;
+    const usedFloors = floors.filter(f => all.some(o => String(o.room).charAt(0) === String(f)));
+    const emptyFloors = floors.filter(f => usedFloors.indexOf(f) < 0);
+    usedFloors.forEach(f => {
+      const rs = all.filter(o => String(o.room).charAt(0) === String(f));
+      html += `<div class="floor-hd">${f}F<span class="spacer"></span><span>${rs.length} 单</span></div>`;
+      rs.forEach(o => {
+        html += `<div class="room-row" onclick="location.href='task.html?no=${encodeURIComponent(o.no)}'">
+          <div class="room-no">${o.room}</div>
+          <div class="thumb" style="width:30px;height:30px;font-size:15px;background:var(--canvas-2)">${ICON[o.category] || '🔧'}</div>
+          <div class="grow">
+            <div class="what truncate">${App.esc(o.desc)}</div>
+            <div class="tiny muted" style="margin-top:2px">${o.category} · ${o.window || '全天'} · ${o.no.slice(-6)}</div>
+          </div>
+          ${App.pill(o.status)}
+        </div>`;
+      });
+    });
+    if (emptyFloors.length) {
+      html += `<div class="room-row" style="cursor:default;color:var(--ink-4);font-size:11px">
+        ${emptyFloors.map(f => f + 'F').join('、')} 本层没有单，不用上去</div>`;
+    }
+    html += `</div>`;
+
+    html += `<div style="padding:var(--s4)">
+      <div class="notice" data-tone="info">
+        <div>先高层后低层，一趟走完。学生在不在，看「可上门时段」那一行 —— 这个字段就是为了少跑一趟设的。</div>
+      </div>
+    </div>`;
+
+    App.el('#main').innerHTML = html;
+
+    const doArrive = () => {
+      const r = App.arriveBatch(BLD, ME, ME_NAME);
+      if (r.done.length) {
+        App.toast(`已打卡 ${r.done.length} 单，状态同步为「维修中」`, 'ok');
+      } else {
+        App.toast('没有可打卡的单', 'warn');
+      }
+      if (r.failed.length) App.toast(r.failed[0].msg, 'err');
+      render();
+    };
+    if (App.el('#btnArrive')) App.el('#btnArrive').onclick = doArrive;
+    if (App.el('#btnLeave')) App.el('#btnLeave').onclick = () => {
+      App.toast('已记录离楼时间', 'ok');
+      location.href = 'index.html';
+    };
+  }
+
+  render();
+</script>
+</body>
+</html>
+
+

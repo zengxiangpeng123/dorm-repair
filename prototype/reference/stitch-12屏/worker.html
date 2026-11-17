@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="宿舍维修 V5 · 维修端手机原型（大字）">
+<title>维修端 · 宿舍维修 V5</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="m-worker big">
+<div class="desk">
+  <aside class="brief">
+    <div class="kicker">维修端 · 手机 · 大字</div>
+    <h1>一屏就是全部，<br><em>不用点两次。</em></h1>
+    <p>打开就是今天要跑的楼：一栋一栋来，进楼打一次卡，楼内按楼层逐间处理。全程不打字。</p>
+    <ol id="steps">
+      <li data-s="buildings"><b>1</b><span>工作台：今天去几栋楼，每栋多少活</span></li>
+      <li data-s="building"><b>2</b><span>楼内清单：按楼层排，整栋打卡</span></li>
+      <li data-s="detail"><b>3</b><span>单间：大字，底部三个按钮</span></li>
+      <li data-s="report"><b>4</b><span>今日战报：修了几单、挣了多少</span></li>
+      <li data-s="me"><b>5</b><span>我的：负责楼栋与排班</span></li>
+    </ol>
+    <nav>
+      <a href="student.html">学生端</a>
+      <a href="worker.html" class="on">维修端</a>
+      <a href="admin.html">管理端</a>
+      <a href="index.html">入口</a>
+    </nav>
+  </aside>
+
+  <main class="phone">
+    <div id="sbar"></div>
+    <div class="app">
+      <header class="topbar" id="topbar"></header>
+      <div class="scroll" id="scroll"></div>
+      <div class="footbtn two" id="footbtn"></div>
+      <nav class="tabbar" id="tabbar"></nav>
+    </div>
+    <div class="mask" id="mask" onclick="UI.closeSheet()"></div>
+    <section class="sheet" id="sheet"></section>
+    <div class="toast" id="toast"></div>
+  </main>
+</div>
+
+<script src="data/seed.js"></script>
+<script src="assets/ai.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/worker.js"></script>
+</body>
+</html>

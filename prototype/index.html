@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>宿舍维修系统 · 原型入口</title>
+<link rel="stylesheet" href="assets/ui.css">
+<style>
+  /* 入口页是桌面页：三端各占一张卡，卡片自己标清跑在手机上还是电脑上 */
+  body { background: #f4f6f9; }
+  .launch { max-width: 1180px; margin: 0 auto; padding: 40px 32px 48px; }
+  .head { display: flex; align-items: center; gap: 14px; }
+  .mark {
+    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    background: #0c1a2b; color: #fff; font-size: 19px;
+  }
+  .head h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: #0b1c30; }
+  .head .sub { margin-top: 3px; font-size: 12px; color: #64748b; }
+  .head .grow { flex: 1; }
+
+  .hero { margin: 40px 0 8px; }
+  .hero .line {
+    font-size: 40px; line-height: 1.25; font-weight: 700; letter-spacing: -.03em; color: #0b1c30;
+  }
+  .hero .line em { font-style: normal; color: #2563eb; }
+  .hero .lede { margin: 14px 0 0; font-size: 14.5px; line-height: 1.75; color: #475569; max-width: 620px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 0;
+          margin: 30px 0 34px; background: #fff; border: 1px solid #e3e8ef; border-radius: 10px; overflow: hidden; }
+  .kpis > div { padding: 16px 20px; border-left: 1px solid #eef2f7; }
+  .kpis > div:first-child { border-left: 0; }
+  .kpis .n { font-size: 24px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #0b1c30; }
+  .kpis .l { margin-top: 3px; font-size: 11.5px; color: #64748b; }
+
+  .ends { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+  .end {
+    display: block; padding: 22px 22px 18px; background: #fff; border: 1px solid #e3e8ef; border-radius: 12px;
+    text-decoration: none; color: inherit; transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
+  }
+  .end:hover { border-color: #c7d3e2; box-shadow: 0 10px 24px -18px rgba(11,28,48,.45); transform: translateY(-1px); }
+  .end .dev {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 600;
+    background: #eef2f7; color: #475569;
+  }
+  .end .dev.pc { background: #e0edff; color: #1e40af; }
+  .end .nm { margin-top: 12px; font-size: 17px; font-weight: 700; letter-spacing: -.01em; color: #0b1c30; }
+  .end .ds { margin-top: 5px; font-size: 12px; line-height: 1.7; color: #64748b; }
+  .end ul { margin: 14px 0 0; padding: 0; list-style: none; }
+  .end li { font-size: 12px; line-height: 1.9; color: #475569; padding-left: 13px; position: relative; }
+  .end li::before { content: ''; position: absolute; left: 0; top: 8px; width: 4px; height: 4px; border-radius: 50%; background: #c3cfdd; }
+  .end .go { margin-top: 16px; font-size: 12.5px; font-weight: 600; color: #2563eb; }
+
+  .tools { margin-top: 30px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+  .tool {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    background: #fff; border: 1px solid #e3e8ef; border-radius: 10px;
+    font-size: 13px; color: #0b1c30; text-decoration: none;
+  }
+  .tool:hover { border-color: #c7d3e2; }
+  .tool .t { font-weight: 600; }
+  .tool .d { margin-top: 2px; font-size: 11.5px; color: #64748b; font-weight: 400; }
+  .tool .grow { flex: 1; min-width: 0; }
+
+  .rule {
+    margin-top: 26px; padding: 16px 18px; border-radius: 10px;
+    background: #fff; border: 1px solid #e3e8ef;
+    font-size: 12.5px; line-height: 1.75; color: #475569;
+  }
+  .rule b { color: #0b1c30; }
+  .foot { margin-top: 22px; font-size: 11.5px; color: #94a3b8; }
+
+  @media (max-width: 1000px) {
+    .launch { padding: 28px 20px 36px; }
+    .hero .line { font-size: 30px; }
+    .ends, .tools, .kpis { grid-template-columns: minmax(0,1fr); }
+    .kpis > div { border-left: 0; border-top: 1px solid #eef2f7; }
+    .kpis > div:first-child { border-top: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="launch">
+
+  <div class="head">
+    <div class="mark">修</div>
+    <div>
+      <h1>宿舍维修系统</h1>
+      <div class="sub">示范大学 · 后勤维修部 · V5.0 原型（假数据，随便点）</div>
+    </div>
+    <span class="grow"></span>
+    <a class="tool" href="admin/index.html" style="padding:9px 14px">管理端监测台 ›</a>
+  </div>
+
+  <div class="hero">
+    <div class="line">拍一张、说一句，<em>剩下的它自己跑。</em></div>
+    <p class="lede">
+      学生手机上报一次，系统自己定级、自己派单；<br>
+      师傅按楼栋一趟跑完，打卡、拍照、留痕；<br>
+      管理端不进流程，只在系统判断不了的地方看一眼。
+    </p>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="ends">
+    <a class="end" href="student/index.html">
+      <span class="dev">手机</span>
+      <div class="nm">学生端</div>
+      <div class="ds">4 个页面。报修、看进度、验收签字。</div>
+      <ul>
+        <li>拍照 1 张 + 写一句，必填</li>
+        <li>可上门时段选填，默认全天</li>
+        <li>紧急程度不用自己选，AI 定</li>
+        <li>师傅没进楼之前可以撤单</li>
+      </ul>
+      <div class="go">进入学生端 ›</div>
+    </a>
+
+    <a class="end" href="worker/index.html">
+      <span class="dev">手机</span>
+      <div class="nm">师傅端</div>
+      <div class="ds">4 个页面。按楼栋排队，一趟跑完。</div>
+      <ul>
+        <li>今日待办按楼层排好，上楼顺序不用想</li>
+        <li>进楼打卡一次，本批单子一起算到楼</li>
+        <li>能进场吗 / 能当场修好吗，两条判断</li>
+        <li>缺件登记金额，预算线自动判</li>
+      </ul>
+      <div class="go">进入师傅端 ›</div>
+    </a>
+
+    <a class="end" href="admin/index.html">
+      <span class="dev pc">电脑</span>
+      <div class="nm">管理端</div>
+      <div class="ds">1 个页面，桌面版。不进流程，只看例外。</div>
+      <ul>
+        <li>零人工完成率，带口径，不是拍脑袋的数</li>
+        <li>例外只露四类，其余一律不看</li>
+        <li>楼栋台账 + 最近归档，月底直接出</li>
+        <li>没有"派工""催一下"的按钮</li>
+      </ul>
+      <div class="go">进入管理端 ›</div>
+    </a>
+  </div>
+
+  <div class="tools">
+    <a class="tool" href="lab.html">
+      <div class="grow">
+        <div class="t">状态机自检台</div>
+        <div class="d">120 种组合逐条跑，非法转移当场 409</div>
+      </div>
+      <span style="color:#94a3b8">›</span>
+    </a>
+    <div class="tool">
+      <div class="grow">
+        <div class="t">把时间快进 7 天</div>
+        <div class="d">看两颗计时器：自动验收 / 自动归档</div>
+      </div>
+      <button class="btn btn-sm" id="btnAdvance">快进</button>
+    </div>
+    <div class="tool">
+      <div class="grow">
+        <div class="t">重置演示数据</div>
+        <div class="d">点坏了一键还原，数据在本机浏览器里</div>
+      </div>
+      <button class="btn btn-sm btn-danger" id="btnReset">重置</button>
+    </div>
+  </div>
+
+  <div class="rule">
+    <b>这份原型的规矩：</b>状态只有 9 个（待派工、已派工、维修中、待配件、待验收、返修中、已完成、已关闭、已取消），
+    合法转移只有 13 条，其余一律拒绝并返回 409。页面上任何一处状态变化，都走同一张转移表 —— 没有第二条路。
+  </div>
+
+  <div class="foot">
+    文档见 <span class="mono">docs/01_需求</span>　·　索引见 <span class="mono">docs/README.md</span>　·　
+    原型说明见 <span class="mono">prototype/README.md</span>
+  </div>
+
+</div>
+
+<script src="data/seed.js"></script>
+<script src="assets/app.js"></script>
+<script>
+  App.tick(true);
+  const list = App.db().orders;
+  const covered = new Set(list.map(o => o.status)).size;
+  const zm = App.zeroManualRate();
+  App.el('#kpis').innerHTML = [
+    `<div><div class="n">${list.length}</div><div class="l">工单样本，覆盖全部 9 个状态</div></div>`,
+    `<div><div class="n">13 / 120</div><div class="l">合法转移组合，其余一律 409</div></div>`,
+    `<div><div class="n">${Math.round(zm.rate * 100)}%</div><div class="l">零人工完成率（${zm.zero} / ${zm.total} 张已完成单）</div></div>`
+  ].join('');
+
+  App.el('#btnReset').onclick = () => { App.reset(); location.reload(); };
+  App.el('#btnAdvance').onclick = () => {
+    App.advance(7 * 24 * 3600 * 1000);
+    const closed = App.orders({ status: 'CLOSED' }).length;
+    const done = App.orders({ status: 'DONE' }).length;
+    alert(`时间已快进 7 天。\n\n此刻已完成 ${done} 张，已关闭 ${closed} 张。\n去管理端能看到计时器与归档的变化。`);
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>工单详情 · 宿舍维修</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<style>
+  .kv { display: flex; flex-direction: column; gap: 8px; }
+  .kv .r { display: flex; gap: var(--s3); font-size: 12px; }
+  .kv .r .k { flex: 0 0 82px; color: var(--ink-3); }
+  .kv .r .v { flex: 1; min-width: 0; color: var(--ink); font-weight: 500; word-break: break-word; }
+  .big-no { font-size: 15px; font-weight: 700; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+  .photo-slot {
+    width: 100%; height: 96px; border-radius: var(--r-md); display: grid; place-items: center;
+    background: linear-gradient(150deg,#e0f2fe,#bae6fd); color: #0369a1; font-size: 12px; gap: 2px;
+  }
+  .photo-slot .big { font-size: 24px; }
+  .photo-slot.none { background: var(--danger-soft); color: var(--danger-text); border: 1px dashed #fecaca; }
+  .actbar {
+    position: sticky; bottom: 0; z-index: 20; display: flex; flex-direction: column; gap: var(--s2);
+    padding: var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(248,250,252,0), var(--canvas) 26%);
+  }
+  .reason-list { display: flex; flex-direction: column; gap: 6px; }
+  .reason-list label {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: var(--r-md); font-size: 12px; cursor: pointer;
+  }
+  .reason-list label:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="stage" style="padding-bottom:0">
+  <div class="topbar">
+    <button class="back" onclick="location.href='list.html'">‹</button>
+    <div>
+      <h1>工单详情</h1>
+      <div class="sub mono" id="topNo"></div>
+    </div>
+  </div>
+
+  <div class="body" id="main"></div>
+</main>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+  App.tick(true);
+
+  // 没带单号就取第一张"我的"单，方便直接演示
+  const no = App.qs('no', null) || (App.orders()[0] || {}).no;
+  let o = no ? App.order(no) : null;
+
+  const ICON = { '给排水': '💧', '电气': '⚡', '电器': '🔌', '门窗家具': '🚪', '网络': '🌐' };
+  const DOING = ['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS', 'VERIFYING', 'REWORKING'];
+
+  if (!o) {
+    document.body.innerHTML = '<main class="stage"><div class="empty"><div class="big">🔍</div><div>没有这张工单</div>'
+      + '<button class="btn btn-sm" onclick="location.href=\'list.html\'">回列表</button></div></main>';
+    throw new Error('no order');
+  }
+
+  // 这张单是谁报的 —— 验收、撤销都得由本人操作，别用全局的"张同学"硬套
+  function owner() {
+    const sub = (o.events || []).find(e => e.event === 'SUBMIT');
+    return (sub && sub.actor) || 'student:张同学';
+  }
+  function ownerName() { return owner().split(':')[1] || '张同学'; }
+
+  function timerBlock() {
+    const a = App.t1(o), b = App.t2(o);
+    if (a) return `<div class="timer-card" data-tone="${a.left < 24 * 3600 * 1000 ? 'danger' : 'warn'}">
+        <div style="font-size:18px">⏳</div>
+        <div class="grow">
+          <div class="t-label">T1 · 验收倒计时（起点：完工时间 ${(o.finishAt || '').slice(5)}）</div>
+          <div class="t-val timer">${a.left > 0 ? '还剩 ' + App.human(a.left) : '已超时'}</div>
+          <div class="tiny muted">满 168 小时未响应 → 系统自动确认完成，记 manual=0</div>
+        </div>
+      </div>`;
+    if (b) return `<div class="timer-card" data-tone="warn">
+        <div style="font-size:18px">📦</div>
+        <div class="grow">
+          <div class="t-label">T2 · 归档倒计时（起点：签字时间 ${(o.signAt || '').slice(5)}）</div>
+          <div class="t-val timer">${b.left > 0 ? '还剩 ' + App.human(b.left) : '已超时'}</div>
+          <div class="tiny muted">满 7 天 → 转只读归档。和上面那颗的起点不同，别混</div>
+        </div>
+      </div>`;
+    return '';
+  }
+
+  function timeline() {
+    const evs = o.events || [];
+    const pendingMarks = { ASSIGN: '等待系统派工', ARRIVE: '等待师傅上门', FINISH: '等待师傅完工',
+      ACCEPT: '等待学生验收', ARCHIVE: '等待系统归档' };
+    const allowed = App.allowedEvents(o.status);
+
+    let rows = evs.map((e, i) => {
+      const isLast = i === evs.length - 1;
+      const name = App.EVENT_LABEL[e.event] || e.event;
+      return `<div class="tl-item" data-state="${isLast ? 'active' : 'done'}">
+        <div class="tl-dot"></div>
+        <div class="tl-body">
+          <div class="tl-title">${name}
+            <span class="pill" data-tone="${e.manual ? 'muted' : 'ok'}">${e.manual ? '人工' : '系统'}</span>
+          </div>
+          <div class="tl-time mono">${e.at} · ${App.actorLabel(e.actor)}</div>
+          ${e.note ? `<div class="tl-note">${App.esc(e.note)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    // 下一站在哪儿（只画表里允许的那条，不瞎猜）
+    const nxt = { PENDING: 'ASSIGN', ASSIGNED: 'ARRIVE', REPAIRING: 'FINISH', PARTS: 'PARTS_ARRIVED',
+      VERIFYING: 'ACCEPT', DONE: 'ARCHIVE' }[o.status];
+    if (nxt && pendingMarks[nxt]) {
+      rows += `<div class="tl-item" data-state="pending">
+        <div class="tl-dot"></div>
+        <div class="tl-body">
+          <div class="tl-title">${pendingMarks[nxt]}</div>
+          <div class="tl-note">${nxt === 'PARTS_ARRIVED' ? '配件 ' + App.esc((o.parts || {}).name || '') + ' 预计 ' + ((o.parts || {}).etaDate || '') + ' 到货' : '取决于上一行，不能跳'}</div>
+        </div>
+      </div>`;
+    }
+    return rows;
+  }
+
+  function actions() {
+    const btns = [];
+    if (o.status === 'PENDING' || (o.status === 'ASSIGNED' && !o.arriveAt)) {
+      btns.push(`<button class="btn btn-danger" data-act="cancel">撤销报修</button>`);
+      btns.push(`<div class="tiny muted center">师傅还没进楼，可以直接撤，不需要理由</div>`);
+    }
+    if (o.status === 'REPAIRING' && !o.cancelRequest) {
+      btns.push(`<button class="btn" data-act="request-cancel">申请撤销</button>`);
+      btns.push(`<div class="tiny muted center">师傅已经进楼了，撤不撤由管理端定，可能要给师傅计一次上门</div>`);
+    }
+    if (o.status === 'REPAIRING' && o.cancelRequest) {
+      btns.push(`<div class="notice" data-tone="warn"><div>已提交撤销申请，等管理端处理。师傅这趟上门会单独记录。</div></div>`);
+    }
+    if (o.status === 'VERIFYING') {
+      btns.push(`<div class="btn-row">
+        <button class="btn btn-danger" data-act="reject">还没修好</button>
+        <button class="btn btn-primary" data-act="accept">确认修好并签字</button>
+      </div>`);
+      btns.push(`<div class="tiny muted center">不点也行，7 天后系统自动确认 —— 这一条是为了不让单子卡在你这儿</div>`);
+    }
+    if (o.status === 'DONE' || o.status === 'CLOSED') {
+      btns.push(`<div class="notice" data-tone="ok"><div>这张单已经完结，${o.status === 'CLOSED' ? '归档后只读' : '等待归档'}。所有记录都在上面，随时可查。</div></div>`);
+    }
+    if (o.status === 'CANCELLED') {
+      btns.push(`<div class="notice"><div>这张单已撤销，不占用师傅的排班。</div></div>`);
+    }
+    if (o.status === 'REWORKING') {
+      btns.push(`<div class="notice" data-tone="danger"><div>返修中：已生成新单 <span class="mono">${o.no}-R${o.reworkCount}</span> 重新排队，原单保留全部历史。</div></div>`);
+    }
+    return btns.length ? `<div class="actbar">${btns.join('')}</div>` : '';
+  }
+
+  function render() {
+    o = App.order(no);
+    App.el('#topNo').textContent = o.no;
+    const w = o.workerId ? App.worker(o.workerId) : null;
+
+    let html = `
+      <div class="card hero">
+        <div class="card-bd">
+          <div class="between">
+            ${App.pill(o.status)}${App.levelPill(o.level)}
+            <span class="spacer"></span>
+            <span class="tiny muted mono">${o.createdAt || ''}</span>
+          </div>
+          <div class="hstack gap3">
+            <div class="thumb" style="width:44px;height:44px;font-size:20px">${ICON[o.category] || '🔧'}</div>
+            <div class="grow" style="min-width:0">
+              <div style="font-size:15px;font-weight:600;letter-spacing:-.01em">${o.category} · ${App.roomLabel(o)}</div>
+              <div class="tiny muted" style="margin-top:2px">可上门时段 ${o.window || '全天'}</div>
+            </div>
+          </div>
+          <div class="small" style="color:var(--ink-2);line-height:1.6">${App.esc(o.desc)}</div>
+          ${o.reworkOf ? `<div class="notice" data-tone="danger"><div>这是返修单，原单 <span class="mono">${o.reworkOf}</span> 挂起保留。照片、位置、历史都继承过来了。</div></div>` : ''}
+        </div>
+      </div>
+
+      ${timerBlock()}
+
+      <div class="card">
+        <div class="card-hd">谁在处理</div>
+        <div class="card-bd">
+          <div class="kv">
+            <div class="r"><span class="k">师傅</span><span class="v">${w ? w.name + ' · ' + w.team : '排队中，还没派'}</span></div>
+            <div class="r"><span class="k">联系方式</span><span class="v">${w ? w.phone : '派工后可见'}</span></div>
+            <div class="r"><span class="k">工单号</span><span class="v mono">${o.no}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">现场照片 &amp; 完工照片</div>
+        <div class="card-bd">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="photo-slot"><div class="big">🖼️</div><div>报修照片 ${o.photosBefore || 0} 张</div></div>
+            ${o.photosAfter > 0
+              ? `<div class="photo-slot" style="background:linear-gradient(150deg,#ecfdf5,#a7f3d0);color:#047857"><div class="big">✅</div><div>完工照片 ${o.photosAfter} 张</div></div>`
+              : (o.status === 'VERIFYING' || o.status === 'DONE' || o.status === 'CLOSED')
+                ? `<div class="photo-slot none"><div class="big">⚠️</div><div>完工照片 0 张</div></div>`
+                : `<div class="photo-slot" style="background:var(--canvas-2);color:var(--ink-4)"><div class="big">📷</div><div>还没完工，等师傅上传</div></div>`}
+          </div>
+          ${(o.status === 'VERIFYING' || o.status === 'DONE' || o.status === 'CLOSED') && !(o.photosAfter > 0)
+            ? `<div class="notice" data-tone="danger"><div>这张单已到「${App.STATUS_LABEL[o.status]}」但没有完工照 —— 管理端会把它列进「数据对不上」，等人核。</div></div>` : ''}
+        </div>
+      </div>
+
+      ${o.parts ? `
+      <div class="card">
+        <div class="card-hd">缺件</div>
+        <div class="card-bd">
+          <div class="kv">
+            <div class="r"><span class="k">配件</span><span class="v">${App.esc(o.parts.name)}</span></div>
+            <div class="r"><span class="k">金额</span><span class="v mono">${o.parts.amount} 元 ${o.parts.amount > App.db().meta.budget ? '<span class="pill" data-tone="warn">超预算线</span>' : '<span class="pill" data-tone="ok">预算内</span>'}</span></div>
+            <div class="r"><span class="k">预计到货</span><span class="v mono">${o.parts.etaDate}</span></div>
+          </div>
+        </div>
+      </div>` : ''}
+
+      <div class="card">
+        <div class="card-hd">AI 判断依据<span class="spacer"></span><span class="tiny muted mono">置信度 ${(o.aiConfidence || 0).toFixed(2)}</span></div>
+        <div class="card-bd">
+          <div class="kv">
+            <div class="r"><span class="k">故障类型</span><span class="v">${o.aiCategory || o.category}</span></div>
+            <div class="r"><span class="k">紧急程度</span><span class="v">${o.aiLevel || o.level}</span></div>
+            <div class="r"><span class="k">依据</span><span class="v" style="font-weight:400;color:var(--ink-3)">${App.esc(o.aiBasis || '')}</span></div>
+          </div>
+          <div class="tiny muted">这段不给人改。事后要查"为什么定成紧急"，就查这里。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">全链路时间线<span class="spacer"></span><span class="tiny muted">${(o.events || []).length} 条</span></div>
+        <div class="card-bd"><div class="tl">${timeline()}</div></div>
+      </div>
+
+      ${actions()}
+    `;
+
+    App.el('#main').innerHTML = html;
+    bind();
+  }
+
+  function bind() {
+    App.els('[data-act]').forEach(b => {
+      b.onclick = () => {
+        const act = b.getAttribute('data-act');
+        if (act === 'cancel') doCancel();
+        if (act === 'request-cancel') doRequestCancel();
+        if (act === 'accept') doAccept();
+        if (act === 'reject') doReject();
+      };
+    });
+  }
+
+  function sheet(html) {
+    const mask = document.createElement('div');
+    mask.className = 'sheet-mask is-open';
+    mask.innerHTML = `<div class="sheet">${html}</div>`;
+    document.body.appendChild(mask);
+    mask.onclick = e => { if (e.target === mask) mask.remove(); };
+    return mask;
+  }
+
+  function doCancel() {
+    if (!confirm('确定撤销这张报修吗？')) return;
+    try {
+      App.fire(no, 'CANCEL', owner(), '师傅还没接单/进楼，学生直接撤销');
+      App.toast('已撤销', 'ok');
+      render();
+    } catch (e) { App.toast(e.message, 'err'); }
+  }
+
+  function doRequestCancel() {
+    const m = sheet(`
+      <h3>申请撤销</h3>
+      <div class="small muted">师傅已经进楼了，这时不能直接撤。提交申请后由管理端决定作废，或者给师傅计一次上门补偿。</div>
+      <div class="reason-list" id="rs">
+        <label><input type="radio" name="r" value="已经自己修好了" checked>已经自己修好了</label>
+        <label><input type="radio" name="r" value="问题自己消失了">问题自己消失了</label>
+        <label><input type="radio" name="r" value="暂时不用修了">暂时不用修了</label>
+        <label><input type="radio" name="r" value="重复报修，另有单在处理">重复报修，另有单在处理</label>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-x="no">再想想</button>
+        <button class="btn btn-primary" data-x="yes">提交申请</button>
+      </div>`);
+    m.querySelector('[data-x="no"]').onclick = () => m.remove();
+    m.querySelector('[data-x="yes"]').onclick = () => {
+      const r = (m.querySelector('input[name="r"]:checked') || {}).value || '未说明';
+      const ord = App.order(no);
+      ord.cancelRequest = { at: App.fmt(App.now()), by: 'student:张同学', reason: r };
+      App.save();
+      m.remove();
+      App.toast('已提交，等管理端处理', 'ok');
+      render();
+    };
+  }
+
+  function doAccept() {
+    const m = sheet(`
+      <h3>确认修好，电子签字</h3>
+      <div class="small muted">签字只代表"这趟修完了"，不代表放弃后续追责。所有记录都留着。</div>
+      <div class="card flat" style="background:var(--canvas);border-radius:var(--r-md)">
+        <div class="card-bd" style="gap:6px">
+          <div class="between small"><span class="muted">工单</span><span class="mono">${o.no}</span></div>
+          <div class="between small"><span class="muted">完工时间</span><span class="mono">${o.finishAt || '—'}</span></div>
+          <div class="between small"><span class="muted">签字人</span><span>${ownerName()}</span></div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">手写签名（演示：输入姓名即可）</label>
+        <input class="input" id="sign" value="${ownerName()}" maxlength="12">
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-x="no">取消</button>
+        <button class="btn btn-primary" data-x="yes">签字确认</button>
+      </div>`);
+    m.querySelector('[data-x="no"]').onclick = () => m.remove();
+    m.querySelector('[data-x="yes"]').onclick = () => {
+      try {
+        App.fire(no, 'ACCEPT', owner(), '学生电子签字确认');
+        m.remove();
+        App.toast('已签字，工单完成', 'ok');
+        render();
+      } catch (e) { App.toast(e.message, 'err'); }
+    };
+  }
+
+  function doReject() {
+    const m = sheet(`
+      <h3>还没修好</h3>
+      <div class="small muted">填一句原因，系统会生成返修单 <span class="mono">${o.no}-R${(o.reworkCount || 0) + 1}</span> 重新排队，紧急度自动升一档。原单的照片和历史全部保留。</div>
+      <div class="field">
+        <label class="label">哪里还不行<span class="req">*</span></label>
+        <textarea class="textarea" id="rj" placeholder="例：水龙头关了还在渗水，比昨天更厉害"></textarea>
+      </div>
+      ${(o.reworkCount || 0) >= 1 ? `<div class="notice" data-tone="warn"><div>这张单已经返修过 ${o.reworkCount} 次。再提交一次会进管理端「反复返修」例外，有人来判断是不是方案本身有问题。</div></div>` : ''}
+      <div class="btn-row">
+        <button class="btn" data-x="no">算了</button>
+        <button class="btn btn-danger" data-x="yes">提交返修</button>
+      </div>`);
+    m.querySelector('[data-x="no"]').onclick = () => m.remove();
+    m.querySelector('[data-x="yes"]').onclick = () => {
+      const r = m.querySelector('#rj').value.trim();
+      if (r.length < 2) { App.toast('写一句哪里还不行', 'err'); return; }
+      try {
+        const res = App.fire(no, 'REJECT', owner(), '学生反馈：' + r);
+        m.remove();
+        App.toast('已生成返修单 ' + o.no + '-R' + o.reworkCount, 'ok');
+        render();
+      } catch (e) { App.toast(e.message, 'err'); }
+    };
+  }
+
+  render();
+</script>
+</body>
+</html>
+

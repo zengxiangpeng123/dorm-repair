@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="zh-CN"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><title>宿修宝 - 详情</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-primary-container": "#eeefff", "secondary": "#00668a", "primary-fixed-dim": "#b4c5ff", "inverse-surface": "#213145", "surface-tint": "#0053db", "surface-container-highest": "#d3e4fe", "surface-dim": "#cbdbf5", "on-tertiary-fixed": "#002113", "tertiary": "#006242", "tertiary-fixed-dim": "#4edea3", "secondary-fixed": "#c4e7ff", "inverse-on-surface": "#eaf1ff", "primary-container": "#2563eb", "background": "#f8f9ff", "on-primary": "#ffffff", "surface-variant": "#d3e4fe", "on-secondary-fixed-variant": "#004c69", "surface-container-high": "#dce9ff", "on-surface": "#0b1c30", "on-tertiary-container": "#bdffdb", "outline-variant": "#c3c6d7", "on-background": "#0b1c30", "inverse-primary": "#b4c5ff", "on-primary-fixed": "#00174b", "on-error-container": "#93000a", "on-primary-fixed-variant": "#003ea8", "on-tertiary-fixed-variant": "#005236", "primary-fixed": "#dbe1ff", "on-tertiary": "#ffffff", "secondary-container": "#40c2fd", "surface-container": "#e5eeff", "on-error": "#ffffff", "secondary-fixed-dim": "#7bd0ff", "primary": "#004ac6", "surface-container-lowest": "#ffffff", "tertiary-container": "#007d55", "surface-container-low": "#eff4ff", "error-container": "#ffdad6", "on-secondary-fixed": "#001e2c", "surface-bright": "#f8f9ff", "on-surface-variant": "#434655", "on-secondary-container": "#004d6a", "outline": "#737686", "error": "#ba1a1a", "on-secondary": "#ffffff", "tertiary-fixed": "#6ffbbe", "surface": "#f8f9ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-md": "1rem", "margin": "1rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter": "1rem", "space-xl": "2rem", "margin-compact": "0.75rem", "gutter-compact": "0.75rem", "space-lg": "1.5rem" }, "fontFamily": { "body-md": ["Inter"], "label-sm": ["Inter"], "display-lg": ["Inter"], "body-lg": ["Inter"], "headline-sm": ["Inter"], "headline-md": ["Inter"], "label-md": ["Inter"], "label-lg": ["Inter"], "tabular-stat": ["Inter"], "headline-lg": ["Inter"], "body-sm": ["Inter"] }, "fontSize": { "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }], "display-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-sm": ["16px", { "lineHeight": "22px", "fontWeight": "600" }], "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }], "tabular-stat": ["24px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "700" }], "headline-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "700" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-full selection:bg-primary-fixed selection:text-on-primary-fixed"><header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-24 px-margin flex flex-col justify-between pb-space-sm"><div class="flex items-center justify-between text-on-surface pt-1"><span class="font-label-md text-label-md font-semibold tracking-tight">09:41</span><div class="flex items-center gap-space-xs text-on-surface"><span class="material-symbols-outlined text-[16px]">signal_cellular_4_bar</span><span class="material-symbols-outlined text-[16px]">wifi</span><span class="material-symbols-outlined text-[18px]">battery_full</span></div></div><div class="flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-xs min-w-0"><button aria-label="返回" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform -ml-2" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button><img alt="宿修宝 App Logo" class="h-7 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwzkFsYObNCPOIQBqNn6uguv-i2TdO0RuATCq_bAirRg6V60wHddd23i_J4tcd1yAAgmTmuiqR-Pt3FQP0c52TpFmYcuhlEaHvdvUntzBSWe6NYFp_hZTya2zqPbQPuwqVg4qU0uJgM95aHgafDUgadehOvwN4qS5KY9_scLZCh7RkVUcOMfwzdZsrALqZdTsqj5j9N0Ilo25JySLcIhKy906YvNAIsmwNtFVRkXk"/><div class="flex flex-col min-w-0"><h1 class="font-headline-sm text-headline-sm font-bold text-on-surface truncate">New Repair Request</h1><span class="font-label-sm text-label-sm text-on-surface-variant truncate">东区 7号楼 402</span></div></div><div class="flex items-center gap-space-xs flex-shrink-0"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-2 ring-primary-fixed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBX5C_C57tmZBmog0k_pr29AsGGleV5YIb988d3gfwDyRU2gHdtfRrH8C9QA3LuDniHsyjrmMRKbNBAeVoujW9TF_EzCxFB2EkDCBzZQd3QR53MKVSZozWP3390-Kt2g5Gb1_lBo4pJiQ18tUNIltmcRamROCpjael1H8sPNY-ytbJThR4GnAu2HX90yW6ZCm--4luXE3nJKqiDRUrshFtjORlYny3j9oVKL1MHmnk"/></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-24 pb-space-xl bg-surface"><div class="flex flex-col w-full px-margin pb-28 space-y-space-md">
+<!-- Page Context Subtitle & Dorm Auto-Match Badge -->
+<div class="flex flex-col space-y-space-xs pt-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">极速报修</span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+        AI极速直派
+      </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+      AI 自动识别故障并智能指派对应楼栋师傅，省去繁琐审批
+    </p>
+<!-- Automatic Location Verified Pill -->
+<button class="mt-space-xs group flex items-center justify-between w-full p-3 rounded-xl bg-surface-container-low active:bg-surface-container transition-colors text-left shadow-sm" id="location-toggle-btn" type="button">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-label-lg text-label-lg font-semibold text-on-surface truncate">东校区 7栋 402室</span>
+<span class="px-1.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm flex-shrink-0">已自动核对</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">智能台账自动关联寝室资产</span>
+</div>
+</div>
+<div class="flex items-center gap-1 text-primary flex-shrink-0 font-label-md text-label-md">
+<span>切换</span>
+<span class="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</div>
+</button>
+</div>
+<!-- Core Input 1: Photo Upload Area & AI Detection Box -->
+<section class="flex flex-col space-y-space-xs bg-surface-container-lowest p-space-md rounded-2xl shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-lg bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
+<span class="material-symbols-outlined text-[16px]">photo_camera</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">现场照片 / 视频</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">已上传 1/4 张</span>
+</div>
+<!-- Upload Card / Preview Zone -->
+<div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-surface-container shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Close up high quality photo of a student dormitory bathroom sink under-counter chrome pipe with clear water drops actively leaking, natural daylight reflection, sharp focus on the water bead, modern clean mobile repair photo" id="preview-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCAqH5-tT5OW6Uk4NElFj0viOiIrtZmDRcsC3eSVf6YvigXvRzraNYPo_wB5Ys3PonxqFE0wbJ3RjzYjglXB9-EoXWjDp_ZSpmhZglwuLg00ldenNpoRQGsTxB0AWuq7BRWVi6q1DcTJR6JYrQ1Hv5VILytIqmVnoTAp6ZzDWdy4bG8SUeBJjZ0dO741IO9u2u_PxIA1M9rMNMf7r0Xeq67BOAUT1OA46Xqyn1kHg"/>
+<!-- AI Inspection Overlay Bounding Box -->
+<div class="absolute inset-x-8 top-10 bottom-16 rounded-xl border-2 border-dashed border-secondary-container pointer-events-none animate-pulse flex flex-col justify-between p-2">
+<div class="self-start px-2 py-0.5 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm flex items-center gap-1 shadow-sm backdrop-blur-md">
+<span class="material-symbols-outlined text-[13px]">lens_blur</span>
+<span>受损焦点定位区</span>
+</div>
+<div class="self-end px-1.5 py-0.5 rounded bg-inverse-surface/80 text-inverse-on-surface font-label-sm text-label-sm">
+          Node: P-Pipe #02
+        </div>
+</div>
+<!-- Quick Retake / Delete Action Floating Chips -->
+<div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+<button aria-label="重新拍摄" class="h-8 px-2.5 rounded-full bg-inverse-surface/75 text-inverse-on-surface backdrop-blur-md flex items-center gap-1 font-label-sm text-label-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[15px]">refresh</span>
+<span>重拍</span>
+</button>
+</div>
+<!-- AI Real-time Tag Pill on the preview bottom -->
+<div class="absolute inset-x-2.5 bottom-2.5 p-2.5 rounded-xl bg-surface-container-lowest/95 backdrop-blur-md shadow-md flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center gap-1.5">
+<span class="font-label-md text-label-md font-bold text-on-surface truncate">智能识别：水管/角阀漏水</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-semibold">置信度 98%</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant truncate">已自动匹配水电班五金配件库 [角阀/编织软管]</span>
+</div>
+</div>
+</div>
+<!-- Additional Media Thumbnails Strip -->
+<div class="grid grid-cols-4 gap-2 pt-2">
+<!-- Active Thumbnail -->
+<div class="relative aspect-square rounded-xl overflow-hidden shadow-sm bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Micro thumbnail view of the leaking faucet pipe with dripping water drops in dorm bathroom" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOMD6nyRY0YzI6Ymtz9u3pI34Jfg76s5D2860OyXHnxcn2PVutErADWL90xusRrKzmN5J2S6nBORVD8YPaKEQkyJko9JuU8q-eERR8WwS7E4kHBMmS_94ZyATtOwChUArzAvc-iNpZ_mUU_XcCMSCzgV3_F634dpfxZU5_hAQG-7GwWJbDP8gdV_J2nWv9WkokMjQ7aTLosNNir5nnTVwDIyXfhXVwLYL1XmuhHTw"/>
+<div class="absolute inset-0 bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary text-[18px]">check_circle</span>
+</div>
+</div>
+<!-- Add Slot 2 -->
+<button class="aspect-square rounded-xl bg-surface-container-low hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-center gap-1 text-on-surface-variant" type="button">
+<span class="material-symbols-outlined text-[22px] text-primary">add_a_photo</span>
+<span class="font-label-sm text-label-sm">照片</span>
+</button>
+<!-- Add Slot 3 -->
+<button class="aspect-square rounded-xl bg-surface-container-low hover:bg-surface-container active:scale-95 transition-all flex flex-col items-center justify-center gap-1 text-on-surface-variant" type="button">
+<span class="material-symbols-outlined text-[22px] text-primary">videocam</span>
+<span class="font-label-sm text-label-sm">短视频</span>
+</button>
+<!-- Add Slot 4 Empty state -->
+<div class="aspect-square rounded-xl bg-surface-container-low/60 flex flex-col items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[20px]">photo_library</span>
+<span class="font-label-sm text-label-sm">最多4张</span>
+</div>
+</div>
+</section>
+<!-- Core Input 2: Voice / Text Description Area -->
+<section class="flex flex-col space-y-space-xs bg-surface-container-lowest p-space-md rounded-2xl shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-lg bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[16px]">edit_note</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">故障情况描述</h2>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">mic</span>
+        支持语音直接转写
+      </span>
+</div>
+<!-- Textarea Box with Floating Voice Dictation -->
+<div class="relative w-full rounded-xl bg-surface-container-low p-3 flex flex-col">
+<textarea class="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline resize-none focus:outline-none" id="repair-desc-input" placeholder="请描述具体问题，也可以按住说话..." rows="3">洗手盆下面的软管一直在滴水，已经拿水桶接了一盆了，麻烦师傅尽快来看看。</textarea>
+<!-- Quick Tag Suggestions -->
+<div class="flex items-center gap-1.5 overflow-x-auto py-1 mt-2 no-scrollbar">
+<button class="quick-chip px-2.5 py-1 rounded-full bg-surface text-on-surface-variant font-label-sm text-label-sm active:bg-primary-fixed active:text-on-primary-fixed transition-colors flex-shrink-0" type="button">
+          💧 滴水持续变快
+        </button>
+<button class="quick-chip px-2.5 py-1 rounded-full bg-surface text-on-surface-variant font-label-sm text-label-sm active:bg-primary-fixed active:text-on-primary-fixed transition-colors flex-shrink-0" type="button">
+          ⚠️ 容易滑倒
+        </button>
+<button class="quick-chip px-2.5 py-1 rounded-full bg-surface text-on-surface-variant font-label-sm text-label-sm active:bg-primary-fixed active:text-on-primary-fixed transition-colors flex-shrink-0" type="button">
+          🚪 人常在宿舍
+        </button>
+</div>
+<!-- Action Sub-bar with Live Word Counter and Voice Trigger -->
+<div class="flex items-center justify-between pt-2 mt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant" id="char-count">35 / 200 字</span>
+<div class="flex items-center gap-2">
+<button class="px-2 py-1 rounded-lg text-on-surface-variant hover:bg-surface-container font-label-sm text-label-sm transition-colors" id="clear-text-btn" type="button">
+            清空
+          </button>
+</div>
+</div>
+</div>
+<!-- Hold to Speak Tactile Button -->
+<div class="relative mt-2">
+<button class="w-full py-3.5 px-4 rounded-xl bg-secondary-fixed text-on-secondary-fixed font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-2.5 shadow-sm active:scale-[0.98] transition-all select-none overflow-hidden relative" id="voice-record-btn" type="button">
+<!-- Audio Waves Animation (Controlled by JS) -->
+<div class="hidden absolute inset-0 bg-secondary-container/40 flex items-center justify-center gap-1.5 pointer-events-none" id="voice-waves">
+<span class="w-1 h-3 bg-secondary rounded-full animate-bounce"></span>
+<span class="w-1 h-6 bg-secondary rounded-full animate-bounce [animation-delay:0.15s]"></span>
+<span class="w-1 h-8 bg-secondary rounded-full animate-bounce [animation-delay:0.3s]"></span>
+<span class="w-1 h-5 bg-secondary rounded-full animate-bounce [animation-delay:0.45s]"></span>
+<span class="w-1 h-2 bg-secondary rounded-full animate-bounce [animation-delay:0.6s]"></span>
+</div>
+<span class="material-symbols-outlined text-[22px]">mic</span>
+<span id="voice-btn-label">按住说话（松开自动转文字）</span>
+</button>
+</div>
+</section>
+<!-- Autonomous Dispatch Smart Grading Notice -->
+<section class="p-space-md rounded-2xl bg-surface-container-low shadow-sm flex flex-col space-y-2">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">智能免审分派机制</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+      系统将根据现场照片与描述，由宿管大模型自动定级与配件归类，<span class="font-semibold text-on-surface">主干零人工审批，即刻直达楼栋师傅工单池</span>。若遇到复杂情况将无缝切入人工保底复核，绝不压单卡单。
+    </p>
+<!-- Predicted Dispatch Flow Preview Mini-Card -->
+<div class="mt-2 p-2.5 rounded-xl bg-surface-container-lowest flex items-center justify-between">
+<div class="flex items-center gap-2 min-w-0">
+<div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold font-label-md text-label-md">
+          7栋
+        </div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md font-semibold text-on-surface truncate">已预分配：水电组·张师傅</span>
+<span class="font-label-sm text-label-sm text-tertiary">当前在 7栋 1楼待命，随时响应</span>
+</div>
+</div>
+<div class="text-right flex-shrink-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">预估接单</span>
+<span class="font-headline-sm text-headline-sm font-bold text-primary">≤ 2 分钟</span>
+</div>
+</div>
+</section>
+<!-- Urgent Emergency Note -->
+<div class="p-3 rounded-xl bg-error-container text-on-error-container flex items-center justify-between">
+<div class="flex items-center gap-2 min-w-0">
+<span class="material-symbols-outlined text-[20px] text-error flex-shrink-0">emergency</span>
+<span class="font-body-sm text-body-sm truncate">如遇严重喷水、电线打火请立即拨打</span>
+</div>
+<a class="px-2.5 py-1 rounded-full bg-error text-on-error font-label-sm text-label-sm font-semibold flex-shrink-0" href="tel:110">
+      24h 应急热线
+    </a>
+</div>
+<!-- Bottom Floating Sticky Action Bar -->
+<div class="fixed bottom-0 inset-x-0 z-40 p-margin bg-surface/90 backdrop-blur-xl pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+<div class="max-w-md mx-auto flex flex-col space-y-1.5">
+<button class="w-full py-4 rounded-xl bg-primary text-on-primary font-headline-sm text-headline-sm font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-[0.98] transition-all" id="submit-repair-btn" type="button">
+<span class="material-symbols-outlined text-[22px]">rocket_launch</span>
+<span>立即提交报修 (预计2分钟内响应)</span>
+</button>
+<div class="flex items-center justify-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-tertiary">verified</span>
+<span class="font-label-sm text-label-sm">已实名认证 · 7号楼 402寝室专属服务</span>
+</div>
+</div>
+</div>
+<!-- Micro Interaction Feedback Toast (Hidden by default) -->
+<div class="fixed top-28 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-inverse-surface text-inverse-on-surface font-label-md text-label-md shadow-xl transition-all opacity-0 pointer-events-none transform -translate-y-2 flex items-center gap-2" id="toast-notify">
+<span class="material-symbols-outlined text-[16px] text-tertiary-fixed">check_circle</span>
+<span id="toast-text">已更新</span>
+</div>
+</div>
+<script>
+  (function() {
+    const textarea = document.getElementById('repair-desc-input');
+    const charCount = document.getElementById('char-count');
+    const clearBtn = document.getElementById('clear-text-btn');
+    const voiceBtn = document.getElementById('voice-record-btn');
+    const voiceWaves = document.getElementById('voice-waves');
+    const voiceLabel = document.getElementById('voice-btn-label');
+    const submitBtn = document.getElementById('submit-repair-btn');
+    const toast = document.getElementById('toast-notify');
+    const toastText = document.getElementById('toast-text');
+    const chips = document.querySelectorAll('.quick-chip');
+
+    function showToast(msg) {
+      if (!toast) return;
+      toastText.textContent = msg;
+      toast.classList.remove('opacity-0', '-translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 2000);
+    }
+
+    // Dynamic Word Count
+    if (textarea && charCount) {
+      const updateCount = () => {
+        charCount.textContent = `${textarea.value.length} / 200 字`;
+      };
+      textarea.addEventListener('input', updateCount);
+    }
+
+    // Clear Text
+    if (clearBtn && textarea) {
+      clearBtn.addEventListener('click', () => {
+        textarea.value = '';
+        if (charCount) charCount.textContent = '0 / 200 字';
+        textarea.focus();
+        showToast('内容已清空');
+      });
+    }
+
+    // Quick tag appending
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const textToAdd = chip.textContent.trim().replace(/^[^\s]+\s*/, '');
+        if (textarea) {
+          if (textarea.value.length > 0 && !textarea.value.endsWith('，') && !textarea.value.endsWith('。')) {
+            textarea.value += '，';
+          }
+          textarea.value += textToAdd + '。';
+          if (charCount) charCount.textContent = `${textarea.value.length} / 200 字`;
+          showToast(`已追加标签：${textToAdd}`);
+        }
+      });
+    });
+
+    // Voice Dictation Simulation
+    let voiceTimer = null;
+    let isHolding = false;
+
+    function startVoice() {
+      isHolding = true;
+      voiceWaves.classList.remove('hidden');
+      voiceLabel.textContent = '正在倾听中... 松开完成转写';
+      if (navigator.vibrate) navigator.vibrate(30);
+    }
+
+    function endVoice() {
+      if (!isHolding) return;
+      isHolding = false;
+      voiceWaves.classList.add('hidden');
+      voiceLabel.textContent = '按住说话（松开自动转文字）';
+      if (textarea) {
+        textarea.value += '（语音识别：水管阀门渗水，请带生料带）';
+        if (charCount) charCount.textContent = `${textarea.value.length} / 200 字`;
+        showToast('语音识别成功并已填入');
+      }
+    }
+
+    if (voiceBtn) {
+      voiceBtn.addEventListener('mousedown', startVoice);
+      voiceBtn.addEventListener('mouseup', endVoice);
+      voiceBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        startVoice();
+      });
+      voiceBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        endVoice();
+      });
+    }
+
+    // Submit Simulation
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+          <span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+          <span>AI 匹配入库中...</span>
+        `;
+        setTimeout(() => {
+          submitBtn.innerHTML = `
+            <span class="material-symbols-outlined text-[22px]">check_circle</span>
+            <span>已成功直派！师傅将火速赶往</span>
+          `;
+          submitBtn.classList.remove('bg-primary');
+          submitBtn.classList.add('bg-tertiary');
+          showToast('报修单已自动创建并指派完毕！');
+        }, 1200);
+      });
+    }
+  })();
+</script></main></body></html>

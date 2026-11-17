@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>师傅端 · 宿舍维修</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<style>
+  .greet { padding: var(--s5) var(--s4) var(--s4); display: flex; align-items: center; gap: var(--s3); }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+            background: linear-gradient(180deg,#d1fae5,#a7f3d0); color: #065f46; font-weight: 700; font-size: 15px; }
+  .blist { display: flex; flex-direction: column; gap: 2px; }
+  .brow { display: flex; align-items: center; gap: var(--s2); font-size: 12px; padding: 6px 0; }
+  .brow .room { width: 46px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .brow .grow { flex: 1; color: var(--ink-3); }
+  .task { display: flex; align-items: center; gap: var(--s3); padding: var(--s3); border-radius: var(--r-md);
+          border: 1px solid var(--line-soft); background: #fff; cursor: pointer; }
+  .task + .task { margin-top: var(--s2); }
+  .task .room-no { font-size: 15px; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .task .what { font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="greet">
+    <div class="avatar">李</div>
+    <div class="grow">
+      <div style="font-size:17px;font-weight:700;letter-spacing:-.02em">李建国</div>
+      <div class="tiny muted">水电班 · 东区7号楼 · 在岗</div>
+    </div>
+    <button class="btn btn-sm" onclick="location.href='../index.html'">切换</button>
+  </div>
+
+  <div class="body" style="padding-top:0" id="main"></div>
+</main>
+
+<nav class="nav">
+  <a href="index.html" class="is-on"><span class="ico">🧰</span>待办</a>
+  <a href="building.html"><span class="ico">🏢</span>楼内</a>
+  <a href="building.html" class="nav-cta">✓</a>
+  <a href="parts.html"><span class="ico">📦</span>缺件</a>
+</nav>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+  App.tick(true);
+  const ME = 'W0428';
+  const mine = App.orders().filter(o => o.workerId === ME &&
+    ['ASSIGNED', 'REPAIRING', 'PARTS'].indexOf(o.status) >= 0);
+  const bld = App.building('B7');
+  const doing = mine.filter(o => o.status === 'REPAIRING').length;
+  const todo = mine.filter(o => o.status === 'ASSIGNED').length;
+  const parts = mine.filter(o => o.status === 'PARTS').length;
+
+  const ICON = { '给排水': '💧', '电气': '⚡', '电器': '🔌', '门窗家具': '🚪', '网络': '🌐' };
+
+  let html = `
+    <div class="stats">
+      <div class="stat accent"><div class="num mono">${todo}</div><div class="lab">待我上门</div></div>
+      <div class="stat"><div class="num mono">${doing}</div><div class="lab">正在维修</div></div>
+      <div class="stat"><div class="num mono">${parts}</div><div class="lab">等配件</div></div>
+    </div>
+
+    <div class="card hero">
+      <div class="card-hd">
+        <span>${bld.name}</span><span class="pill" data-tone="info">本栋 ${mine.length} 单</span>
+        <span class="spacer"></span>
+        <span class="tiny muted">${doing ? '已在楼内' : '还没进楼'}</span>
+      </div>
+      <div class="card-bd">
+        <div class="blist">${bld.floors.map(f => {
+          const r = mine.filter(o => String(o.room).charAt(0) === String(f));
+          return `<div class="brow"><span class="room">${f}F</span>
+            <span class="grow">${r.length ? r.map(o => o.room + ' ' + ICON[o.category]).join('　') : '—'}</span>
+            <span class="tiny muted">${r.length} 单</span></div>`;
+        }).join('')}</div>
+        <div class="hr"></div>
+        <button class="btn btn-primary btn-block" onclick="location.href='building.html'">
+          ✓ 进楼打卡 · 一次打完本批 ${mine.length} 单
+        </button>
+        <div class="tiny muted center">打卡后学生端会看到「师傅已进楼」，本批工单同时进入维修中</div>
+      </div>
+    </div>
+
+    <div class="section-title">按楼层顺序上门<span class="more tiny muted">先高层后低层，一趟到底</span></div>
+    <div class="card card-pad" style="display:flex;flex-direction:column;gap:8px">
+      ${mine.length ? mine.slice().sort((a, b) => String(b.room).localeCompare(String(a.room))).map(o => `
+        <div class="task" onclick="location.href='task.html?no='+encodeURIComponent(o.no)">
+          <div class="grow">
+            <div class="room-no">${o.room}　${ICON[o.category] || ''} ${o.category}</div>
+            <div class="what truncate">${App.esc(o.desc)}</div>
+            <div class="tiny muted" style="margin-top:3px">时段 ${o.window || '全天'} · ${o.no.slice(-6)}</div>
+          </div>
+          ${App.pill(o.status)}
+        </div>`).join('') : '<div class="empty"><div class="big">✅</div><div>本栋今天没有待办</div></div>'}
+    </div>
+
+    <div class="notice" data-tone="warn">
+      <div><b>缺件不用打电话问。</b>填名称、金额、预计到货日就提交；预算内的系统自己下单，超预算的才进管理端。</div>
+    </div>`;
+
+  App.el('#main').innerHTML = html;
+
+  function soon(name) { App.toast(`「${name}」在第 3 步补上`, 'warn'); }
+  App.els('[data-soon]').forEach(a => a.onclick = () => soon(a.getAttribute('data-soon')));
+</script>
+</body>
+</html>

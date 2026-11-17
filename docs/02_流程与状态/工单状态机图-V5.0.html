@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="宿舍维修 V5.0 工单状态机：9 个状态、13 条合法转移、两个 7 天计时器；管理端例外不占状态位">
+<title>宿舍维修工单状态机 V5.0｜9 状态 · 13 转移</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #eff2f5;
+    --card: #ffffff;
+    --fg: #16202e;
+    --muted: #64748b;
+    --line: #dde3ec;
+    --main: #475467;
+    --biz: #2f6fed;
+    --exc: #b5720b;
+    --end: #0f8a5f;
+    --void: #b23b3b;
+    --timer: #6b4de0;
+    --band: #f7f9fc;
+    --shadow: rgba(20, 34, 56, .12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #0a0f16;
+      --card: #121a24;
+      --fg: #e7eef7;
+      --muted: #9aa8b8;
+      --line: #2b3746;
+      --main: #a8b6c6;
+      --biz: #7ba7ff;
+      --exc: #f0b055;
+      --end: #4ecfa0;
+      --void: #ef8080;
+      --timer: #a99bff;
+      --band: #161f2a;
+      --shadow: rgba(0, 0, 0, .5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 26px 22px 44px;
+    background: var(--bg); color: var(--fg);
+    font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+    font-size: 15px; line-height: 1.55;
+  }
+  .sheet {
+    max-width: 1520px; margin: 0 auto; padding: 26px 26px 20px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+    box-shadow: 0 22px 60px var(--shadow);
+  }
+  h1 { font-size: 24px; margin: 0 0 6px; font-weight: 650; letter-spacing: .01em; }
+  .lede { margin: 0 0 14px; color: var(--muted); max-width: 64em; }
+  .lede b { color: var(--fg); font-weight: 600; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+  .meta span {
+    font-size: 12.5px; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px;
+  }
+  .meta span.hot { color: var(--biz); border-color: #bfd4f8; background: rgba(47,111,237,.06); }
+
+  svg.flow { width: 100%; height: auto; display: block; }
+
+  .st .shape { fill: var(--card); stroke-width: 1.9; }
+  .st.s-biz   .shape { stroke: var(--biz); }
+  .st.s-exc   .shape { stroke: var(--exc); }
+  .st.s-end   .shape { stroke: var(--end); stroke-width: 2.6; }
+  .st.s-void  .shape { stroke: var(--void); stroke-width: 2.4; stroke-dasharray: 7 4; }
+  .t-st { font-size: 16px; font-weight: 650; fill: var(--fg); }
+  .t-code { font-size: 11.5px; fill: var(--muted); }
+
+  .edge { fill: none; stroke-width: 1.7; stroke-linecap: round; stroke: var(--main); }
+  .edge.biz { stroke: var(--biz); }
+  .edge.exc { stroke: var(--exc); stroke-dasharray: 6 5; }
+  .edge.void { stroke: var(--void); stroke-dasharray: 7 4; }
+  .edge.timer { stroke: var(--timer); stroke-dasharray: 2 5; stroke-width: 1.7; }
+  .elab {
+    font-size: 12px; fill: var(--muted);
+    paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round;
+  }
+  .elab.hot { fill: var(--exc); }
+  .elab.cool { fill: var(--timer); }
+  .elab.red { fill: var(--void); }
+
+  .badge circle { fill: var(--exc); }
+  .badge text { font-size: 11.5px; fill: #fff; font-weight: 600; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; margin-top: 22px; }
+  .card { border: 1px solid var(--line); border-radius: 14px; padding: 15px 17px; }
+  .card h2 { font-size: 14.5px; margin: 0 0 10px; font-weight: 650; }
+  .card ul { margin: 0; padding-left: 18px; }
+  .card li { font-size: 13.5px; margin: 6px 0; }
+  .card li i { color: var(--muted); font-style: normal; }
+  .card.warn { border-color: #f0c9a0; background: rgba(181,114,11,.05); }
+  .card.good { border-color: #b7e3ce; background: rgba(15,138,95,.05); }
+  .card p { font-size: 13.5px; margin: 6px 0; }
+  .span2 { grid-column: 1 / -1; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.t th, table.t td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  table.t th { font-weight: 650; color: var(--muted); font-size: 12.5px; }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t code { font-family: inherit; background: var(--band); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; font-size: 13px; color: var(--muted); }
+  .legend div { display: flex; align-items: center; gap: 8px; }
+  .sw { width: 28px; height: 16px; flex: none; border-radius: 5px; border: 1.9px solid var(--muted); }
+  .sw.biz { border-color: var(--biz); }
+  .sw.exc { border-color: var(--exc); }
+  .sw.end { border-color: var(--end); border-width: 2.6px; }
+  .sw.void { border-color: var(--void); border-style: dashed; border-width: 2.4px; }
+  .sw.l1 { border: 0; height: 0; border-top: 2px solid var(--main); border-radius: 0; }
+  .sw.l2 { border: 0; height: 0; border-top: 2px dashed var(--exc); border-radius: 0; }
+  .sw.l3 { border: 0; height: 0; border-top: 2px dotted var(--timer); border-radius: 0; }
+  footer { margin-top: 16px; color: var(--muted); font-size: 12.5px; }
+
+  @page { size: A3 landscape; margin: 8mm; }
+  @media print {
+    body { padding: 0; background: #fff; }
+    .sheet { box-shadow: none; border: 0; max-width: none; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <h1>工单状态机 V5.0（宿舍维修 · 9 个状态）</h1>
+  <p class="lede">这张图只回答一个问题：<b>一张单能停在哪几个位置，靠什么事件挪。没有「看情况」的分支</b>。口径按「项目完整闭环」对齐——大纲里出现过的状态一个不少，<b>9 个状态、13 条合法转移、两个互不相干的 7 天计时器</b>。闭嘴的边（被拒绝的转移）不画进图里，单独列在下方。管理端的例外<b>不是状态</b>，而是挂在某条边上的标记；唯一由人决定的转移是「批准撤销」。</p>
+  <div class="meta">
+    <span class="hot">9 个状态</span>
+    <span>13 条合法转移</span>
+    <span>两条终态：已关闭 / 已取消</span>
+    <span>回流都回「待派工」</span>
+    <span>T1 验收超时 · T2 归档</span>
+    <span>撤销只到「进楼」为止</span>
+  </div>
+
+  <svg class="flow" viewBox="0 0 1440 880" role="img" aria-label="宿舍维修 V5.0 工单状态机：9 个状态与 13 条合法转移">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+    </defs>
+
+    <rect x="632" y="48" width="16" height="16" rx="3" fill="var(--main)"/>
+
+    <!-- 主干：6 个 -->
+    <g class="st s-biz">
+      <rect class="shape" x="520" y="96" width="240" height="64" rx="12"/>
+      <text class="t-st" x="640" y="124" text-anchor="middle">待派工</text>
+      <text class="t-code" x="640" y="145" text-anchor="middle">PENDING · 已入库，等批次</text>
+    </g>
+    <g class="st s-biz">
+      <rect class="shape" x="520" y="216" width="240" height="64" rx="12"/>
+      <text class="t-st" x="640" y="244" text-anchor="middle">已派工</text>
+      <text class="t-code" x="640" y="265" text-anchor="middle">ASSIGNED · 已推给师傅</text>
+    </g>
+    <g class="st s-biz">
+      <rect class="shape" x="520" y="336" width="240" height="64" rx="12"/>
+      <text class="t-st" x="640" y="364" text-anchor="middle">维修中</text>
+      <text class="t-code" x="640" y="385" text-anchor="middle">REPAIRING · 师傅已进楼打卡</text>
+    </g>
+    <g class="st s-biz">
+      <rect class="shape" x="520" y="456" width="240" height="64" rx="12"/>
+      <text class="t-st" x="640" y="484" text-anchor="middle">待验收</text>
+      <text class="t-code" x="640" y="505" text-anchor="middle">VERIFYING · 完工照已提交</text>
+    </g>
+    <g class="st s-end">
+      <rect class="shape" x="520" y="576" width="240" height="64" rx="12"/>
+      <text class="t-st" x="640" y="604" text-anchor="middle">已完成</text>
+      <text class="t-code" x="640" y="625" text-anchor="middle">DONE · 学生已签字</text>
+    </g>
+    <g class="st s-end">
+      <rect class="shape" x="520" y="696" width="240" height="64" rx="12"/>
+      <text class="t-st" x="640" y="724" text-anchor="middle">已关闭</text>
+      <text class="t-code" x="640" y="745" text-anchor="middle">CLOSED · 归档，只读</text>
+    </g>
+    <circle cx="640" cy="812" r="11" fill="none" stroke="var(--main)" stroke-width="2.4"/>
+
+    <!-- 右：回流 2 个 -->
+    <g class="st s-exc">
+      <rect class="shape" x="920" y="336" width="240" height="64" rx="12"/>
+      <text class="t-st" x="1040" y="364" text-anchor="middle">待配件</text>
+      <text class="t-code" x="1040" y="385" text-anchor="middle">PARTS · 缺件，已下采购</text>
+    </g>
+    <g class="st s-exc">
+      <rect class="shape" x="920" y="456" width="240" height="64" rx="12"/>
+      <text class="t-st" x="1040" y="484" text-anchor="middle">返修中</text>
+      <text class="t-code" x="1040" y="505" text-anchor="middle">REWORKING · 原单挂起</text>
+    </g>
+
+    <!-- 左：终态 已取消 -->
+    <g class="st s-void">
+      <rect class="shape" x="140" y="336" width="240" height="64" rx="12"/>
+      <text class="t-st" x="260" y="364" text-anchor="middle">已取消</text>
+      <text class="t-code" x="260" y="385" text-anchor="middle">CANCELLED · 作废，不进统计</text>
+    </g>
+
+    <!-- 主干边 -->
+    <path class="edge" d="M 640 64 L 640 96" marker-end="url(#ar)"/>
+    <text class="elab" x="654" y="84">提交报修（学生）</text>
+
+    <path class="edge biz" d="M 640 160 L 640 216" marker-end="url(#ar)"/>
+    <text class="elab" x="654" y="192">自动派工（系统）</text>
+
+    <path class="edge biz" d="M 640 280 L 640 336" marker-end="url(#ar)"/>
+    <text class="elab" x="654" y="312">到门打卡（师傅）</text>
+
+    <path class="edge biz" d="M 640 400 L 640 456" marker-end="url(#ar)"/>
+    <text class="elab" x="654" y="432">完工提交（师傅）· 必传完工照</text>
+
+    <path class="edge biz" d="M 640 520 L 640 576" marker-end="url(#ar)"/>
+    <text class="elab" x="654" y="552">签字确认（学生）</text>
+
+    <path class="edge" d="M 640 640 L 640 696" marker-end="url(#ar)"/>
+    <text class="elab" x="654" y="672">归档（系统）· T2 满 7 天</text>
+
+    <path class="edge" d="M 640 760 L 640 801" marker-end="url(#ar)"/>
+
+    <!-- 到访未遇：已派工 → 待派工 -->
+    <path class="edge exc" d="M 520 232 L 490 232 L 490 136 L 520 136" marker-end="url(#ar)"/>
+    <text class="elab hot" x="482" y="190" text-anchor="end">到访未遇 · 系统顺延</text>
+
+    <!-- 登记缺件：维修中 → 待配件 -->
+    <path class="edge exc" d="M 760 368 L 920 368" marker-end="url(#ar)"/>
+    <text class="elab hot" x="830" y="356" text-anchor="middle">登记缺件（师傅）</text>
+
+    <!-- 配件到货：待配件 → 待派工 -->
+    <path class="edge exc" d="M 1160 368 L 1220 368 L 1220 128 L 760 128" marker-end="url(#ar)"/>
+    <text class="elab hot" x="900" y="146" text-anchor="middle">配件到货 · 自动重排</text>
+
+    <!-- 验收不通过：待验收 → 返修中 -->
+    <path class="edge exc" d="M 760 488 L 920 488" marker-end="url(#ar)"/>
+    <text class="elab hot" x="830" y="476" text-anchor="middle">验收不通过（学生）</text>
+
+    <!-- 生成 -R1：返修中 → 待派工 -->
+    <path class="edge exc" d="M 1160 488 L 1330 488 L 1330 112 L 760 112" marker-end="url(#ar)"/>
+    <text class="elab hot" x="1040" y="100" text-anchor="middle">生成 -R1 新单（原单挂起）</text>
+
+    <!-- 撤销 1：待派工 → 已取消 -->
+    <path class="edge void" d="M 520 112 L 460 112 L 460 76 L 260 76 L 260 336" marker-end="url(#ar)"/>
+    <text class="elab red" x="360" y="66" text-anchor="middle">撤销（还没人接单）</text>
+
+    <!-- 撤销 2：已派工 → 已取消 -->
+    <path class="edge void" d="M 520 240 L 440 240 L 440 412 L 260 412 L 260 400" marker-end="url(#ar)"/>
+    <text class="elab red" x="360" y="430" text-anchor="middle">撤销（师傅还没进楼）</text>
+
+    <!-- T1：待验收 → 已完成 -->
+    <path class="edge timer" d="M 520 512 L 400 512 L 400 632 L 520 632" marker-end="url(#ar)"/>
+    <text class="elab cool" x="300" y="560" text-anchor="middle">T1 · 7 天未响应 → 自动验收</text>
+
+    <!-- 管理端三个介入点 -->
+    <g class="badge"><circle cx="676" cy="44" r="11"/><text x="676" y="48.5" text-anchor="middle">1</text></g>
+    <g class="badge"><circle cx="896" cy="352" r="11"/><text x="896" y="356.5" text-anchor="middle">2</text></g>
+    <g class="badge"><circle cx="900" cy="472" r="11"/><text x="900" y="476.5" text-anchor="middle">3</text></g>
+  </svg>
+
+  <div class="cards">
+    <div class="card span2">
+      <h2>合法转移（13 条 · 触发方只有三方：学生 / 师傅 / 系统）</h2>
+      <table class="t">
+        <tr>
+          <th style="width:4%">#</th><th style="width:14%">事件</th><th style="width:9%">触发方</th>
+          <th style="width:20%">从 → 到</th><th style="width:22%">前置条件</th><th>副作用</th>
+        </tr>
+        <tr><td>1</td><td><code>SUBMIT</code></td><td>学生</td><td>— → <code>待派工</code></td><td>照片 ≥ 1、描述 ≥ 4 字</td><td>生成单号、AI 定级、写 <code>toCalibrate</code></td></tr>
+        <tr><td>2</td><td><code>ASSIGN</code></td><td>系统</td><td><code>待派工</code> → <code>已派工</code></td><td>本楼栋有当班师傅</td><td>写 <code>workerId</code>、推待办；<b>没有当班师傅就停在待派工</b>并进异常清单</td></tr>
+        <tr><td>3</td><td><code>ARRIVE</code></td><td>师傅</td><td><code>已派工</code> → <code>维修中</code></td><td>该单属于此师傅</td><td>写 <code>arriveAt</code>、通知学生</td></tr>
+        <tr><td>4</td><td><code>NO_SHOW</code></td><td>师傅</td><td><code>已派工</code> → <code>待派工</code></td><td>选了 4 个原因之一</td><td>清 <code>workerId</code>、顺延重排、计入「未遇次数」</td></tr>
+        <tr><td>5</td><td><code>FINISH</code></td><td>师傅</td><td><code>维修中</code> → <code>待验收</code></td><td>完工照 ≥ 1</td><td>写 <code>finishAt</code>、通知验收，<b>T1 开始计时</b></td></tr>
+        <tr><td>6</td><td><code>NEED_PARTS</code></td><td>师傅</td><td><code>维修中</code> → <code>待配件</code></td><td>缺件名 + 金额 + 预计日期</td><td>预算内自动下单；超预算挂 ②</td></tr>
+        <tr><td>7</td><td><code>PARTS_ARRIVED</code></td><td>系统 / 管理员</td><td><code>待配件</code> → <code>待派工</code></td><td>—</td><td>保留原 <code>level</code>、重新排队</td></tr>
+        <tr><td>8</td><td><code>ACCEPT</code></td><td>学生</td><td><code>待验收</code> → <code>已完成</code></td><td>—</td><td>写 <code>signAt</code>，<b>T2 开始计时</b>；若是返修单则同时关掉原单</td></tr>
+        <tr><td>9</td><td><code>REJECT</code></td><td>学生</td><td><code>待验收</code> → <code>返修中</code></td><td>填不通过原因</td><td>生成 <code>-R1</code> 新单、原单挂起、紧急度升一档；第 2 次挂 ③</td></tr>
+        <tr><td>10</td><td><code>AUTO_ACCEPT</code></td><td>系统</td><td><code>待验收</code> → <code>已完成</code></td><td><b>T1 满 168 小时</b></td><td>写 <code>signAt</code>，<code>manual=0</code>，事件标「学生 7 天未响应」</td></tr>
+        <tr><td>11</td><td><code>ARCHIVE</code></td><td>系统</td><td><code>已完成</code> → <code>已关闭</code></td><td><b>T2 满 7 天</b></td><td>转只读，进归档与看板</td></tr>
+        <tr><td>12</td><td><code>CANCEL</code></td><td>学生</td><td><code>待派工</code> → <code>已取消</code></td><td>师傅还没接单</td><td>工单作废，不进统计</td></tr>
+        <tr><td>13</td><td><code>CANCEL</code></td><td>学生</td><td><code>已派工</code> → <code>已取消</code></td><td>师傅还没进楼（未打卡）</td><td>清 <code>workerId</code>，从该师傅待办中移除</td></tr>
+      </table>
+    </div>
+
+    <div class="card warn">
+      <h2>必须被拒绝的转移（返回 409，不是静默忽略）</h2>
+      <ul>
+        <li><code>待派工</code> → <code>维修中</code>：跳过派工，师傅没有依据</li>
+        <li><code>待派工</code> → <code>已完成</code>：跳过整个维修过程</li>
+        <li><code>已派工</code> → <code>待验收</code>：没打卡就完工，时间线断了</li>
+        <li><code>维修中</code> → <code>已完成</code>：跳过学生验收</li>
+        <li><code>待配件</code> → <code>已完成</code>：缺件没换上就结单</li>
+        <li><code>待验收</code> → <code>待派工</code>：只能退成返修单，不能凭空回队</li>
+        <li><code>维修中</code> → <code>已取消</code>：师傅已进楼，学生只能<b>申请</b>，由管理员决定</li>
+        <li><code>待验收</code> → <code>已取消</code>：活已干完，只能验收或退回返修</li>
+        <li>终态（<code>已关闭</code> / <code>已取消</code>）→ 任意：需要就重新报修</li>
+        <li>非本单师傅执行 <code>ARRIVE</code> / <code>FINISH</code>，非本人执行 <code>ACCEPT</code> / <code>REJECT</code>：越权</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>图上 ①②③ 是什么</h2>
+      <p>它们标的是<b>管理端会被叫醒的位置</b>。三个都不是状态，图上也没有对应的框。</p>
+      <ul>
+        <li><b>1 · 数据对不上</b>：挂在 <code>SUBMIT</code> 上。学生填的位置和台账不一致时，<b>工单照常生成、照常排队</b>，管理端改台账，不动工单</li>
+        <li><b>2 · 超预算采购</b>：挂在 <code>NEED_PARTS</code> 上。金额超线时<b>工单已经在待配件</b>，批准与否只改「采购状态」，不改工单状态</li>
+        <li><b>3 · 反复返修</b>：挂在第 2 次 <code>REJECT</code> 上。<b>工单照常走返修中 → 生成 -R1</b>，管理端只判断根因</li>
+      </ul>
+      <p><i>结论：三类例外都不占状态位。管理端读标记与清单，写台账与采购单。</i></p>
+    </div>
+
+    <div class="card">
+      <h2>唯一由人决定的转移：批准撤销</h2>
+      <p>学生撤销的边界不是技术限制，是成本：</p>
+      <ul>
+        <li><code>待派工</code> / <code>已派工</code>（未打卡）→ <b>学生自己点撤销</b>，零成本，走 <code>CANCEL</code></li>
+        <li><code>维修中</code>（已进楼）→ <b>只能申请</b>，进管理端例外处理台，由管理员决定作废或补偿师傅</li>
+        <li><code>待验收</code> 及之后 → <b>不能撤销</b>，只能验收或退回返修</li>
+      </ul>
+      <p>分界线就是<b>「进楼打卡」</b>：打卡前师傅还没出发，打卡后人已经在楼里。这也是全图唯一一处「管理员能改工单状态」的地方。</p>
+    </div>
+
+    <div class="card good">
+      <h2>两个 7 天，起点不同</h2>
+      <ul>
+        <li><b>T1 · 验收超时</b>：起点是 <code>FINISH</code>（师傅交完工照），满 168 小时 → <code>已完成</code>。防的是学生不验收把单子永远吊着</li>
+        <li><b>T2 · 归档</b>：起点是 <code>ACCEPT</code> / <code>AUTO_ACCEPT</code>（签字时刻），满 7 天 → <code>已关闭</code>。防的是单子停在已完成不归档，统计口径飘</li>
+        <li>两条都叫「7 天」，合成一条会出两个 bug：<b>刚签完字就被归档</b>，或者<b>一直不归档</b></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>为什么回流全部回到「待派工」</h2>
+      <p>到访未遇、配件到货、返修新单，三条都回到 <code>待派工</code>，没有一条直接回 <code>维修中</code>。</p>
+      <p>原因：<b>回「维修中」等于跳过派工直接插队</b>，师傅会凭空多出一张没推送过的单，待办和实际作业对不上。回「待派工」才能重新参与排序、重新攒批；配件回流还要带上原紧急度，避免降级。</p>
+    </div>
+
+    <div class="card">
+      <h2>图例</h2>
+      <div class="legend">
+        <div><span class="sw biz"></span>正常流转</div>
+        <div><span class="sw exc"></span>异常 / 回流</div>
+        <div><span class="sw end"></span>正常终态</div>
+        <div><span class="sw void"></span>作废终态</div>
+        <div><span class="sw l1"></span>主干</div>
+        <div><span class="sw l2"></span>异常回流</div>
+        <div><span class="sw l3"></span>系统计时器</div>
+        <div><span class="sw" style="border-radius:50%;width:16px;background:var(--exc);border:0"></span>管理端介入点</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>V5.0 · 状态与事件命名对齐 SYS-004《状态机设计》· 9 状态 / 13 转移 · 闭环大纲列了 8 个状态、未涉撤销，本图按系统已实现的 9 个补全，不改大纲任何一条</footer>
+</div>
+</body>
+</html>

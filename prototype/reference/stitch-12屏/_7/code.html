@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"tertiary":"#006242","secondary":"#00668a","inverse-on-surface":"#eaf1ff","secondary-container":"#40c2fd","on-error-container":"#93000a","surface-dim":"#cbdbf5","surface-container-low":"#eff4ff","surface":"#f8f9ff","surface-container-lowest":"#ffffff","error":"#ba1a1a","on-secondary-fixed-variant":"#004c69","on-surface-variant":"#434655","on-primary-fixed-variant":"#003ea8","secondary-fixed":"#c4e7ff","tertiary-fixed":"#6ffbbe","on-tertiary-fixed":"#002113","on-background":"#0b1c30","on-secondary":"#ffffff","on-error":"#ffffff","outline":"#737686","secondary-fixed-dim":"#7bd0ff","on-tertiary-fixed-variant":"#005236","surface-container-high":"#dce9ff","on-secondary-fixed":"#001e2c","primary-fixed-dim":"#b4c5ff","tertiary-container":"#007d55","tertiary-fixed-dim":"#4edea3","on-primary-container":"#eeefff","inverse-primary":"#b4c5ff","surface-tint":"#0053db","on-secondary-container":"#004d6a","surface-variant":"#d3e4fe","on-primary-fixed":"#00174b","on-tertiary-container":"#bdffdb","primary-fixed":"#dbe1ff","inverse-surface":"#213145","primary":"#004ac6","primary-container":"#2563eb","outline-variant":"#c3c6d7","on-surface":"#0b1c30","surface-container-highest":"#d3e4fe","error-container":"#ffdad6","surface-container":"#e5eeff","background":"#f8f9ff","on-tertiary":"#ffffff","on-primary":"#ffffff","surface-bright":"#f8f9ff"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-md":"1rem","space-xs":"0.25rem","space-sm":"0.5rem","margin":"1rem","space-xl":"2rem","gutter":"1rem","gutter-compact":"0.75rem","margin-compact":"0.75rem","space-lg":"1.5rem"},"fontFamily":{"headline-md":["Inter"],"headline-lg":["Inter"],"label-md":["Inter"],"display-lg":["Inter"],"body-lg":["Inter"],"tabular-stat":["Inter"],"body-sm":["Inter"],"headline-sm":["Inter"],"label-lg":["Inter"],"label-sm":["Inter"],"body-md":["Inter"]},"fontSize":{"headline-md":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-lg":["22px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"500"}],"display-lg":["30px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"tabular-stat":["24px",{"lineHeight":"28px","letterSpacing":"0","fontWeight":"700"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"headline-sm":["16px",{"lineHeight":"22px","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.01em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}]}}}};</script></head><body class="bg-surface text-on-surface font-body-md text-body-md min-h-screen"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="px-space-lg pt-space-lg pb-space-md flex flex-col gap-space-xs"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm"><span class="material-symbols-outlined text-[20px]">account_balance</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">宿修宝 · 监测台</span><span class="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">后勤运维指挥大屏</span></div></div><div class="mt-space-sm flex items-center justify-between bg-surface-container-low px-space-sm py-space-xs rounded-lg"><span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>零审批自主干线</span><span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-highest px-1.5 py-0.5 rounded">V3.8 督察</span></div></div><div class="px-space-md mt-space-sm"><div class="text-on-surface-variant font-label-sm text-label-sm px-space-sm mb-space-xs uppercase tracking-wider">核心督察业务</div><nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-headline-sm shadow-sm"><a class="flex items-center gap-3 px-space-md py-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="exception-monitor-and-triage" href="#"><span class="material-symbols-outlined text-[20px]">crisis_alert</span><span>异常监测中枢</span></a><a class="flex items-center gap-3 px-space-md py-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="live-orders-and-heatmap" href="#"><span class="material-symbols-outlined text-[20px]">map</span><span>全校工单态势</span></a><a class="flex items-center gap-3 px-space-md py-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="building-grid-and-material-ledger" href="#"><span class="material-symbols-outlined text-[20px]">inventory_2</span><span>楼栋网格与耗材台账</span></a><a aria-current="page" class="flex items-center gap-3 px-space-md py-space-sm rounded-xl transition-all bg-primary-container text-on-primary-container font-headline-sm shadow-sm" data-path="worker-performance-and-kpi" href="#"><span class="material-symbols-outlined text-[20px]">award_star</span><span>质效考核与工分</span></a></nav></div></div><div class="p-space-md flex flex-col gap-space-sm"><div class="p-space-sm bg-surface-container rounded-xl flex flex-col gap-1"><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface flex items-center gap-1.5 font-semibold"><span class="material-symbols-outlined text-secondary text-[16px]">smart_toy</span>AI 自动化引擎</span><span class="font-label-sm text-label-sm text-tertiary font-bold">99.4%</span></div><p class="font-label-sm text-label-sm text-on-surface-variant leading-tight">主干零派工·零催办流顺畅运行中，仅三类异常触发干预</p></div><div class="flex items-center justify-between p-space-sm bg-surface-container-low rounded-xl"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col"><span class="font-label-lg text-label-lg text-on-surface leading-tight">王主任</span><span class="font-label-sm text-label-sm text-on-surface-variant">后勤处 · 督察介入</span></div></div><button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high p-1.5 rounded-lg transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">logout</span></button></div></div></aside><div class="pl-72 flex flex-col min-h-screen"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between"><div class="flex items-center gap-space-md"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span><span class="font-headline-sm text-headline-sm text-on-surface">东区/西区 宿区后勤运行状态 · 实时</span></div><div class="hidden xl:flex items-center gap-2 px-space-sm py-1 bg-surface-container-low text-on-surface-variant rounded-lg font-body-sm text-body-sm"><span class="material-symbols-outlined text-[16px] text-primary">campaign</span><span>全校 6 栋宿舍楼，当前 2 个班组在楼作业，45 间台账房间运行平稳</span></div></div><div class="flex items-center gap-space-sm"><div class="flex items-center bg-surface-container-low p-1 rounded-xl gap-1 text-on-surface-variant font-label-md text-label-md"><button class="px-space-sm py-1 rounded-lg bg-surface-container-lowest text-on-surface font-semibold shadow-xs" type="button">全部异常</button><button class="px-space-sm py-1 rounded-lg hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button">仅看超支</button><button class="px-space-sm py-1 rounded-lg hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button">仅看返修</button></div><button class="flex items-center gap-1.5 px-space-sm py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">file_download</span><span>报表</span></button><button class="flex items-center gap-1.5 px-space-sm py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">fullscreen</span></button><button class="flex items-center gap-1 px-space-md py-1.5 rounded-xl bg-error text-on-error hover:bg-error/90 font-label-md text-label-md shadow-xs transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">notification_important</span><span>紧急通报</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-16 bg-surface flex-1 px-space-lg py-space-md"><div class="flex flex-col w-full gap-space-lg pb-12">
+<!-- Top Banner / Headline Context Bar -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md bg-surface-container-lowest p-space-lg rounded-xl shadow-sm">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full font-label-sm text-label-sm bg-tertiary-container text-on-tertiary-container font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed mr-1"></span>
+          公开透明·多劳多得
+        </span>
+<span class="font-label-md text-label-md text-on-surface-variant">结算周期：今日动态实时累计（自动对账日清日结）</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">师傅质效考核与工分分析矩阵</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-2xl">
+        通过楼宇网格化智能调度、耗材扫码核验与学生履约即时打分，彻底阻绝虚报工时与吃拿卡要；用清晰透明的工分量化蓝领劳动价值，让用心守护宿舍的维修师傅更有尊严与收获。
+      </p>
+</div>
+<div class="flex items-center gap-space-sm self-start md:self-center">
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">工分折算汇率基准</span>
+<span class="font-label-lg text-label-lg font-bold text-tertiary">1 积分 = ¥4.62 (含高温+质效系数)</span>
+</div>
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-xl bg-primary text-on-primary hover:bg-primary/90 font-label-md text-label-md shadow-sm transition-all active:scale-95">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+<span>批次工分结算</span>
+</button>
+</div>
+</div>
+<!-- 4-Stat Core KPI Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Stat 1: 在勤师傅人数 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/5 rounded-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">今日在勤师傅</span>
+<span class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">engineering</span>
+</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-tabular-stat text-tabular-stat text-on-surface">8</span>
+<span class="font-label-md text-label-md text-on-surface-variant">人满编就绪</span>
+</div>
+<div class="mt-space-sm pt-space-xs flex items-center gap-space-xs flex-wrap">
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-low text-secondary">水暖 3人</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-low text-primary">电气 3人</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-low text-tertiary">五金 2人</span>
+</div>
+</div>
+<!-- Stat 2: 今日发放总工分 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute -right-4 -bottom-4 w-24 h-24 bg-tertiary/5 rounded-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">今日总工分发放</span>
+<span class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-tabular-stat text-tabular-stat text-tertiary">¥1,920</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface">/ 416 积分</span>
+</div>
+<div class="mt-space-sm flex items-center gap-1 font-label-sm text-label-sm text-tertiary">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span>人均 ¥240 / 日，较上周同期增长 14.8%</span>
+</div>
+</div>
+<!-- Stat 3: 全校学生满意度 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute -right-4 -bottom-4 w-24 h-24 bg-secondary/5 rounded-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">学生端真实满意度</span>
+<span class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-tabular-stat text-tabular-stat text-on-surface">4.96</span>
+<span class="font-label-md text-label-md text-on-surface-variant">/ 5.0 满分</span>
+</div>
+<div class="mt-space-sm flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>已评 1,420 单</span>
+<span class="text-tertiary font-bold">98.2% 五星好评率</span>
+</div>
+</div>
+<!-- Stat 4: 平均综合耗时 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute -right-4 -bottom-4 w-24 h-24 bg-primary-container/10 rounded-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">单工单平均耗时</span>
+<span class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[20px]">timer</span>
+</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-tabular-stat text-tabular-stat text-primary">16.5</span>
+<span class="font-label-md text-label-md text-on-surface-variant">分钟 / 单</span>
+</div>
+<div class="mt-space-sm flex items-center gap-1 font-label-sm text-label-sm text-tertiary font-semibold">
+<span class="material-symbols-outlined text-[16px]">bolt</span>
+<span>较传统指派模式压缩 65%</span>
+</div>
+</div>
+</div>
+<!-- Section 1 & 2 Mosaic: Leaderboard (Left 7 cols) & Efficiency + Types (Right 5 cols) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- LEFT: 师傅绩效与工分英雄榜 (7 Cols) -->
+<div class="lg:col-span-7 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-6 rounded-full bg-primary"></span>
+<div class="flex flex-col">
+<h2 class="font-headline-md text-headline-md text-on-surface">师傅绩效与工分英雄榜</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">实时接入防作弊 GPS 打卡与现场完工闭环抓拍</span>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg">
+<button class="px-2.5 py-1 text-label-sm font-label-sm rounded-md bg-surface-container-lowest text-primary font-bold shadow-xs">今日榜</button>
+<button class="px-2.5 py-1 text-label-sm font-label-sm rounded-md text-on-surface-variant hover:text-on-surface">周榜单</button>
+<button class="px-2.5 py-1 text-label-sm font-label-sm rounded-md text-on-surface-variant hover:text-on-surface">月度质效金牌</button>
+</div>
+</div>
+<!-- Worker Cards List -->
+<div class="flex flex-col gap-space-sm">
+<!-- Worker 1: 李建国 -->
+<div class="p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all flex flex-col gap-space-sm">
+<div class="flex items-center justify-between flex-wrap gap-2">
+<div class="flex items-center gap-space-sm">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Close up warm portrait of a seasoned Chinese maintenance worker in blue uniform, smiling warmly, soft morning workshop sunlight, documentary style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCN2Cmkwxma0B1TjbdaEVPZv2POJ7u9UTirdsRnIRirvsIUHUE44_CRaASJLydVcbAfbiRjLPghAXoScX-hgZl3wr8CE6HG-5AYJSz6Jzrs93OcJZMcOEVxZM_tTFVwEkergBL1yK68rPXis4jYIeol0HP92FdmcGhAHSGWaPXv6DYjG--HyURnELh-iNWSs3GHpyBjBKcYkOc0lI8ZFxRofjcViLX55g13UgF3Cdw"/>
+<span class="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-amber-400 text-on-surface flex items-center justify-center font-bold text-[11px] shadow-xs">1</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">李建国 师傅</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-primary/10 text-primary font-semibold">水电特勤组 · 组长</span>
+<span class="flex items-center text-amber-500 font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span> 5.0
+                  </span>
+</div>
+<div class="flex items-center gap-space-md text-on-surface-variant font-label-sm text-label-sm mt-0.5">
+<span>工号: G-0824</span>
+<span>今日作业东区 1~4 栋</span>
+<span class="text-tertiary font-semibold flex items-center gap-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>正在 3 号楼 502 检修水阀
+                  </span>
+</div>
+</div>
+</div>
+<!-- Quantitative Stats -->
+<div class="flex items-center gap-space-lg ml-auto sm:ml-0">
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">完工量 / 准时履约</span>
+<div class="flex items-baseline gap-1">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">8 单</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">100% 履约</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">累计工分 / 金额</span>
+<div class="flex items-baseline gap-1">
+<span class="font-tabular-stat text-[20px] text-tertiary">48</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">分 (¥221.7)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro action strip with trail & photo verification -->
+<div class="flex items-center justify-between pt-space-xs bg-surface-container-lowest/60 px-space-sm py-1.5 rounded-lg">
+<div class="flex items-center gap-space-sm font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>8项作业均已扫码耗材封签并拍照闭环</span>
+</span>
+<span class="hidden sm:inline text-outline-variant">|</span>
+<span class="hidden sm:inline">无一单返工 · 零工具滞留</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[15px] text-secondary">route</span>
+<span>作业动线与凭据</span>
+</button>
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-tertiary font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[15px]">thumb_up</span>
+<span>表彰激励</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Worker 2: 周海峰 -->
+<div class="p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all flex flex-col gap-space-sm">
+<div class="flex items-center justify-between flex-wrap gap-2">
+<div class="flex items-center gap-space-sm">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Medium portrait of an energetic middle-aged repair technician in campus workshop holding safety helmet, confident expression, natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpQV1V43hzl2H6AFd-Pba6vDUDRbmGFpPYk-sZvrPR3UYt4sp9KsWDJ4Wd92FMxqdr-3T9jyCxswlCHVOs2FeqPXvAEN2tZijWyVrWRICsfkFB_pIdqq6PZXhnNo7vyXn30SwV_guno9eAOjhwVv1HDZ1eOUNX2NJaciapPTmbQFrSR8wzwBXFQ18RYLLYKwzv1MvpFjnoCjJmHe9mWqM0IHExuiGA_sr4_N8ad9g"/>
+<span class="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-slate-300 text-on-surface flex items-center justify-center font-bold text-[11px] shadow-xs">2</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">周海峰 师傅</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-secondary/10 text-secondary font-semibold">综合抢修组</span>
+<span class="flex items-center text-amber-500 font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span> 4.9
+                  </span>
+</div>
+<div class="flex items-center gap-space-md text-on-surface-variant font-label-sm text-label-sm mt-0.5">
+<span>工号: G-0619</span>
+<span>今日作业西区 7~8 栋</span>
+<span class="text-on-surface-variant flex items-center gap-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>待命中 (网格值班亭备件)
+                  </span>
+</div>
+</div>
+</div>
+<!-- Quantitative Stats -->
+<div class="flex items-center gap-space-lg ml-auto sm:ml-0">
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">完工量 / 准时履约</span>
+<div class="flex items-baseline gap-1">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">7 单</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">98% 履约</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">累计工分 / 金额</span>
+<div class="flex items-baseline gap-1">
+<span class="font-tabular-stat text-[20px] text-tertiary">42</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">分 (¥194.0)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro action strip -->
+<div class="flex items-center justify-between pt-space-xs bg-surface-container-lowest/60 px-space-sm py-1.5 rounded-lg">
+<div class="flex items-center gap-space-sm font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-[16px]">speed</span>
+<span>平均到场仅 8 分钟 · 门锁急救迅速</span>
+</span>
+<span class="hidden sm:inline text-outline-variant">|</span>
+<span class="hidden sm:inline">无违规备件领用记录</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[15px] text-secondary">route</span>
+<span>轨迹凭据</span>
+</button>
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-tertiary font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[15px]">thumb_up</span>
+<span>表彰激励</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Worker 3: 赵志强 -->
+<div class="p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all flex flex-col gap-space-sm">
+<div class="flex items-center justify-between flex-wrap gap-2">
+<div class="flex items-center gap-space-sm">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Portrait of an experienced senior electrician in gray coveralls holding testing multimeter, warm campus workshop backdrop, clean documentary style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCORlK3ac_0nTcSvtngBmPnVibEpeG-DpSKGjbafHyPvFGfQaJPF6rSwh12QGPkI5YTMTuVSqpbMgeR1aWZU3dv303dygLaanlGziuqsOPsIO0oG0WUqWvTjPLUbk40_2r5bkXK-TK52Ml-lStuT4mpUo_S9hhOxvbRWyRAH7WKqeAd2rh4kDIciD1T0RZUyd6EWv9hDcm8RoHk7wNxq4qb6Um-hBDO4dbT3fmQDbU"/>
+<span class="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-amber-700 text-on-tertiary flex items-center justify-center font-bold text-[11px] shadow-xs">3</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">赵师傅 (赵志强)</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-tertiary/10 text-tertiary font-semibold">强弱电安全组</span>
+<span class="flex items-center text-amber-500 font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span> 4.8
+                  </span>
+</div>
+<div class="flex items-center gap-space-md text-on-surface-variant font-label-sm text-label-sm mt-0.5">
+<span>工号: G-0412</span>
+<span>今日作业研究生 11 栋</span>
+<span class="text-tertiary font-semibold flex items-center gap-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>正在 11 栋配电间绝缘巡测
+                  </span>
+</div>
+</div>
+</div>
+<!-- Quantitative Stats -->
+<div class="flex items-center gap-space-lg ml-auto sm:ml-0">
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">完工量 / 准时履约</span>
+<div class="flex items-baseline gap-1">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">6 单</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">96% 履约</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">累计工分 / 金额</span>
+<div class="flex items-baseline gap-1">
+<span class="font-tabular-stat text-[20px] text-tertiary">36</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">分 (¥166.3)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro action strip -->
+<div class="flex items-center justify-between pt-space-xs bg-surface-container-lowest/60 px-space-sm py-1.5 rounded-lg">
+<div class="flex items-center gap-space-sm font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[16px]">task_alt</span>
+<span>配电安全零隐患检测合格凭证已同步后勤档案库</span>
+</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[15px] text-secondary">route</span>
+<span>轨迹凭据</span>
+</button>
+<button class="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-tertiary font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[15px]">thumb_up</span>
+<span>表彰激励</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Insight inside Card -->
+<div class="bg-surface-container-high/60 p-space-sm rounded-xl flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span class="flex items-center gap-1 text-on-surface font-medium">
+<span class="material-symbols-outlined text-[16px] text-tertiary">shield</span>
+          多劳多得体系已消除“点外卖磨工时”、“私收拆旧配件”等 12 项历史顽疾
+        </span>
+<a class="text-primary hover:underline font-semibold flex items-center gap-0.5" href="#">
+          查看全部8位在勤师傅电子档案
+          <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- RIGHT: 效能提升与工单类型分布 (5 Cols) -->
+<div class="lg:col-span-5 flex flex-col gap-space-lg">
+<!-- Card A: 工单类型与工分权重分布 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-6 rounded-full bg-secondary"></span>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">工单类型与定额标准</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">标准计件基准，保障公平核算</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-low text-secondary font-semibold">今日已派 28 单</span>
+</div>
+<!-- Donut & Bar Combo Visualization -->
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-space-md items-center">
+<!-- Inline SVG Donut Chart -->
+<div class="sm:col-span-5 flex flex-col items-center justify-center relative">
+<svg class="w-36 h-36 transform -rotate-90" viewbox="0 0 100 100">
+<!-- Background Ring -->
+<circle class="text-surface-container" cx="50" cy="50" fill="transparent" r="38" stroke="currentColor" stroke-width="12"></circle>
+<!-- Segment 1: 水暖渗漏 (42%) -->
+<circle class="text-primary" cx="50" cy="50" fill="transparent" r="38" stroke="currentColor" stroke-dasharray="100.2 238.7" stroke-dashoffset="0" stroke-width="12"></circle>
+<!-- Segment 2: 门锁卡滞 (26%) -->
+<circle class="text-secondary" cx="50" cy="50" fill="transparent" r="38" stroke="currentColor" stroke-dasharray="62.1 238.7" stroke-dashoffset="-100.2" stroke-width="12"></circle>
+<!-- Segment 3: 电路照明 (21%) -->
+<circle class="text-tertiary" cx="50" cy="50" fill="transparent" r="38" stroke="currentColor" stroke-dasharray="50.1 238.7" stroke-dashoffset="-162.3" stroke-width="12"></circle>
+<!-- Segment 4: 其他 (11%) -->
+<circle class="text-outline-variant" cx="50" cy="50" fill="transparent" r="38" stroke="currentColor" stroke-dasharray="26.3 238.7" stroke-dashoffset="-212.4" stroke-width="12"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+<span class="font-label-sm text-label-sm text-on-surface-variant leading-none">总计修单</span>
+<span class="font-tabular-stat text-tabular-stat text-on-surface leading-tight">28</span>
+</div>
+</div>
+<!-- Breakdown Legend & Points Value -->
+<div class="sm:col-span-7 flex flex-col gap-2">
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">水暖渗漏</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm font-bold text-primary">42%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">6分/单</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">门锁卡滞五金</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm font-bold text-secondary">26%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">5分/单</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">电路照明安全</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm font-bold text-tertiary">21%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">6分/单</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-outline-variant"></span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">宿舍家具与其他</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm font-bold text-on-surface-variant">11%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">4分/单</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card B: 动线工时对比 (网格化作业 vs 传统跑单) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-6 rounded-full bg-tertiary"></span>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">动线节省工时效益对比</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">楼栋就近常驻派工 vs 传统全校跑单</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[16px]">energy_savings_leaf</span>
+            节省 132km 步数
+          </span>
+</div>
+<!-- Visual Bar Chart Comparison -->
+<div class="flex flex-col gap-space-sm pt-2">
+<!-- Row 1: 在途跑路时间 -->
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface font-medium">师傅平均在途奔波耗时 (分钟/单)</span>
+<span class="text-tertiary font-bold">压缩 78.5%</span>
+</div>
+<!-- Dual bars -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="w-16 font-label-sm text-label-sm text-on-surface-variant">传统跑单</span>
+<div class="flex-1 bg-surface-container h-4 rounded-full overflow-hidden">
+<div class="bg-outline-variant h-full rounded-full" style="width: 85%;"></div>
+</div>
+<span class="w-12 text-right font-label-sm text-label-sm text-on-surface-variant">28 分</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-16 font-label-sm text-label-sm text-primary font-bold">网格派工</span>
+<div class="flex-1 bg-surface-container h-4 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 18.2%;"></div>
+</div>
+<span class="w-12 text-right font-label-sm text-label-sm text-tertiary font-bold">6 分</span>
+</div>
+</div>
+</div>
+<!-- Row 2: 现场维修专注度 -->
+<div class="flex flex-col gap-1 pt-space-xs">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface font-medium">师傅有效实操维保用时占比</span>
+<span class="text-primary font-bold">提升至 84%</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-16 font-label-sm text-label-sm text-primary font-bold">当前质效</span>
+<div class="flex-1 bg-surface-container h-4 rounded-full overflow-hidden flex">
+<div class="bg-primary h-full" style="width: 84%;"></div>
+<div class="bg-surface-container-high h-full" style="width: 16%;"></div>
+</div>
+<span class="w-12 text-right font-label-sm text-label-sm text-primary font-bold">84%</span>
+</div>
+</div>
+</div>
+<div class="p-space-sm rounded-lg bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm leading-relaxed">
+<span class="text-tertiary font-semibold">智慧调度收益：</span>
+          师傅无需在西区与东区反复往返取件，前置备件在宿管楼栋网格站统一调拨，单人日均多接 2.4 单，直接提升蓝领师傅实得工分薪资。
+        </div>
+</div>
+</div>
+</div>
+<!-- Section 3: 学生评价热词云与暖心工单回放 (Student Feedback & Warmth Wall) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-lg">
+<!-- Title & Word Cloud Tags Bar -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-6 rounded-full bg-tertiary"></span>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">学生评价热词云与暖心工单回放</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">真诚好评即时上榜 · 拒绝冷冰冰的行政派单 · 赋能后勤服务温度</span>
+</div>
+</div>
+<!-- Real-time Hot Keyword Pills -->
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm bg-primary/10 text-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">local_fire_department</span> 速度超级快 (892次)
+        </span>
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm bg-tertiary/10 text-tertiary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">cleaning_services</span> 顺手擦干净了水渍 (418次)
+        </span>
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm bg-secondary/10 text-secondary font-semibold">
+          洗上热水澡了 (326次)
+        </span>
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant">
+          敲门很有礼貌 (285次)
+        </span>
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm bg-surface-container text-on-surface-variant">
+          零乱收费 (100%覆盖)
+        </span>
+</div>
+</div>
+<!-- 3 Heartwarming Student Voice Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- Feedback Card 1 -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex flex-col justify-between gap-space-md hover:bg-surface-container transition-all">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-7 h-7 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-bold text-label-sm">林</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">林同学 · 东区3号楼 412</span>
+</div>
+<div class="flex text-amber-500">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface leading-relaxed">
+            “下午水龙头突然爆裂漏得满地都是，我在手机上一键拍了照，不到十分钟<strong>李建国师傅</strong>就拎着管钳来了！修完不仅止住了水，还特意拿拖把帮忙把卫生间积水吸干净了，太暖心了必须给大大的五星！”
+          </p>
+</div>
+<div class="pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/70 p-2 rounded-lg">
+<span class="flex items-center gap-1 text-tertiary font-medium">
+<span class="material-symbols-outlined text-[15px]">done_all</span> 质效认定：加发奖励工分 2 分
+          </span>
+<span>14:22 完工</span>
+</div>
+</div>
+<!-- Feedback Card 2 -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex flex-col justify-between gap-space-md hover:bg-surface-container transition-all">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-7 h-7 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-label-sm">陈</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">陈同学 · 西区8号楼 205</span>
+</div>
+<div class="flex text-amber-500">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface leading-relaxed">
+            “门锁突然卡死打不开，室友都在自习室。<strong>周海峰师傅</strong>正在楼层巡检，接单后3分钟就闪现到了门口，动作特别轻，没打扰隔壁寝室午休，换了新锁芯还教了我们保养方法，体验拉满！”
+          </p>
+</div>
+<div class="pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/70 p-2 rounded-lg">
+<span class="flex items-center gap-1 text-secondary font-medium">
+<span class="material-symbols-outlined text-[15px]">bolt</span> 极速履约：响应耗时仅 3.2 分钟
+          </span>
+<span>11:40 完工</span>
+</div>
+</div>
+<!-- Feedback Card 3 -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex flex-col justify-between gap-space-md hover:bg-surface-container transition-all">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-7 h-7 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-bold text-label-sm">张</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">张同学 · 研11栋 618</span>
+</div>
+<div class="flex text-amber-500">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface leading-relaxed">
+            “晚上临近期末周洗手间跳闸，本以为大晚上没人管，没想到<strong>赵师傅</strong>立刻带着测电笔来了，排查出是电吹风过载烧保险，现场按规范更换了阻燃空开，今晚终于可以安安心心洗热水澡了！”
+          </p>
+</div>
+<div class="pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/70 p-2 rounded-lg">
+<span class="flex items-center gap-1 text-tertiary font-medium">
+<span class="material-symbols-outlined text-[15px]">shield</span> 安全闭环：已扫码回传阻燃合格凭证
+          </span>
+<span>20:15 完工</span>
+</div>
+</div>
+</div>
+<!-- Administrative Quick Actions & Export Banner -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-space-md p-space-md bg-surface-container rounded-xl">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[24px]">verified_user</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">防磨洋工·全真迹考核认证</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">所有工分生成均绑定“位置签到 + 耗材核销 + 学生匿名打分 + 验收照片”，数据不可篡改</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs w-full sm:w-auto justify-end">
+<button class="px-space-md py-2 rounded-xl bg-surface-container-lowest text-on-surface hover:bg-surface-container-high font-label-md text-label-md shadow-xs transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">table_view</span>
+<span>导出本周工分对账明细</span>
+</button>
+<button class="px-space-md py-2 rounded-xl bg-primary text-on-primary hover:bg-primary/90 font-label-md text-label-md shadow-xs transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+<span>发放本周质量先锋津贴</span>
+</button>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

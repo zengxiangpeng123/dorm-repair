@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>监测台 · 宿舍维修管理端</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<link rel="stylesheet" href="../assets/desk.css">
+</head>
+<body class="desk-body">
+
+<div class="desk">
+
+  <!-- ================= 左：常驻导航 ================= -->
+  <aside class="side">
+    <div class="brand">
+      <b>宿舍维修</b>
+      <span>管理端 · 流程外</span>
+    </div>
+    <nav>
+      <a href="index.html" class="is-on"><span class="ico">▤</span>监测台</a>
+      <a href="javascript:void(0)" data-jump="exceptions"><span class="ico">⚠</span>例外清单</a>
+      <a href="javascript:void(0)" data-jump="ledger"><span class="ico">▦</span>楼栋台账</a>
+      <a href="javascript:void(0)" data-jump="rulemap"><span class="ico">⚙</span>口径与介入点</a>
+      <a href="../lab.html"><span class="ico">⌗</span>状态机自检台</a>
+      <a href="../index.html"><span class="ico">←</span>回到三端入口</a>
+    </nav>
+    <div class="side-foot">
+      <b>督察守则</b><br>
+      不派工、不审批、不催办。<br>
+      进到这里的事，都是系统判断不了、或者判断错了才露出来的。
+    </div>
+  </aside>
+
+  <!-- ================= 右：主区 ================= -->
+  <div class="main">
+    <div class="top">
+      <h1>监测台</h1>
+      <span class="meta" id="meta">—</span>
+      <span class="grow"></span>
+      <button class="dbtn" id="btnRefresh">刷新</button>
+      <button class="dbtn" id="btnFast">快进 7 天</button>
+      <button class="dbtn" id="btnReset">重置演示数据</button>
+    </div>
+
+    <div class="wrap" id="wrap"></div>
+  </div>
+
+</div>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const DOING = ['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS', 'VERIFYING', 'REWORKING'];
+  const KIND_TONE = { '数据对不上': 'muted', '超预算采购': 'warn', '反复返修': 'danger', '学生申请撤销': 'info' };
+  // 每类例外只给"往哪儿看"，不给假按钮 —— 管理端没有一键改状态的入口，除了批准撤销
+  const KIND_ADVICE = {
+    '数据对不上': '先补完工照；补不上就把状态退回「待验收」，让它重新走一遍。',
+    '超预算采购': '看是不是真缺件、报价是否合理；不批就让师傅换个廉价方案。',
+    '反复返修': '同一单返修到第 2 次，说明台账或配件判断错了；叫上师傅和宿管一起看一次现场。',
+    '学生申请撤销': '师傅已经进楼了。批准作废（走变更单 #001）或驳回并给师傅补偿工时。'
+  };
+
+  function stay(o) {
+    const t = App.parse(o.statusAt || o.arriveAt || o.assignedAt || o.createdAt);
+    if (!t) return '—';
+    return short(App.now().getTime() - t.getTime());
+  }
+  // 紧凑时长：14h46m / 3d4h / 23m
+  function short(ms) {
+    if (ms <= 0) return '已超时';
+    const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.round(ms / 6e4) % 60;
+    if (d > 0) return d + 'd' + (h ? h + 'h' : '');
+    if (h > 0) return h + 'h' + (m ? m + 'm' : '');
+    return Math.max(1, m) + 'm';
+  }
+  // 计时器不单独占一列，挂在状态胶囊下面，只有真的在计时才出现
+  function timerCell(o) {
+    const a = App.t1(o);
+    if (a) return `<div style="font-size:10.5px;color:#64748b;margin-top:3px;white-space:nowrap">T1 剩 ${short(a.left)}</div>`;
+    const b = App.t2(o);
+    if (b) return `<div style="font-size:10.5px;color:#64748b;margin-top:3px;white-space:nowrap">T2 剩 ${short(b.left)}</div>`;
+    return '';
+  }
+
+  function render() {
+    App.tick(true);
+    const all = App.orders();
+    const zm = App.zeroManualRate();
+    const exs = App.exceptions();
+    const doing = all.filter(o => DOING.indexOf(o.status) >= 0);
+    const done = all.filter(o => o.status === 'DONE').length;
+    const pct = Math.round(zm.rate * 100);
+
+    App.el('#meta').textContent = `${App.fmt(App.now())} · 后勤维修部 王主任`;
+
+    /* ---------- 1. 仪表条 ---------- */
+    const strip = `
+      <div class="strip">
+        <div>
+          <div class="lab">在办工单</div>
+          <div class="num">${doing.length}</div>
+          <div class="sub">待派工 ${doing.filter(o => o.status === 'PENDING').length} · 待配件 ${doing.filter(o => o.status === 'PARTS').length}</div>
+        </div>
+        <div>
+          <div class="lab">待归档</div>
+          <div class="num">${done}</div>
+          <div class="sub">已完成，还没到 7 天</div>
+        </div>
+        <div>
+          <div class="lab">例外待看</div>
+          <div class="num ${exs.length ? 'is-warn' : ''}">${exs.length}</div>
+          <div class="sub">${exs.length ? '需要人看一眼' : '今天没有例外'}</div>
+        </div>
+        <div>
+          <div class="lab">零人工完成率</div>
+          <div class="num">${pct}<small>%</small></div>
+          <div class="auto-band"><i style="width:${Math.max(1.5, pct)}%"></i><b style="left:${Math.min(100, Math.max(0, pct))}%"></b></div>
+          <div class="auto-scale"><span>全靠人盯</span><span>全自动</span></div>
+          <div class="sub">口径：${zm.zero} / ${zm.total} 张已完成单，全部事件 manual=0</div>
+        </div>
+      </div>`;
+
+    /* ---------- 2. 在办工单 ---------- */
+    const rows = doing.length ? doing.map(o => `
+      <tr>
+        <td class="nowrap" style="font-variant-numeric:tabular-nums;font-weight:600">${o.no}${o.reworkOf ? '<span class="pill" data-tone="danger" style="margin-left:6px">返修</span>' : ''}</td>
+        <td class="nowrap">${App.roomLabel(o)}</td>
+        <td class="nowrap">${o.category}</td>
+        <td class="nowrap">${App.levelPill(o.level)}</td>
+        <td class="nowrap">${App.pill(o.status)}${timerCell(o)}</td>
+        <td class="nowrap">${o.workerId ? (App.worker(o.workerId) || {}).name : '<span class="mut">未派</span>'}</td>
+        <td class="nowrap r">${stay(o)}</td>
+      </tr>`).join('') : '<tr><td colspan="7" class="mut" style="padding:22px 14px;text-align:center">没有在办工单</td></tr>';
+
+    /* ---------- 3. 例外 ---------- */
+    const exHtml = exs.length ? exs.map(e => `
+      <div class="ex-row">
+        <div class="body">
+          <div class="ln1">
+            <span class="pill" data-tone="${KIND_TONE[e.kind] || 'muted'}">${e.kind}</span>
+            <span class="no">${e.no}</span>
+            <span class="where">${App.roomLabel(e.order)}</span>
+          </div>
+          <div class="why">${App.esc(e.detail)}</div>
+          <div class="then">${App.esc(KIND_ADVICE[e.kind] || '')}</div>
+          ${e.kind === '学生申请撤销' ? `
+            <div class="acts">
+              <button class="dbtn sm" disabled title="需要变更单 #001：SYS-004 把「维修中→已取消」列为禁止转移">批准作废</button>
+              <button class="dbtn sm" disabled>驳回并补偿</button>
+              <span class="tiny" style="color:#94a3b8;align-self:center">要改状态，先过变更单 #001</span>
+            </div>` : ''}
+        </div>
+      </div>`).join('')
+      : `<div class="pb" style="text-align:center;color:#64748b;font-size:12.5px;padding:34px 18px">
+           <div style="font-size:22px;margin-bottom:8px;opacity:.5">○</div>
+           今天没有例外<div style="font-size:11px;color:#94a3b8;margin-top:4px">管理端大部分时间是空的，这就是目标</div>
+         </div>`;
+
+    /* ---------- 4. 台账 ---------- */
+    const ledger = App.db().buildings.map(b => {
+      const os = all.filter(o => o.building === b.id);
+      const d = os.filter(o => DOING.indexOf(o.status) >= 0).length;
+      const v = os.filter(o => o.status === 'VERIFYING').length;
+      const dn = os.filter(o => ['DONE', 'CLOSED'].indexOf(o.status) >= 0).length;
+      const ex = exs.filter(e => e.order.building === b.id).length;
+      const fin = os.filter(o => ['DONE', 'CLOSED'].indexOf(o.status) >= 0);
+      const zero = fin.filter(o => o.events.every(e => e.manual === 0)).length;
+      return `<tr>
+        <td class="nowrap" style="font-weight:600">${b.name}</td>
+        <td class="r">${d}</td>
+        <td class="r">${v}</td>
+        <td class="r">${dn}</td>
+        <td class="r">${fin.length ? Math.round(zero / fin.length * 100) + '%' : '—'}</td>
+        <td class="r">${ex ? `<span style="color:#b91c1c;font-weight:600">${ex}</span>` : '<span class="mut">—</span>'}</td>
+      </tr>`;
+    }).join('');
+
+    /* ---------- 5. 口径与介入点 ---------- */
+    const rulemap = `
+      <div class="pb">
+        <div class="kv2">
+          <div class="k">状态</div><div class="v">9 个（含已取消 / 已关闭两个终态）</div>
+          <div class="k">合法转移</div><div class="v">13 条，写在一张表里，表外组合一律 409</div>
+          <div class="k">回流</div><div class="v">到访未遇、配件到货都回「待派工」，不新增状态</div>
+          <div class="k">两颗 7 天</div><div class="v">T1 待验收 168 小时自动验收；T2 已完成 7 天自动归档</div>
+        </div>
+        <div style="height:1px;background:#f1f5f9;margin:14px 0 4px"></div>
+        <div class="point">
+          <div class="n">1</div>
+          <div><b>提交时 AI 拿不准</b><div class="t">置信度低就保守升一档，照样走，不停单；拿不准的进校准队列，不占状态位。</div></div>
+        </div>
+        <div class="point">
+          <div class="n">2</div>
+          <div><b>缺件超预算线（200 元）</b><div class="t">预算内师傅直接下单；超了转这里待批。批不批都不影响工单停在「待配件」。</div></div>
+        </div>
+        <div class="point">
+          <div class="n">3</div>
+          <div><b>同一单返修到第 2 次</b><div class="t">不再自动返修，转这里。说明前两次没修到点上，要人去看现场。</div></div>
+        </div>
+        <div class="point">
+          <div class="n">4</div>
+          <div><b>师傅已进楼，学生要撤</b><div class="t">这是<b>唯一</b>一个由人决定、且能改变工单状态的入口。其余三件都不改状态。</div></div>
+        </div>
+      </div>`;
+
+    /* ---------- 6. 最近归档 ---------- */
+    const archived = all.filter(o => ['DONE', 'CLOSED'].indexOf(o.status) >= 0)
+      .sort((a, b) => String(b.signAt || '').localeCompare(String(a.signAt || '')));
+    const archRows = archived.length ? archived.map(o => {
+      const zero = o.events.every(e => e.manual === 0);
+      return `<tr>
+        <td class="nowrap" style="font-variant-numeric:tabular-nums">${o.no}</td>
+        <td class="nowrap">${App.roomLabel(o)}</td>
+        <td class="nowrap">${o.category}</td>
+        <td class="r">${o.reworkCount || 0}</td>
+        <td class="nowrap">${zero ? '<span class="pill" data-tone="ok">零人工</span>' : '<span class="mut">有人工</span>'}</td>
+        <td class="nowrap mut">${o.status === 'CLOSED' ? '已归档' : '已完成'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="mut" style="padding:18px;text-align:center">还没有归档单</td></tr>';
+
+    /* ---------- 7. 计时器（两个 7 天，互不干扰） ---------- */
+    const timers = [];
+    all.forEach(o => {
+      const a = App.t1(o);
+      if (a) timers.push({ tag: 'T1', what: '待验收 → 自动验收', no: o.no, o, t: a });
+      const b = App.t2(o);
+      if (b) timers.push({ tag: 'T2', what: '已完成 → 自动归档', no: o.no, o, t: b });
+    });
+    const timerRows = timers.length ? timers.map(x => `
+      <tr>
+        <td class="nowrap"><span class="pill" data-tone="${x.tag === 'T1' ? 'warn' : 'info'}">${x.tag}</span></td>
+        <td class="nowrap mut">${x.what}</td>
+        <td class="nowrap" style="font-variant-numeric:tabular-nums">${x.no}</td>
+        <td class="nowrap">${App.roomLabel(x.o)}</td>
+        <td class="nowrap mut">${App.fmt(x.t.from)}</td>
+        <td class="nowrap mut">${App.fmt(x.t.deadline)}</td>
+        <td class="nowrap r" style="font-weight:600">${short(x.t.left)}</td>
+      </tr>`).join('') : '<tr><td colspan="7" class="mut" style="padding:18px;text-align:center">现在没有在跑表的单</td></tr>';
+
+    App.el('#wrap').innerHTML = `
+      ${strip}
+
+      <div class="row2">
+        <div class="panel">
+          <header>在办工单<span class="spacer"></span><span class="hint">按截止时间排队，楼栋只用来攒批</span></header>
+          <div class="pn" style="overflow:auto">
+            <table class="dt">
+              <thead><tr>
+                <th>单号</th><th>位置</th><th>故障</th><th>紧急</th><th>状态</th><th>师傅</th><th class="r">已停留</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div class="panel-foot">
+            排队规则：<b>安全闸 → 截止时间 → 紧急度 → 先来先修</b>。楼栋只用来攒批，不参与排队先后；回流（到访未遇、配件到货）都回「待派工」重排，不新增状态。
+          </div>
+        </div>
+
+        <div class="panel" id="exceptions">
+          <header>例外待看<span class="spacer"></span><span class="hint">只露四类，其余一律不看</span></header>
+          <div style="padding:0">${exHtml}</div>
+          <div class="panel-foot">
+            这四类之外的一律不露：<b>数据对不上、超预算采购、反复返修、学生申请撤销</b>。前三类不占状态位，第四类才是唯一由人决定、能改工单状态的入口。
+          </div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="col">
+          <div class="panel" id="ledger">
+            <header>楼栋台账<span class="spacer"></span><span class="hint">同一间房的报修 / 巡检都挂在这上面</span></header>
+            <div class="pn" style="overflow:auto">
+              <table class="dt">
+                <thead><tr>
+                  <th>楼栋</th><th class="r">在办</th><th class="r">待验收</th><th class="r">已完成</th><th class="r">零人工</th><th class="r">例外</th>
+                </tr></thead>
+                <tbody>${ledger}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <header>最近归档<span class="spacer"></span><span class="hint">归档之后才回看，在办的一律不抽</span></header>
+            <div class="pn" style="overflow:auto">
+              <table class="dt">
+                <thead><tr>
+                  <th>单号</th><th>位置</th><th>故障</th><th class="r">返修次数</th><th>人工介入</th><th>结果</th>
+                </tr></thead>
+                <tbody>${archRows}</tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <header>计时器<span class="spacer"></span><span class="hint">两颗表各算各的，起点不一样</span></header>
+            <div class="pn" style="overflow:auto">
+              <table class="dt">
+                <thead><tr>
+                  <th>表</th><th>含义</th><th>单号</th><th>位置</th><th>起点</th><th>截止</th><th class="r">剩余</th>
+                </tr></thead>
+                <tbody>${timerRows}</tbody>
+              </table>
+            </div>
+            <div class="panel-foot">
+              T1 从<b>师傅完工</b>开始算 168 小时，到点系统自动验收；T2 从<b>学生签字</b>开始算 7 天，到点自动归档。同一张单不会同时有两颗表。
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" id="rulemap">
+          <header>口径与介入点<span class="spacer"></span><span class="hint">SYS-004 是唯一标准</span></header>
+          ${rulemap}
+        </div>
+      </div>
+
+      <div class="foot-note info">
+        <span class="tag">不做</span>
+        <div><b>督察守则：</b>不派工、不审批、不催办。这个页面没有"派工""催一下""改状态"的按钮 —— 不是为了省事，是因为一旦有了，师傅就会等你派，自动线立刻就废了。</div>
+      </div>
+      <div class="foot-note warn">
+        <span class="tag">唯一例外</span>
+        <div><b>唯一能改工单状态的地方：</b>师傅已进楼、学生申请撤销 —— 批准作废，或驳回并补偿师傅。它在等变更单 #001（SYS-004 把「维修中 → 已取消」列为禁止转移），批下来之前这里只能看、不能点。</div>
+      </div>
+    `;
+
+    App.els('[data-jump]').forEach(a => {
+      a.onclick = () => {
+        const t = document.getElementById(a.getAttribute('data-jump'));
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    });
+  }
+
+  App.el('#btnRefresh').onclick = () => { render(); App.toast('已刷新', 'ok'); };
+  App.el('#btnFast').onclick = () => {
+    App.advance(7 * 24 * 3600 * 1000);
+    render();
+    App.toast('已快进 7 天：到点的单自动验收、自动归档', 'ok');
+  };
+  App.el('#btnReset').onclick = () => { App.reset(); render(); App.toast('演示数据已重置', 'ok'); };
+
+  render();
+})();
+</script>
+</body>
+</html>

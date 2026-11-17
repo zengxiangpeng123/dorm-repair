@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>等配件 · 宿舍维修</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<style>
+  .part-row { padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 6px; }
+  .part-row:last-child { border-bottom: 0; }
+  .part-row .hd { display: flex; align-items: center; gap: var(--s2); }
+  .part-row .nm { font-size: 13px; font-weight: 600; }
+  .part-row .meta { font-size: 11px; color: var(--ink-3); display: flex; gap: 10px; flex-wrap: wrap; }
+  .part-row .act { display: flex; gap: 6px; margin-top: 2px; }
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="topbar">
+    <button class="back" onclick="location.href='index.html'">‹</button>
+    <div>
+      <h1>等配件</h1>
+      <div class="sub" id="subLine"></div>
+    </div>
+  </div>
+
+  <div class="body" id="main"></div>
+</main>
+
+<nav class="nav">
+  <a href="index.html"><span class="ico">🧰</span>待办</a>
+  <a href="building.html"><span class="ico">🏢</span>楼内</a>
+  <a href="javascript:void(0)" class="nav-cta" onclick="location.href='building.html'">✓</a>
+  <a href="parts.html" class="is-on"><span class="ico">📦</span>缺件</a>
+</nav>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+  App.tick(true);
+  const ME = 'W0428';
+  const budget = App.db().meta.budget;
+
+  function parts() {
+    return App.orders().filter(o => o.workerId === ME && o.status === 'PARTS');
+  }
+
+  function render() {
+    const list = parts();
+    const over = list.filter(o => (o.parts || {}).amount > budget);
+    const wait = list.filter(o => !((o.parts || {}).amount > budget));
+
+    App.el('#subLine').textContent = list.length
+      ? `${list.length} 单等货 · 预算内 ${wait.length} · 超预算待批 ${over.length}`
+      : '没有等配件的单';
+
+    let html = '';
+
+    if (!list.length) {
+      html = `<div class="card"><div class="empty">
+        <div class="big">📦</div><div>没有正在等配件的单</div>
+        <div class="tiny">在单间作业里点「修不好，要申请配件」就会出现在这里</div>
+      </div></div>`;
+    } else {
+      html += `<div class="section-title">全部待配件<span class="more tiny muted">共 ${list.length} 单</span></div>`;
+      html += `<div class="card" style="padding:0">`;
+      list.forEach(o => {
+        const p = o.parts || {};
+        const isOver = p.amount > budget;
+        html += `<div class="part-row">
+          <div class="hd">
+            <span class="mono strong" style="font-size:12px">${o.room}</span>
+            <span class="nm truncate" style="flex:1">${App.esc(p.name || '未填名称')}</span>
+            ${isOver ? '<span class="pill" data-tone="warn">超预算待批</span>' : '<span class="pill" data-tone="ok">已下单</span>'}
+          </div>
+          <div class="meta">
+            <span class="mono">${p.amount} 元</span>
+            <span>预计到货 ${p.etaDate}</span>
+            <span class="mono">${o.no.slice(-6)}</span>
+            <span>${App.roomLabel(o)}</span>
+          </div>
+          <div class="act">
+            <button class="btn btn-sm btn-ghost" data-arrive="${o.no}">模拟：仓管确认到货</button>
+            <button class="btn btn-sm" data-go="${o.no}">看单</button>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `
+      <div class="notice" data-tone="info">
+        <div><b>为什么让你填金额：</b>预算线 ${budget} 元是唯一的分岔。以下系统直接下单，你继续干下一间；
+        以上才需要人点头。这样你不需要为几十块钱的东西打电话请示。</div>
+      </div>
+      <div class="notice" data-tone="warn">
+        <div><b>到货后自动回队列：</b>配件到货这一单会回到待派工、紧急度保留原档（不会因为等了三天被降成普通），重新派到你名下。</div>
+      </div>`;
+
+    App.el('#main').innerHTML = html;
+
+    App.els('[data-arrive]').forEach(b => b.onclick = () => {
+      const n = b.getAttribute('data-arrive');
+      try {
+        // PARTS_ARRIVED 的触发方是系统/管理员，这里模拟仓管在系统里登记到货
+        App.fire(n, 'PARTS_ARRIVED', 'system', '配件到货，回到队列（保留原紧急度）');
+        App.toast('已登记到货，这一单回待派工', 'ok');
+        render();
+      } catch (e) { App.toast(e.message, 'err'); }
+    });
+    App.els('[data-go]').forEach(b => b.onclick = () =>
+      location.href = 'task.html?no=' + encodeURIComponent(b.getAttribute('data-go')));
+  }
+
+  render();
+</script>
+</body>
+</html>

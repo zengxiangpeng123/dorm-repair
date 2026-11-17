@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="zh-CN"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><title>宿修宝 - 高校宿舍智能报修</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-primary-container": "#eeefff", "secondary": "#00668a", "primary-fixed-dim": "#b4c5ff", "inverse-surface": "#213145", "surface-tint": "#0053db", "surface-container-highest": "#d3e4fe", "surface-dim": "#cbdbf5", "on-tertiary-fixed": "#002113", "tertiary": "#006242", "tertiary-fixed-dim": "#4edea3", "secondary-fixed": "#c4e7ff", "inverse-on-surface": "#eaf1ff", "primary-container": "#2563eb", "background": "#f8f9ff", "on-primary": "#ffffff", "surface-variant": "#d3e4fe", "on-secondary-fixed-variant": "#004c69", "surface-container-high": "#dce9ff", "on-surface": "#0b1c30", "on-tertiary-container": "#bdffdb", "outline-variant": "#c3c6d7", "on-background": "#0b1c30", "inverse-primary": "#b4c5ff", "on-primary-fixed": "#00174b", "on-error-container": "#93000a", "on-primary-fixed-variant": "#003ea8", "on-tertiary-fixed-variant": "#005236", "primary-fixed": "#dbe1ff", "on-tertiary": "#ffffff", "secondary-container": "#40c2fd", "surface-container": "#e5eeff", "on-error": "#ffffff", "secondary-fixed-dim": "#7bd0ff", "primary": "#004ac6", "surface-container-lowest": "#ffffff", "tertiary-container": "#007d55", "surface-container-low": "#eff4ff", "error-container": "#ffdad6", "on-secondary-fixed": "#001e2c", "surface-bright": "#f8f9ff", "on-surface-variant": "#434655", "on-secondary-container": "#004d6a", "outline": "#737686", "error": "#ba1a1a", "on-secondary": "#ffffff", "tertiary-fixed": "#6ffbbe", "surface": "#f8f9ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-md": "1rem", "margin": "1rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter": "1rem", "space-xl": "2rem", "margin-compact": "0.75rem", "gutter-compact": "0.75rem", "space-lg": "1.5rem" }, "fontFamily": { "body-md": ["Inter"], "label-sm": ["Inter"], "display-lg": ["Inter"], "body-lg": ["Inter"], "headline-sm": ["Inter"], "headline-md": ["Inter"], "label-md": ["Inter"], "label-lg": ["Inter"], "tabular-stat": ["Inter"], "headline-lg": ["Inter"], "body-sm": ["Inter"] }, "fontSize": { "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }], "display-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-sm": ["16px", { "lineHeight": "22px", "fontWeight": "600" }], "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }], "tabular-stat": ["24px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "700" }], "headline-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "700" }], "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-full selection:bg-primary-fixed selection:text-on-primary-fixed"><header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-28 px-margin flex flex-col justify-between pb-space-sm"><div class="flex items-center justify-between text-on-surface pt-1"><span class="font-label-md text-label-md font-semibold tracking-tight">09:41</span><div class="flex items-center gap-space-xs text-on-surface"><span class="material-symbols-outlined text-[16px]">signal_cellular_4_bar</span><span class="material-symbols-outlined text-[16px]">wifi</span><span class="material-symbols-outlined text-[18px]">battery_full</span></div></div><div class="flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><img alt="宿修宝 App Logo" class="h-8 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwzkFsYObNCPOIQBqNn6uguv-i2TdO0RuATCq_bAirRg6V60wHddd23i_J4tcd1yAAgmTmuiqR-Pt3FQP0c52TpFmYcuhlEaHvdvUntzBSWe6NYFp_hZTya2zqPbQPuwqVg4qU0uJgM95aHgafDUgadehOvwN4qS5KY9_scLZCh7RkVUcOMfwzdZsrALqZdTsqj5j9N0Ilo25JySLcIhKy906YvNAIsmwNtFVRkXk"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm font-bold text-on-surface truncate">宿修宝</span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium truncate">清晏大学 · 宿舍智修</span></div><div class="flex items-center gap-1 mt-0.5"><span class="material-symbols-outlined text-primary text-[14px]">location_on</span><span class="inline-flex items-center font-label-sm text-label-sm bg-surface-container-high text-primary px-1.5 py-0.5 rounded-full font-medium">东区 7号楼 402</span><span class="font-label-sm text-label-sm text-outline-variant">•</span><span class="font-label-sm text-label-sm text-on-surface-variant">Home Dashboard</span></div></div></div><div class="flex items-center gap-space-xs flex-shrink-0"><button aria-label="通知中心" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors relative" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span></button><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-2 ring-primary-fixed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBX5C_C57tmZBmog0k_pr29AsGGleV5YIb988d3gfwDyRU2gHdtfRrH8C9QA3LuDniHsyjrmMRKbNBAeVoujW9TF_EzCxFB2EkDCBzZQd3QR53MKVSZozWP3390-Kt2g5Gb1_lBo4pJiQ18tUNIltmcRamROCpjael1H8sPNY-ytbJThR4GnAu2HX90yW6ZCm--4luXE3nJKqiDRUrshFtjORlYny3j9oVKL1MHmnk"/></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-28 pb-28 bg-surface"><div class="flex flex-col w-full px-margin space-y-space-md">
+<!-- Emergency / Priority Notice Strip -->
+<div class="w-full bg-error-container/40 rounded-xl px-space-md py-space-sm flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-space-xs text-error min-w-0">
+<span class="material-symbols-outlined text-[18px] animate-pulse flex-shrink-0" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="font-label-sm text-label-sm font-semibold truncate text-on-surface">急件通道：遇漏电冒烟、爆管跑水请立拨直通电话</span>
+</div>
+<a class="flex-shrink-0 ml-2 px-2.5 py-1 rounded-full bg-error text-on-error font-label-sm text-label-sm font-semibold flex items-center gap-1 shadow-sm active:scale-95 transition-transform" href="tel:010-88886666">
+<span class="material-symbols-outlined text-[13px]">call</span>一键直呼
+    </a>
+</div>
+<!-- Warm Student Greeting & Status Pod -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface">早上好，张同学 👋</h1>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>正常入住
+      </span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-body-sm text-body-sm bg-surface-container-low px-2.5 py-1.5 rounded-lg">
+<span class="material-symbols-outlined text-primary text-[16px]">pin_drop</span>
+<span class="font-medium text-on-surface">东区 7号楼 402室</span>
+<span class="text-outline-variant font-light">|</span>
+<span class="text-primary font-label-sm text-label-sm">已自动关联宿舍资产台账</span>
+</div>
+</div>
+<!-- Active Repair Hero Tracker Card -->
+<div class="w-full bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md relative overflow-hidden">
+<div class="absolute -right-10 -bottom-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
+<!-- Header of Ticket -->
+<div class="flex items-start justify-between gap-2">
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-label-sm text-label-sm font-semibold tracking-wide flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>处理中 · 师傅已接单
+          </span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">工单号 #240508</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface truncate">洗手间冷热水管渗水</h2>
+</div>
+<span class="material-symbols-outlined text-secondary-container text-[28px] p-2 bg-surface-container rounded-full flex-shrink-0" style="font-variation-settings: 'FILL' 1;">plumbing</span>
+</div>
+<!-- Assigned Master Technician Snippet -->
+<div class="bg-surface-container-low rounded-xl p-space-sm flex items-center justify-between gap-3">
+<div class="flex items-center gap-space-sm min-w-0">
+<img class="w-11 h-11 rounded-full object-cover flex-shrink-0" data-alt="Warm and experienced Chinese male maintenance technician in blue work shirt smiling reliably, campus portrait style, clean soft lighting with collegiate background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdjn6uoy5hIciF-Ymdv8vQSO16x8uSZvfD3yDjWynRhHXyQ9CCo9swcSRd5BzWPhTiTjlwN-A1P2i-u0yvyvnnyJXMa70avg_-EQvqwxR-TtzUjb0iLZNWehwa96HWnLnGjN0mdH_H71lOx6ZBnOobHrd1Dqm1HnKW5nFUpSgkSFZWtgl4fcVgwq3y1FF7ldhbMgRavcE3TL0e-ldpDpcxBmCns9zi55u40hwbLhw"/>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface truncate">李建国 师傅</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded bg-surface-container-highest text-on-surface-variant font-medium">水电工组</span>
+</div>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-amber-500" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">4.9</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">(服务超1400次)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1.5 flex-shrink-0">
+<button class="w-9 h-9 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-sm active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">phone</span>
+</button>
+<button class="w-9 h-9 rounded-full bg-surface-container-high text-primary flex items-center justify-center active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</button>
+</div>
+</div>
+<!-- Real-time Arrival Alert Pill -->
+<div class="flex items-center gap-2 bg-surface-container px-space-sm py-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[18px] text-secondary">navigation</span>
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">实时动态：师傅距您 350m，预计 <span class="text-primary font-bold">15 分钟内</span> 到达寝室</span>
+</div>
+<!-- Timeline Progress Stepper -->
+<div class="pt-1">
+<div class="flex items-center justify-between relative px-2">
+<div class="absolute left-6 right-6 top-3 h-0.5 bg-surface-container-high -z-0"></div>
+<div class="absolute left-6 w-3/4 top-3 h-0.5 bg-primary -z-0 transition-all"></div>
+<!-- Node 1: Done -->
+<div class="flex flex-col items-center gap-1 z-10">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center text-[12px] shadow-sm">
+<span class="material-symbols-outlined text-[14px]">check</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">已提交</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant -mt-1">09:12</span>
+</div>
+<!-- Node 2: Done -->
+<div class="flex flex-col items-center gap-1 z-10">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center text-[12px] shadow-sm">
+<span class="material-symbols-outlined text-[14px]">check</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">智能定级</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant -mt-1">09:13</span>
+</div>
+<!-- Node 3: Current Active -->
+<div class="flex flex-col items-center gap-1 z-10">
+<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary flex items-center justify-center ring-4 ring-primary-fixed text-[12px] animate-pulse">
+<span class="material-symbols-outlined text-[14px]">directions_walk</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-bold">上门途中</span>
+<span class="font-label-sm text-[10px] text-primary -mt-1 font-semibold">09:20</span>
+</div>
+<!-- Node 4: Pending -->
+<div class="flex flex-col items-center gap-1 z-10">
+<div class="w-6 h-6 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center text-[12px]">
+<span class="material-symbols-outlined text-[14px]">task_alt</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">完工验收</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant -mt-1">待核验</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Intelligent "Shoot & Speak" Hero Action CTA -->
+<div class="w-full bg-gradient-to-r from-primary to-primary-container rounded-xl p-space-md text-on-primary shadow-md relative overflow-hidden">
+<div class="flex flex-col gap-3 relative z-10">
+<div class="space-y-1">
+<div class="inline-flex items-center gap-1 bg-on-primary/15 px-2 py-0.5 rounded-full font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>AI 宿修引擎 · 免人工层层审批
+        </div>
+<h3 class="font-headline-lg text-headline-lg font-bold">拍一张、说一句，剩下的它自己跑</h3>
+<p class="font-body-sm text-body-sm text-on-primary-container opacity-90">宿舍故障随手录入，AI 智能分诊 30 秒疾速派单</p>
+</div>
+<!-- Quick Action Split Triggers -->
+<div class="grid grid-cols-2 gap-2.5 pt-1">
+<button class="flex items-center justify-center gap-2 bg-surface-container-lowest text-primary px-3 py-3 rounded-xl font-headline-sm text-headline-sm font-bold shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+          拍照报修
+        </button>
+<button class="flex items-center justify-center gap-2 bg-on-primary/20 backdrop-blur-md text-on-primary px-3 py-3 rounded-xl font-headline-sm text-headline-sm font-bold shadow-sm active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+          语音报修
+        </button>
+</div>
+</div>
+</div>
+<!-- Common Campus Faults Quick Picks -->
+<div class="w-full space-y-space-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">快捷常见故障</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">点击秒级带出标准配件</span>
+</div>
+<div class="grid grid-cols-3 gap-2.5">
+<!-- Item 1: 水龙头漏水 -->
+<button class="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform group text-center" type="button">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed/50 text-secondary flex items-center justify-center group-hover:bg-secondary group-hover:text-on-secondary transition-colors">
+<span class="material-symbols-outlined text-[22px]">faucet</span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface">水龙头漏水</span>
+</button>
+<!-- Item 2: 日光灯不亮 -->
+<button class="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform group text-center" type="button">
+<div class="w-10 h-10 rounded-full bg-surface-container-high text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-[22px]">light</span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface">日光灯不亮</span>
+</button>
+<!-- Item 3: 门锁损坏 -->
+<button class="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform group text-center" type="button">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed/60 text-tertiary flex items-center justify-center group-hover:bg-tertiary group-hover:text-on-tertiary transition-colors">
+<span class="material-symbols-outlined text-[22px]">lock_open</span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface">门锁损坏</span>
+</button>
+<!-- Item 4: 空调故障 -->
+<button class="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform group text-center" type="button">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed/50 text-secondary flex items-center justify-center group-hover:bg-secondary group-hover:text-on-secondary transition-colors">
+<span class="material-symbols-outlined text-[22px]">mode_fan</span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface">空调故障</span>
+</button>
+<!-- Item 5: 马桶堵塞 -->
+<button class="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform group text-center" type="button">
+<div class="w-10 h-10 rounded-full bg-surface-container-high text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-[22px]">wc</span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface">马桶堵塞</span>
+</button>
+<!-- Item 6: 窗把手脱落 -->
+<button class="bg-surface-container-lowest p-3 rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform group text-center" type="button">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed/60 text-tertiary flex items-center justify-center group-hover:bg-tertiary group-hover:text-on-tertiary transition-colors">
+<span class="material-symbols-outlined text-[22px]">window</span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-on-surface">窗把手脱落</span>
+</button>
+</div>
+</div>
+<!-- Campus Dormitory Tips & Announcements -->
+<div class="w-full space-y-space-sm pb-4">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">宿区公告 · 生活贴士</h3>
+<a class="font-label-sm text-label-sm text-primary font-medium flex items-center" href="#">全部公告 <span class="material-symbols-outlined text-[14px]">chevron_right</span></a>
+</div>
+<div class="space-y-2.5">
+<!-- Announcement 1 -->
+<div class="w-full bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex items-start gap-3">
+<img class="w-16 h-16 rounded-lg object-cover flex-shrink-0" data-alt="Clean architectural shot of modern university student residence corridor with clean sunlight, clear signs, orderly student dorms" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDu0Pzwp8m_Qm3xp5b-EUp3er5PyY0Hiy39uzueWZ26HK4TLW_TKDDB_thUo7Pygoqm7GpFV4Glby3vA9OPSRuRafuZpedPj5fz64F3lqDJoMHu9p1MpJWzoO8doNo9DS5pNKx7I4k1R02OpFtmee6Ex-Pfshf9J9G35P1Psu7NOR04Lh0cltNiNMSsy7y8CNAw3p4F-ovDc6uhODxOYJbCd6KOwaIKpY0-key-w7w"/>
+<div class="flex-1 min-w-0 space-y-1">
+<div class="flex items-center gap-1.5">
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container-high text-primary font-semibold">维护</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">宿管中心 · 昨天</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface truncate">本周三下午供水管道定期维护通告</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">计划于本周三 14:00-17:00 对东区7号楼供水管网实施增压阀更换...</p>
+</div>
+</div>
+<!-- Announcement 2 -->
+<div class="w-full bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex items-start gap-3">
+<img class="w-16 h-16 rounded-lg object-cover flex-shrink-0" data-alt="University dormitory interior desk setup showing safe power strips, warm cozy study lamp, clean neat student room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxGUjPylYcKIFL_wP89FzdSq7ry8get_6gzJhXdFX9iTnorHCLNa8QorJi3uO2I2e0PDlinNYL8DwFFVK30crFt6AT59nbLoINfjIaYYXqnY1mRAwydmyKULsi2Tf8ey_WsCnPYgIHlgT1Xrsus4SFnsELmZsgxB5QN6dZNAfREIgB0pIawxwfGNObaSOjHW5GVdySAqQ5XvgGZ401TIapkSQW_98nTDO9xz4vtlM"/>
+<div class="flex-1 min-w-0 space-y-1">
+<div class="flex items-center gap-1.5">
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-tertiary-fixed/60 text-tertiary font-semibold">安全</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">保卫处 · 3天前</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface truncate">冬季宿舍用电安全及违规电器温馨提醒</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">气温走低，切勿在寝室内私拉乱接电线或使用大功率加热设备，保障寝室消防安全。</p>
+</div>
+</div>
+</div>
+</div>
+</div></main><nav class="fixed bottom-3 inset-x-margin z-50 pb-safe bg-surface/90 backdrop-blur-xl rounded-full shadow-[0_12px_32px_-4px_rgba(15,23,42,0.12),0_2px_8px_rgba(15,23,42,0.04)]" data-active-classes="text-primary font-bold"><div class="flex items-center justify-around h-16 px-space-sm"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-0.5 transition-transform active:scale-95 text-primary font-bold" data-path="home-dashboard" href="#"><span class="material-symbols-outlined text-[24px]">home</span><span class="font-label-sm text-label-sm">首页</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-0.5 text-on-surface-variant transition-transform active:scale-95 relative" data-path="track-status" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">assignment</span><span class="absolute -top-1 -right-2 bg-error text-on-error font-label-sm text-[10px] px-1 min-w-[14px] h-[14px] leading-[14px] rounded-full text-center font-bold">2</span></div><span class="font-label-sm text-label-sm">进度</span></a><div class="flex items-center justify-center -mt-6 px-1"><a class="w-14 h-14 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-[0_8px_24px_-4px_rgba(37,99,235,0.4)] transition-transform active:scale-90 hover:bg-primary" data-path="new-repair-request" href="#"><span class="material-symbols-outlined text-[28px]">build</span></a></div><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-0.5 text-on-surface-variant transition-transform active:scale-95" data-path="my-tickets" href="#"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="font-label-sm text-label-sm">记录</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-0.5 text-on-surface-variant transition-transform active:scale-95" data-path="student-profile" href="#"><span class="material-symbols-outlined text-[24px]">person</span><span class="font-label-sm text-label-sm">我的</span></a></div></nav></body></html>

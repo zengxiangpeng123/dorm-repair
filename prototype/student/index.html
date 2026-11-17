@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>学生端 · 宿舍维修</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<style>
+  .greet { padding: var(--s5) var(--s4) var(--s4); display: flex; align-items: center; gap: var(--s3); }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+            background: linear-gradient(180deg,#e0e7ff,#c7d2fe); color: #3730a3; font-weight: 700; font-size: 15px; }
+  .steps { display: flex; align-items: center; gap: 0; margin: 2px 0; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
+  .step::before { content: ""; position: absolute; top: 9px; left: -50%; width: 100%; height: 2px; background: var(--line); }
+  .step:first-child::before { display: none; }
+  .step .dot { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid var(--line);
+               display: grid; place-items: center; font-size: 9px; color: var(--ink-4); z-index: 1; }
+  .step .nm { font-size: 10px; color: var(--ink-4); white-space: nowrap; }
+  .step.done .dot { background: var(--success); border-color: var(--success); color: #fff; }
+  .step.done::before { background: #a7f3d0; }
+  .step.now .dot { background: #fff; border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,.15); }
+  .step.now .nm { color: var(--primary-deep); font-weight: 600; }
+  .step.done .nm { color: var(--ink-3); }
+  .cta-big { height: 52px; font-size: 15px; }
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="greet">
+    <div class="avatar">张</div>
+    <div class="grow">
+      <div style="font-size:17px;font-weight:700;letter-spacing:-.02em">张同学</div>
+      <div class="tiny muted">东区7号楼 402 · 示范大学</div>
+    </div>
+    <button class="btn btn-sm" onclick="location.href='../index.html'">切换</button>
+  </div>
+
+  <div class="body" style="padding-top:0" id="main"></div>
+</main>
+
+<nav class="nav">
+  <a href="index.html" class="is-on"><span class="ico">🏠</span>首页</a>
+  <a href="list.html"><span class="ico">🧾</span>我的</a>
+  <a href="new.html" class="nav-cta">✚</a>
+  <a href="list.html?tab=all"><span class="ico">📋</span>记录</a>
+</nav>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+  App.tick(true);
+  const ICON = { '给排水': '💧', '电气': '⚡', '电器': '🔌', '门窗家具': '🚪', '网络': '🌐' };
+  const DOING = ['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS', 'VERIFYING', 'REWORKING'];
+
+  const mine = App.orders().filter(o => (o.events || []).some(e => e.actor === 'student:张同学'));
+  const active = mine.filter(o => DOING.indexOf(o.status) >= 0);
+  const cur = active[0] || mine[0] || null;
+
+  // 五步进度条只借用状态，不新增状态词
+  const NAMES = ['提交', '派工', '上门', '验收', '完成'];
+  function stepIndex(st) {
+    if (st === 'PENDING' || st === 'ASSIGNED') return 1;
+    if (st === 'REPAIRING' || st === 'PARTS') return 2;
+    if (st === 'VERIFYING' || st === 'REWORKING') return 3;
+    if (st === 'DONE' || st === 'CLOSED') return 4;
+    return 0;
+  }
+  function stepsHTML(st) {
+    const i = stepIndex(st);
+    if (st === 'CANCELLED') return '<div class="tiny muted">这张单已撤销，没占用师傅排班。</div>';
+    return `<div class="steps">${NAMES.map((n, k) => {
+      const cls = k < i ? 'done' : (k === i ? 'now' : '');
+      return `<div class="step ${cls}"><div class="dot">${k < i ? '✓' : k + 1}</div><div class="nm">${n}</div></div>`;
+    }).join('')}</div>`;
+  }
+
+  let html = '';
+
+  if (cur) {
+    const t = App.t1(cur), t2 = App.t2(cur);
+    html += `
+      <div class="card hero card-tap" onclick="location.href='detail.html?no=${encodeURIComponent(cur.no)}'">
+        <div class="card-bd">
+          <div class="between">
+            ${App.pill(cur.status)}${App.levelPill(cur.level)}
+            <span class="spacer"></span>
+            <span class="tiny muted mono">${cur.no}</span>
+          </div>
+          <div style="font-size:16px;font-weight:600;letter-spacing:-.01em">${cur.aiCategory} · ${App.roomLabel(cur)}</div>
+          <div class="small muted truncate">${App.esc(cur.desc)}</div>
+          ${stepsHTML(cur.status)}
+          ${t ? `<div class="timer-card" data-tone="${t.left < 36 * 3600 * 1000 ? 'danger' : 'warn'}">
+            <div class="grow">
+              <div class="t-label">待验收 · 7 天不点就自动确认</div>
+              <div class="t-val timer">还剩 ${App.human(t.left)}</div>
+            </div>
+          </div>` : ''}
+          ${t2 ? `<div class="timer-card" data-tone="warn">
+            <div class="grow">
+              <div class="t-label">已完成 · 等待归档</div>
+              <div class="t-val timer">还剩 ${App.human(t2.left)}</div>
+            </div>
+          </div>` : ''}
+          <div class="between">
+            <span class="tiny muted">时段：${cur.window || '全天'}</span>
+            <span class="tiny muted">${cur.workerId ? '师傅：' + App.worker(cur.workerId).name : '等系统派工'}</span>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    html += `<div class="card"><div class="empty"><div class="big">🎉</div><div>没有在办的报修</div>
+      <div class="tiny">有事点下面那颗按钮，30 秒能报完</div></div></div>`;
+  }
+
+  html += `
+    <button class="btn btn-primary btn-block cta-big" onclick="location.href='new.html'">
+      ✚ 报修 · 拍一张，说一句
+    </button>
+    <div class="tiny muted center" style="margin-top:-8px">照片 1 张必填 · 描述一句话 · 时段选填</div>
+  `;
+
+  html += `<div class="section-title">我的报修
+    <span class="more" onclick="location.href='list.html'">全部 ${mine.length} 单 ›</span></div>`;
+
+  html += `<div class="list">` + (mine.length ? mine.slice(0, 4).map(o => {
+    const last = (o.events || [])[(o.events || []).length - 1] || {};
+    return `
+    <div class="row" onclick="location.href='detail.html?no=${encodeURIComponent(o.no)}'">
+      <div class="thumb">${ICON[o.category] || '🔧'}</div>
+      <div class="grow">
+        <div class="title truncate">${App.esc(o.desc)}</div>
+        <div class="meta">
+          <span class="mono">${o.no.slice(-6)}</span>
+          <span>${App.roomLabel(o)}</span>
+          <span>${(last.at || o.createdAt || '').slice(5, 16)}</span>
+        </div>
+      </div>
+      ${App.pill(o.status)}
+    </div>`;
+  }).join('') : '<div class="empty tiny">还没有报修记录</div>') + `</div>`;
+
+  html += `
+    <div class="notice" data-tone="info">
+      <div>进度不用问人，也不用加微信群。这条记录里每一步都有时间和人，谁做的、什么时候到的，翻得到。</div>
+    </div>`;
+
+  App.el('#main').innerHTML = html;
+</script>
+</body>
+</html>

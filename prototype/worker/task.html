@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>单间作业 · 宿舍维修</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<style>
+  .big-room { font-size: 30px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .judge { border: 1px solid var(--line); border-radius: var(--r-lg); background: #fff; overflow: hidden; }
+  .judge .q { padding: var(--s3) var(--s4); font-size: 13px; font-weight: 600; background: var(--canvas);
+              border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; gap: 6px; }
+  .judge .a { padding: var(--s3) var(--s4); display: flex; flex-direction: column; gap: var(--s2); }
+  .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .pshot {
+    height: 92px; border-radius: var(--r-md); display: grid; place-items: center; gap: 2px;
+    border: 2px dashed #cbd5e1; background: #fff; color: var(--ink-3); font-size: 11px; cursor: pointer; text-align: center;
+  }
+  .pshot.filled { border-style: solid; border-color: var(--success); background: var(--success-soft); color: var(--success-text); }
+  .pshot .big { font-size: 22px; }
+  .quick { display: flex; gap: 6px; flex-wrap: wrap; }
+  .quick button {
+    padding: 6px 10px; border-radius: var(--r-full); border: 1px solid var(--line);
+    background: #fff; font: inherit; font-size: 11px; color: var(--ink-2); cursor: pointer;
+  }
+  .quick button:active { background: var(--primary-soft); border-color: var(--primary-fixed); }
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="topbar">
+    <button class="back" onclick="location.href='building.html'">‹</button>
+    <div>
+      <h1 id="titleRoom">单间作业</h1>
+      <div class="sub mono" id="subNo"></div>
+    </div>
+  </div>
+
+  <div class="body" id="main"></div>
+</main>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+  App.tick(true);
+  const ME = 'W0428', ME_NAME = '李建国';
+  // 默认挑一张"有活可干"的单：在修 > 已派工等上门 > 待配件
+  function pick() {
+    const mine = App.orders({ workerId: ME });
+    const by = s => mine.filter(o => o.status === s)[0];
+    return (by('REPAIRING') || by('ASSIGNED') || by('PARTS') || mine[0] || {}).no;
+  }
+  const no = App.qs('no', null) || pick();
+  let o = no ? App.order(no) : null;
+
+  const ICON = { '给排水': '💧', '电气': '⚡', '电器': '🔌', '门窗家具': '🚪', '网络': '🌐' };
+  const HAS_ADULT = { 'B7': '王阿姨', 'B8': '刘阿姨' };
+  let photos = 0;
+
+  function render() {
+    o = App.order(no);
+    if (!o) {
+      App.el('#main').innerHTML = '<div class="empty"><div class="big">🔍</div><div>没有这张工单</div></div>';
+      return;
+    }
+    App.el('#titleRoom').textContent = App.roomLabel(o);
+    App.el('#subNo').textContent = o.no;
+
+    let html = `
+      <div class="card hero">
+        <div class="card-bd">
+          <div class="between">
+            ${App.pill(o.status)}${App.levelPill(o.level)}
+            <span class="spacer"></span>
+            <span class="tiny muted">${o.category}</span>
+          </div>
+          <div class="big-room">${o.room}</div>
+          <div class="small" style="color:var(--ink-2);line-height:1.6">${App.esc(o.desc)}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="pshot filled" style="cursor:default;border-color:var(--primary);background:var(--primary-soft);color:var(--primary-deep)">
+              <div class="big">🖼️</div><div>学生报修照 ${o.photosBefore || 0} 张</div>
+            </div>
+            <div class="kv" style="gap:7px;font-size:11px;align-self:center">
+              <div class="r"><span class="k" style="flex:0 0 40px;color:var(--ink-3);margin-right:4px">时段</span><span class="v">${o.window || '全天'}</span></div>
+              <div class="r"><span class="k" style="flex:0 0 40px;color:var(--ink-3);margin-right:4px">宿管</span><span class="v">${HAS_ADULT[o.building] || '—'}</span></div>
+              <div class="r"><span class="k" style="flex:0 0 40px;color:var(--ink-3);margin-right:4px">提交</span><span class="v mono">${(o.createdAt || '').slice(5)}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    // 第一条判断：能进场吗
+    if (o.status === 'ASSIGNED') {
+      html += `
+      <div class="judge">
+        <div class="q">① 能进场吗？</div>
+        <div class="a">
+          <button class="btn btn-primary btn-block" data-act="arrive">门开着 / 有人，开始修</button>
+          <button class="btn btn-block" data-act="noshow">敲了门没人应（到访未遇）</button>
+          <div class="tiny muted">选了"没人应"这一单会回到待派工重新排队，不会算你没干活；但次数会记在案。</div>
+        </div>
+      </div>`;
+    }
+
+    // 第二条判断：能当场修好吗
+    if (o.status === 'REPAIRING') {
+      html += `
+      <div class="judge">
+        <div class="q">② 能当场修好吗？</div>
+        <div class="a">
+          <div class="label">完工照片<span class="req">*</span></div>
+          <div class="photo-grid" id="pg">
+            <div class="pshot ${photos ? 'filled' : ''}" id="shot0">
+              <div class="big">📷</div><div>${photos ? '已拍 1 张' : '拍完工照'}</div>
+            </div>
+            <div class="small muted" style="align-self:center;line-height:1.5">
+              一张就够，能看出修好了。<br>没有完工照这条链就断了。
+            </div>
+          </div>
+          <div class="hr"></div>
+          <div class="label">处理说明<span class="tiny muted" style="font-weight:400">（选填，点一下少打字）</span></div>
+          <div class="quick" id="quick">
+            <button data-t="更换软管">更换软管</button>
+            <button data-t="重新打胶">重新打胶</button>
+            <button data-t="紧固螺丝">紧固螺丝</button>
+            <button data-t="疏通管道">疏通管道</button>
+            <button data-t="更换阀芯">更换阀芯</button>
+          </div>
+          <textarea class="textarea" id="note" placeholder="例：更换洗手盆软管并试水 5 分钟，无渗漏" style="min-height:66px"></textarea>
+          <button class="btn btn-primary btn-block" data-act="finish">修好了，提交完工</button>
+          <div class="hr"></div>
+          <button class="btn btn-block" data-act="parts">修不好，要申请配件</button>
+          <div class="tiny muted">预算内的配件系统自己下单，你直接走；超预算才进管理端等人批。</div>
+        </div>
+      </div>`;
+    }
+
+    if (o.status === 'PARTS') {
+      html += `<div class="card"><div class="card-bd">
+        <div class="notice" data-tone="warn"><div><b>等配件：</b>${App.esc((o.parts || {}).name || '')} ${(o.parts || {}).amount || ''} 元，预计 ${(o.parts || {}).etaDate || ''} 到货。
+        到货后这一单会自动回到待派工，重新排到你名下，不用你手动接。</div></div>
+        ${(o.parts || {}).amount > App.db().meta.budget
+          ? '<div class="notice" data-tone="danger"><div>这笔超预算线了，正在管理端等批准。批下来会通知你。</div></div>'
+          : '<div class="notice" data-tone="ok"><div>预算内，已经自动下单，不用等谁点头。</div></div>'}
+      </div></div>`;
+    }
+
+    if (o.status === 'VERIFYING') {
+      html += `<div class="card"><div class="card-bd">
+        <div class="notice" data-tone="ok"><div>已提交完工，等学生验收。学生 7 天不点，系统自动确认，你不用催。</div></div>
+      </div></div>`;
+    }
+
+    // 本单事件流
+    html += `<div class="card">
+      <div class="card-hd">本单记录<span class="spacer"></span><span class="tiny muted">${(o.events || []).length} 条</span></div>
+      <div class="card-bd"><div class="tl">
+        ${(o.events || []).map((e, i, arr) => `
+          <div class="tl-item" data-state="${i === arr.length - 1 ? 'active' : 'done'}">
+            <div class="tl-dot"></div>
+            <div class="tl-body">
+              <div class="tl-title">${App.EVENT_LABEL[e.event] || e.event}
+                <span class="pill" data-tone="${e.manual ? 'muted' : 'ok'}">${e.manual ? '人工' : '系统'}</span>
+              </div>
+              <div class="tl-time mono">${e.at} · ${App.actorLabel(e.actor)}</div>
+              ${e.note ? `<div class="tl-note">${App.esc(e.note)}</div>` : ''}
+            </div>
+          </div>`).join('')}
+      </div></div>
+    </div>`;
+
+    App.el('#main').innerHTML = html;
+    bind();
+  }
+
+  function bind() {
+    const shot = App.el('#shot0');
+    if (shot) shot.onclick = () => { photos = photos ? 0 : 1; render(); };
+
+    App.els('#quick button').forEach(b => b.onclick = () => {
+      const t = App.el('#note');
+      t.value = t.value ? t.value.replace(/。$/, '') + '，' + b.getAttribute('data-t') : b.getAttribute('data-t');
+    });
+
+    App.els('[data-act]').forEach(b => b.onclick = () => act(b.getAttribute('data-act')));
+  }
+
+  function act(a) {
+    try {
+      if (a === 'arrive') {
+        App.fire(no, 'ARRIVE', 'worker:' + ME_NAME, '到门打卡');
+        App.toast('已打卡，进入维修中', 'ok');
+        render();
+      }
+      if (a === 'noshow') { doNoShow(); }
+      if (a === 'finish') {
+        if (!photos) { App.toast('必须先拍一张完工照', 'err'); return; }
+        const note = (App.el('#note') || {}).value || '';
+        App.fire(no, 'FINISH', 'worker:' + ME_NAME, (note || '完工') + '；完工照 1 张');
+        o = App.order(no); o.photosAfter = 1; App.save();
+        photos = 0;
+        App.toast('已提交完工，等学生验收', 'ok');
+        render();
+      }
+      if (a === 'parts') { doParts(); }
+    } catch (e) { App.toast(e.message, 'err'); }
+  }
+
+  function sheet(html) {
+    const mask = document.createElement('div');
+    mask.className = 'sheet-mask is-open';
+    mask.innerHTML = `<div class="sheet">${html}</div>`;
+    document.body.appendChild(mask);
+    mask.onclick = e => { if (e.target === mask) mask.remove(); };
+    return mask;
+  }
+
+  function doNoShow() {
+    const m = sheet(`
+      <h3>到访未遇</h3>
+      <div class="small muted">选一个原因。这一单会回到待派工重新排队，紧急度不降。</div>
+      <div class="reason-list" id="rs">
+        <label><input type="radio" name="r" value="敲门无人应答" checked>敲门无人应答</label>
+        <label><input type="radio" name="r" value="寝室门锁着，宿管不在">寝室门锁着，宿管不在</label>
+        <label><input type="radio" name="r" value="学生说不在约定的时段">学生说不在约定的时段</label>
+        <label><input type="radio" name="r" value="房间在装修/无法进入">房间在装修 / 无法进入</label>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-x="no">返回</button>
+        <button class="btn btn-primary" data-x="yes">确认</button>
+      </div>`);
+    m.querySelector('[data-x="no"]').onclick = () => m.remove();
+    m.querySelector('[data-x="yes"]').onclick = () => {
+      const r = (m.querySelector('input[name="r"]:checked') || {}).value || '未说明';
+      try {
+        App.fire(no, 'NO_SHOW', 'worker:' + ME_NAME, '到访未遇：' + r);
+        m.remove();
+        App.toast('已记录，这一单回队列', 'ok');
+        location.href = 'building.html';
+      } catch (e) { App.toast(e.message, 'err'); }
+    };
+  }
+
+  function doParts() {
+    const budget = App.db().meta.budget;
+    const m = sheet(`
+      <h3>登记缺件</h3>
+      <div class="small muted">填名称、金额、预计到货日。预算线 ${budget} 元，以下系统自己下单，以上转管理端。</div>
+      <div class="field">
+        <label class="label">配件名称<span class="req">*</span></label>
+        <input class="input" id="pname" placeholder="例：洗手盆软管 60cm">
+      </div>
+      <div class="field">
+        <label class="label">金额（元）<span class="req">*</span></label>
+        <input class="input" id="pamt" type="number" min="1" step="1" placeholder="例：28">
+      </div>
+      <div class="field">
+        <label class="label">预计到货日<span class="req">*</span></label>
+        <input class="input" id="pdate" type="date">
+      </div>
+      <div id="pv"></div>
+      <div class="btn-row">
+        <button class="btn" data-x="no">取消</button>
+        <button class="btn btn-primary" data-x="yes">提交</button>
+      </div>`);
+    const amt = m.querySelector('#pamt'), pv = m.querySelector('#pv');
+    m.querySelector('#pdate').value = App.fmt(App.now()).slice(0, 10);
+    const preview = () => {
+      const v = Number(amt.value || 0);
+      pv.innerHTML = v ? (v > budget
+        ? `<div class="notice" data-tone="warn"><div>超预算线 ${budget} 元 → 这张单转管理端，等人批。你可以先去下一间。</div></div>`
+        : `<div class="notice" data-tone="ok"><div>预算内 → 系统自动下单，不用等批。</div></div>`) : '';
+    };
+    amt.oninput = preview;
+    m.querySelector('[data-x="no"]').onclick = () => m.remove();
+    m.querySelector('[data-x="yes"]').onclick = () => {
+      const name = m.querySelector('#pname').value.trim();
+      const amount = Number(amt.value || 0);
+      const eta = m.querySelector('#pdate').value;
+      if (!name) { App.toast('填配件名称', 'err'); return; }
+      if (!amount) { App.toast('填金额', 'err'); return; }
+      if (!eta) { App.toast('选预计到货日', 'err'); return; }
+      try {
+        App.fire(no, 'NEED_PARTS', 'worker:' + ME_NAME,
+          `${name} ${amount} 元，预计 ${eta} 到货` + (amount > budget ? `（超预算线 ${budget} 元，转管理端）` : '（预算内自动下单）'));
+        o = App.order(no);
+        o.parts = { name, amount, etaDate: eta, overBudget: amount > budget };
+        App.save();
+        m.remove();
+        App.toast(amount > budget ? '已提交，等管理端批' : '已下单，等货', 'ok');
+        location.href = 'building.html';
+      } catch (e) { App.toast(e.message, 'err'); }
+    };
+  }
+
+  render();
+</script>
+</body>
+</html>

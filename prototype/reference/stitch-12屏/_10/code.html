@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"tertiary":"#006242","secondary":"#00668a","inverse-on-surface":"#eaf1ff","secondary-container":"#40c2fd","on-error-container":"#93000a","surface-dim":"#cbdbf5","surface-container-low":"#eff4ff","surface":"#f8f9ff","surface-container-lowest":"#ffffff","error":"#ba1a1a","on-secondary-fixed-variant":"#004c69","on-surface-variant":"#434655","on-primary-fixed-variant":"#003ea8","secondary-fixed":"#c4e7ff","tertiary-fixed":"#6ffbbe","on-tertiary-fixed":"#002113","on-background":"#0b1c30","on-secondary":"#ffffff","on-error":"#ffffff","outline":"#737686","secondary-fixed-dim":"#7bd0ff","on-tertiary-fixed-variant":"#005236","surface-container-high":"#dce9ff","on-secondary-fixed":"#001e2c","primary-fixed-dim":"#b4c5ff","tertiary-container":"#007d55","tertiary-fixed-dim":"#4edea3","on-primary-container":"#eeefff","inverse-primary":"#b4c5ff","surface-tint":"#0053db","on-secondary-container":"#004d6a","surface-variant":"#d3e4fe","on-primary-fixed":"#00174b","on-tertiary-container":"#bdffdb","primary-fixed":"#dbe1ff","inverse-surface":"#213145","primary":"#004ac6","primary-container":"#2563eb","outline-variant":"#c3c6d7","on-surface":"#0b1c30","surface-container-highest":"#d3e4fe","error-container":"#ffdad6","surface-container":"#e5eeff","background":"#f8f9ff","on-tertiary":"#ffffff","on-primary":"#ffffff","surface-bright":"#f8f9ff"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-md":"1rem","space-xs":"0.25rem","space-sm":"0.5rem","margin":"1rem","space-xl":"2rem","gutter":"1rem","gutter-compact":"0.75rem","margin-compact":"0.75rem","space-lg":"1.5rem"},"fontFamily":{"headline-md":["Inter"],"headline-lg":["Inter"],"label-md":["Inter"],"display-lg":["Inter"],"body-lg":["Inter"],"tabular-stat":["Inter"],"body-sm":["Inter"],"headline-sm":["Inter"],"label-lg":["Inter"],"label-sm":["Inter"],"body-md":["Inter"]},"fontSize":{"headline-md":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-lg":["22px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"500"}],"display-lg":["30px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"tabular-stat":["24px",{"lineHeight":"28px","letterSpacing":"0","fontWeight":"700"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"headline-sm":["16px",{"lineHeight":"22px","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.01em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}]}}}};</script></head><body class="bg-surface text-on-surface font-body-md text-body-md min-h-screen"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="px-space-lg pt-space-lg pb-space-md flex flex-col gap-space-xs"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm"><span class="material-symbols-outlined text-[20px]">account_balance</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">宿修宝 · 监测台</span><span class="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">后勤运维指挥大屏</span></div></div><div class="mt-space-sm flex items-center justify-between bg-surface-container-low px-space-sm py-space-xs rounded-lg"><span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>零审批自主干线</span><span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-highest px-1.5 py-0.5 rounded">V3.8 督察</span></div></div><div class="px-space-md mt-space-sm"><div class="text-on-surface-variant font-label-sm text-label-sm px-space-sm mb-space-xs uppercase tracking-wider">核心督察业务</div><nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-headline-sm shadow-sm"><a class="flex items-center gap-3 px-space-md py-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="exception-monitor-and-triage" href="#"><span class="material-symbols-outlined text-[20px]">crisis_alert</span><span>异常监测中枢</span></a><a aria-current="page" class="flex items-center gap-3 px-space-md py-space-sm rounded-xl transition-all bg-primary-container text-on-primary-container font-headline-sm shadow-sm" data-path="live-orders-and-heatmap" href="#"><span class="material-symbols-outlined text-[20px]">map</span><span>全校工单态势</span></a><a class="flex items-center gap-3 px-space-md py-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="building-grid-and-material-ledger" href="#"><span class="material-symbols-outlined text-[20px]">inventory_2</span><span>楼栋网格与耗材台账</span></a><a class="flex items-center gap-3 px-space-md py-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="worker-performance-and-kpi" href="#"><span class="material-symbols-outlined text-[20px]">award_star</span><span>质效考核与工分</span></a></nav></div></div><div class="p-space-md flex flex-col gap-space-sm"><div class="p-space-sm bg-surface-container rounded-xl flex flex-col gap-1"><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface flex items-center gap-1.5 font-semibold"><span class="material-symbols-outlined text-secondary text-[16px]">smart_toy</span>AI 自动化引擎</span><span class="font-label-sm text-label-sm text-tertiary font-bold">99.4%</span></div><p class="font-label-sm text-label-sm text-on-surface-variant leading-tight">主干零派工·零催办流顺畅运行中，仅三类异常触发干预</p></div><div class="flex items-center justify-between p-space-sm bg-surface-container-low rounded-xl"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col"><span class="font-label-lg text-label-lg text-on-surface leading-tight">王主任</span><span class="font-label-sm text-label-sm text-on-surface-variant">后勤处 · 督察介入</span></div></div><button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high p-1.5 rounded-lg transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">logout</span></button></div></div></aside><div class="pl-72 flex flex-col min-h-screen"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between"><div class="flex items-center gap-space-md"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span><span class="font-headline-sm text-headline-sm text-on-surface">东区/西区 宿区后勤运行状态 · 实时</span></div><div class="hidden xl:flex items-center gap-2 px-space-sm py-1 bg-surface-container-low text-on-surface-variant rounded-lg font-body-sm text-body-sm"><span class="material-symbols-outlined text-[16px] text-primary">campaign</span><span>全校 6 栋宿舍楼，当前 2 个班组在楼作业，45 间台账房间运行平稳</span></div></div><div class="flex items-center gap-space-sm"><div class="flex items-center bg-surface-container-low p-1 rounded-xl gap-1 text-on-surface-variant font-label-md text-label-md"><button class="px-space-sm py-1 rounded-lg bg-surface-container-lowest text-on-surface font-semibold shadow-xs" type="button">全部异常</button><button class="px-space-sm py-1 rounded-lg hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button">仅看超支</button><button class="px-space-sm py-1 rounded-lg hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button">仅看返修</button></div><button class="flex items-center gap-1.5 px-space-sm py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">file_download</span><span>报表</span></button><button class="flex items-center gap-1.5 px-space-sm py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">fullscreen</span></button><button class="flex items-center gap-1 px-space-md py-1.5 rounded-xl bg-error text-on-error hover:bg-error/90 font-label-md text-label-md shadow-xs transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">notification_important</span><span>紧急通报</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-16 bg-surface flex-1 px-space-lg py-space-md"><div class="flex flex-col w-full gap-space-lg pb-12">
+<!-- Top Command Ribbon & Metrics -->
+<div class="flex flex-col gap-space-md bg-surface-container-lowest p-space-lg rounded-xl shadow-sm">
+<div class="flex flex-wrap items-center justify-between gap-4">
+<!-- Filters -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<div class="flex items-center bg-surface-container p-1 rounded-xl text-on-surface-variant font-label-md text-label-md">
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container-lowest text-primary font-headline-sm text-headline-sm shadow-sm transition-all" type="button">全校区</button>
+<button class="px-space-md py-1.5 rounded-lg hover:text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md" type="button">东校区 (7栋)</button>
+<button class="px-space-md py-1.5 rounded-lg hover:text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md" type="button">西校区 (5栋)</button>
+<button class="px-space-md py-1.5 rounded-lg hover:text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md" type="button">南苑 (3栋)</button>
+</div>
+<div class="h-6 w-px bg-surface-container-high mx-1 hidden sm:block"></div>
+<div class="flex items-center gap-1.5 bg-surface-container-low px-3 py-1.5 rounded-xl text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px] text-outline">tune</span>
+<span class="text-on-surface-variant font-medium">类目:</span>
+<select class="bg-transparent text-on-surface font-semibold focus:outline-none cursor-pointer">
+<option>全部分类 (All)</option>
+<option>强弱电类 (18)</option>
+<option>供排水暖 (24)</option>
+<option>门锁家具 (10)</option>
+<option>建筑防水 (4)</option>
+</select>
+</div>
+</div>
+<!-- Action Cluster -->
+<div class="flex items-center gap-space-sm">
+<span class="flex items-center gap-1.5 font-label-sm text-label-sm text-tertiary bg-tertiary-container/10 px-2.5 py-1 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
+          每 5 秒网格刷新
+        </span>
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md transition-colors" id="sim-btn" onclick="triggerSimulation()">
+<span class="material-symbols-outlined text-[18px]">alt_route</span>
+<span>动线模拟演练</span>
+</button>
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md shadow-sm transition-all">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>导出态势报表</span>
+</button>
+</div>
+</div>
+<!-- Live Metric Strips -->
+<div class="grid grid-cols-2 md:grid-cols-5 gap-space-md pt-space-xs">
+<div class="p-space-md bg-surface-container-low rounded-xl flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>今日报修总量</span>
+<span class="material-symbols-outlined text-[18px] text-primary">feed</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface tracking-tight">56</span>
+<span class="font-label-sm text-label-sm text-tertiary flex items-center font-bold">↑ 8.2%</span>
+</div>
+<div class="mt-1 font-label-sm text-label-sm text-on-surface-variant">零迟滞全量准入</div>
+<div class="absolute -right-4 -bottom-4 w-12 h-12 bg-primary/5 rounded-full blur-md"></div>
+</div>
+<div class="p-space-md bg-surface-container-low rounded-xl flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>AI 零秒派发</span>
+<span class="material-symbols-outlined text-[18px] text-tertiary">bolt</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-tertiary tracking-tight">56</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold bg-tertiary/10 px-1 rounded">100%</span>
+</div>
+<div class="mt-1 font-label-sm text-label-sm text-on-surface-variant">平均派发 0.8s</div>
+<div class="absolute -right-4 -bottom-4 w-12 h-12 bg-tertiary/5 rounded-full blur-md"></div>
+</div>
+<div class="p-space-md bg-surface-container-low rounded-xl flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>楼栋集中巡修中</span>
+<span class="material-symbols-outlined text-[18px] text-secondary">handyman</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-secondary tracking-tight">24</span>
+<span class="font-label-sm text-label-sm text-secondary font-medium">3个班组进楼</span>
+</div>
+<div class="mt-1 font-label-sm text-label-sm text-on-surface-variant">避免分散折返跑</div>
+<div class="absolute -right-4 -bottom-4 w-12 h-12 bg-secondary/5 rounded-full blur-md"></div>
+</div>
+<div class="p-space-md bg-surface-container-low rounded-xl flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>竣工待核验</span>
+<span class="material-symbols-outlined text-[18px] text-primary">verified</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface tracking-tight">8</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">待学生签收</span>
+</div>
+<div class="mt-1 font-label-sm text-label-sm text-on-surface-variant">凭证影像已回传</div>
+</div>
+<div class="p-space-md bg-surface-container-low rounded-xl flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container transition-colors">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>今日归档完工</span>
+<span class="material-symbols-outlined text-[18px] text-tertiary">check_circle</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface tracking-tight">24</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">100% 好评</span>
+</div>
+<div class="mt-1 font-label-sm text-label-sm text-on-surface-variant">平均单均耗时 28分</div>
+</div>
+</div>
+</div>
+<!-- Main Split Canvas: Left 55% Heatmap & Efficiency / Right 45% Live Pipeline -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- Left Section: 55% (col-span-7) -->
+<div class="lg:col-span-7 flex flex-col gap-space-lg">
+<!-- Campus Dormitory Grid Card Wall -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">grid_view</span>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-on-surface">全校宿舍楼栋网格作业态势图</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">基于就近合并算法与班组巡检动线状态实时渲染</span>
+</div>
+</div>
+<div class="flex items-center gap-3 text-label-sm font-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>集中巡修</span>
+<span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>排班待进</span>
+<span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-surface-container-highest"></span>平稳零修</span>
+</div>
+</div>
+<!-- Heatmap Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-md pt-2">
+<!-- 7号楼 (男生宿舍) -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between hover:shadow-md transition-all relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">7号楼</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">男生宿舍</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-container/15 text-tertiary font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>集中巡修
+              </span>
+</div>
+<div class="mt-4 flex flex-col gap-2">
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface">
+<span class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-primary">engineering</span> 李师傅班组在楼
+                </span>
+<span class="font-headline-sm text-headline-sm text-tertiary">80%</span>
+</div>
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full transition-all duration-500" style="width: 80%"></div>
+</div>
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span>已竣工 4 单 / 共 5 单</span>
+<span>当前: 402室</span>
+</div>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between bg-surface-container-lowest/60 p-2 rounded-lg text-label-sm font-label-sm">
+<span class="text-on-surface-variant">耗材装配: 高压管/角阀</span>
+<span class="text-primary font-medium">无缺料 · 顺畅</span>
+</div>
+</div>
+<!-- 8号楼 (男生宿舍) -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between hover:shadow-md transition-all relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">8号楼</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">男生宿舍</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>排班待进
+              </span>
+</div>
+<div class="mt-4 flex flex-col gap-2">
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface">
+<span class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-secondary">schedule</span> 计划入场 14:00
+                </span>
+<span class="font-headline-sm text-headline-sm text-secondary">2 单待修</span>
+</div>
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 25%"></div>
+</div>
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span>接力: 张师傅电工班</span>
+<span>工单聚合已完成</span>
+</div>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between bg-surface-container-lowest/60 p-2 rounded-lg text-label-sm font-label-sm">
+<span class="text-on-surface-variant">故障: 强电跳闸/开关</span>
+<span class="text-secondary font-medium">前序楼栋 85%</span>
+</div>
+</div>
+<!-- 12号楼 (研究生院) -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between hover:shadow-md transition-all relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">12号楼</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">研究生院</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>待出发
+              </span>
+</div>
+<div class="mt-4 flex flex-col gap-2">
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface">
+<span class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-primary">calendar_month</span> 下午专属预约
+                </span>
+<span class="font-headline-sm text-headline-sm text-primary">1 单待修</span>
+</div>
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 10%"></div>
+</div>
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span>302室 门锁卡涩</span>
+<span>预备 15:30</span>
+</div>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between bg-surface-container-lowest/60 p-2 rounded-lg text-label-sm font-label-sm">
+<span class="text-on-surface-variant">配件: 锁芯套件已备齐</span>
+<span class="text-tertiary font-medium">免返工预装</span>
+</div>
+</div>
+<!-- 3号楼 (女生宿舍) -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between hover:shadow-md transition-all relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">3号楼</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">女生宿舍</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-container/15 text-tertiary font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">done_all</span>全检完成
+              </span>
+</div>
+<div class="mt-4 flex flex-col gap-2">
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface">
+<span class="flex items-center gap-1 text-tertiary font-medium">
+<span class="material-symbols-outlined text-[16px]">task_alt</span> 3单清零耗时 42分
+                </span>
+<span class="font-headline-sm text-headline-sm text-tertiary">100%</span>
+</div>
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 100%"></div>
+</div>
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span>刘师傅综合组</span>
+<span>108/214/305室</span>
+</div>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between bg-surface-container-lowest/60 p-2 rounded-lg text-label-sm font-label-sm">
+<span class="text-on-surface-variant">状态: 已离楼打卡</span>
+<span class="text-tertiary font-bold">5星零差评</span>
+</div>
+</div>
+<!-- 5号楼 -->
+<div class="bg-surface-container-low/70 p-space-md rounded-xl flex flex-col justify-between hover:bg-surface-container-low transition-all">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">5号楼</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">研究生院</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-medium">平稳正常</span>
+</div>
+<div class="mt-4 py-2 flex flex-col items-center justify-center text-on-surface-variant gap-1">
+<span class="material-symbols-outlined text-[28px] text-tertiary">sentiment_satisfied</span>
+<span class="font-body-sm text-body-sm">今日无新报修单据</span>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between bg-surface-container-lowest/40 p-2 rounded-lg text-label-sm font-label-sm text-on-surface-variant">
+<span>上次巡检: 昨日 16:30</span>
+<span class="text-tertiary">设备健康</span>
+</div>
+</div>
+<!-- 6号楼 -->
+<div class="bg-surface-container-low/70 p-space-md rounded-xl flex flex-col justify-between hover:bg-surface-container-low transition-all">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">6号楼</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">留学生院</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-medium">平稳正常</span>
+</div>
+<div class="mt-4 py-2 flex flex-col items-center justify-center text-on-surface-variant gap-1">
+<span class="material-symbols-outlined text-[28px] text-tertiary">sentiment_satisfied</span>
+<span class="font-body-sm text-body-sm">今日无新报修单据</span>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between bg-surface-container-lowest/40 p-2 rounded-lg text-label-sm font-label-sm text-on-surface-variant">
+<span>上次巡检: 今日 09:10</span>
+<span class="text-tertiary">设备健康</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Route Optimization & Energy Conservation Widget -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[22px]">route</span>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-on-surface">动线优化与跨楼跑腿收益</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">基于就近聚类（Room-Clustering）自动避免单件零散穿越校园</span>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-tertiary-container/10 text-tertiary font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">trending_up</span> 效能模型 V2.4
+          </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<div class="p-space-md bg-surface-container-low rounded-xl flex flex-col justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">今日累计节省跑腿路程</span>
+<div class="mt-2 flex items-baseline gap-1.5">
+<span class="font-display-lg text-display-lg text-primary tracking-tight">18.4</span>
+<span class="font-headline-sm text-headline-sm text-on-surface-variant">公里</span>
+</div>
+<span class="mt-1 font-label-sm text-label-sm text-tertiary">相当于减少折返跑 38 次</span>
+</div>
+<div class="p-space-md bg-surface-container-low rounded-xl flex flex-col justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">全校平均响应提速</span>
+<div class="mt-2 flex items-baseline gap-1.5">
+<span class="font-display-lg text-display-lg text-tertiary tracking-tight">62</span>
+<span class="font-headline-sm text-headline-sm text-on-surface-variant">%</span>
+</div>
+<span class="mt-1 font-label-sm text-label-sm text-tertiary">单据驻留时间从 74m 降至 28m</span>
+</div>
+<div class="p-space-md bg-surface-container-low rounded-xl flex flex-col justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">零审批直通率</span>
+<div class="mt-2 flex items-baseline gap-1.5">
+<span class="font-display-lg text-display-lg text-on-surface tracking-tight">99.1</span>
+<span class="font-headline-sm text-headline-sm text-on-surface-variant">%</span>
+</div>
+<span class="mt-1 font-label-sm text-label-sm text-on-surface-variant">仅高额耗材进入人工审核</span>
+</div>
+</div>
+<!-- Inline SVG Visualization: Cluster Route Path vs Non-optimized -->
+<div class="bg-surface-container-low p-space-md rounded-xl flex flex-col gap-2">
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span>今日师傅集中巡修轨迹分布 (实测)</span>
+<span class="text-tertiary font-medium">连续就近作业模式 · 绿色为已完成路径</span>
+</div>
+<div class="w-full h-24 relative overflow-hidden flex items-center justify-center">
+<svg class="w-full h-full text-outline-variant" fill="none" viewbox="0 0 600 100" xmlns="http://www.w3.org/2000/svg">
+<!-- Route Path -->
+<path d="M 40 50 Q 150 15, 260 50 T 480 50 T 560 30" fill="none" stroke="currentColor" stroke-dasharray="4 4" stroke-width="2"></path>
+<path d="M 40 50 Q 150 15, 260 50" fill="none" stroke="#006242" stroke-width="3"></path>
+<!-- Building Nodes -->
+<g transform="translate(40, 50)">
+<circle fill="#006242" r="7"></circle>
+<circle fill="#ffffff" r="3"></circle>
+<text fill="#0b1c30" font-size="11" font-weight="600" text-anchor="middle" y="22">东3号楼 (完工)</text>
+</g>
+<g transform="translate(260, 50)">
+<circle class="animate-pulse" fill="#2563eb" r="9"></circle>
+<circle fill="#ffffff" r="4"></circle>
+<text fill="#004ac6" font-size="11" font-weight="600" text-anchor="middle" y="24">东7号楼 (当前在楼)</text>
+</g>
+<g transform="translate(480, 50)">
+<circle fill="#737686" r="6"></circle>
+<circle fill="#ffffff" r="2"></circle>
+<text fill="#434655" font-size="11" font-weight="600" text-anchor="middle" y="22">东8号楼 (待进)</text>
+</g>
+<g transform="translate(560, 30)">
+<circle fill="#c3c6d7" r="5"></circle>
+<text fill="#737686" font-size="10" text-anchor="middle" y="-10">西12号楼</text>
+</g>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Section: 45% (col-span-5) Pipeline Feed & Actions -->
+<div class="lg:col-span-5 flex flex-col gap-space-lg">
+<!-- Live Pipeline Feed Card -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[22px]">stream</span>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-on-surface">全链路工单实时流转流水线</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">学生提交 → AI定级派发 → 进楼作业 → 影像销项</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline cursor-pointer hover:text-on-surface">refresh</span>
+</div>
+<!-- Timeline Waterfall Cards -->
+<div class="flex flex-col gap-space-md relative">
+<!-- Continuous Track Line -->
+<div class="absolute left-4 top-4 bottom-4 w-0.5 bg-surface-container-highest -z-0"></div>
+<!-- Ticket Card 1: In progress / Just entered building -->
+<div class="relative z-10 flex items-start gap-3.5 group">
+<div class="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0 shadow-sm ring-4 ring-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]">plumbing</span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-xl flex-1 flex flex-col gap-2 hover:bg-surface-container transition-all">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">#GD-20231108-042</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-bold">在楼作业中</span>
+</div>
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-on-surface-variant">
+<span class="text-primary font-semibold">东区 7号楼 402</span>
+<span>•</span>
+<span>洗手间高压软管渗水</span>
+<span>•</span>
+<span>13:42 打卡进楼</span>
+</div>
+<!-- Material Automation Note -->
+<div class="bg-surface-container-lowest p-2.5 rounded-lg flex items-center justify-between text-body-sm font-body-sm">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-tertiary">inventory_2</span>
+<span>关联耗材: <strong>304高压防爆软管 (1.2m)</strong></span>
+</div>
+<span class="text-tertiary font-label-sm text-label-sm font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">check</span>智能出库
+                </span>
+</div>
+<!-- Worker Info Footer -->
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant pt-1">
+<div class="flex items-center gap-1.5">
+<div class="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">李</div>
+<span>李建国 (水电2班)</span>
+</div>
+<span class="text-outline">距关单预估还有 12 分钟</span>
+</div>
+</div>
+</div>
+<!-- Ticket Card 2: AI Dispatched & Scheduled into Batch -->
+<div class="relative z-10 flex items-start gap-3.5 group">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 shadow-sm ring-4 ring-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]">smart_toy</span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-xl flex-1 flex flex-col gap-2 hover:bg-surface-container transition-all">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">#GD-20231108-051</span>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-bold">AI秒派并批</span>
+</div>
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-on-surface-variant">
+<span class="text-primary font-semibold">南苑 3号楼 108</span>
+<span>•</span>
+<span>室内吸顶LED灯管不亮</span>
+<span>•</span>
+<span>13:58 报修</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                AI模型快速判定为标准灯管故障，免人工审批。已与同单元204室报修聚合为「南苑集中处理组」，计划 14:30 进场。
+              </p>
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant pt-1">
+<span class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span> 自适应派单权重 0.98
+                </span>
+<span class="text-outline">等待班组入场</span>
+</div>
+</div>
+</div>
+<!-- Ticket Card 3: Completed & Rated 5 stars -->
+<div class="relative z-10 flex items-start gap-3.5 group">
+<div class="w-8 h-8 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shrink-0 shadow-sm ring-4 ring-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]">task_alt</span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-xl flex-1 flex flex-col gap-2 hover:bg-surface-container transition-all">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">#GD-20231108-038</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-container/15 text-tertiary font-label-sm text-label-sm font-bold">完工归档</span>
+</div>
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-on-surface-variant">
+<span class="text-primary font-semibold">西区 12号楼 302</span>
+<span>•</span>
+<span>主卧门锁舌卡阻</span>
+<span>•</span>
+<span>13:15 已闭环</span>
+</div>
+<!-- Student Feedback Strip -->
+<div class="bg-surface-container-lowest p-2.5 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="flex text-amber-500">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface">“师傅来得特别快，2分钟搞定换了锁芯”</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant pt-1">
+<span>处理人: 王师傅</span>
+<span class="text-tertiary font-medium">照片核验通过 · 零返工标记</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Operations & Stress Simulation Bar -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">tune</span>
+            调度工具箱
+          </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">自主干线运行中</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm">
+<button class="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors">
+<span class="material-symbols-outlined text-secondary text-[18px]">cloud_sync</span>
+<span>强制重新聚类动线</span>
+</button>
+<button class="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors">
+<span class="material-symbols-outlined text-tertiary text-[18px]">verified_user</span>
+<span>批量抽验归档相册</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function triggerSimulation() {
+    const btn = document.getElementById('sim-btn');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>模拟计算最优动线中...</span>`;
+    btn.classList.add('bg-primary-container', 'text-on-primary-container');
+    
+    setTimeout(() => {
+      btn.innerHTML = `<span class="material-symbols-outlined text-[18px] text-tertiary">check_circle</span><span>已优化 3 处折返点</span>`;
+      btn.classList.remove('bg-primary-container', 'text-on-primary-container');
+      btn.classList.add('bg-tertiary-container/20', 'text-tertiary');
+      
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('bg-tertiary-container/20', 'text-tertiary');
+      }, 3000);
+    }, 1200);
+  }
+</script></main></div></body></html>

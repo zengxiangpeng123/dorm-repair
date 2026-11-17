@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>提交报修 · 宿舍维修</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<style>
+  .photo-row { display: flex; align-items: center; gap: var(--s3); }
+  .photo-box {
+    width: 96px; height: 96px; border-radius: var(--r-md); flex: 0 0 auto;
+    border: 1px dashed #cbd5e1; background: linear-gradient(180deg,#fff,#fbfdff);
+    display: grid; place-items: center; gap: 2px; cursor: pointer;
+    font-size: 11px; color: var(--ink-3); text-align: center; line-height: 1.3;
+  }
+  .photo-box.filled {
+    border: 2px solid var(--primary); border-style: solid;
+    background: linear-gradient(150deg,#dbeafe,#bfdbfe); color: var(--primary-deep);
+  }
+  .photo-box .big { font-size: 26px; }
+  .ai-box { display: flex; flex-direction: column; gap: 6px; }
+  .ai-head { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+  .ai-basis { font-size: 11px; color: var(--ink-3); line-height: 1.6; }
+  .readonly {
+    display: flex; align-items: center; gap: var(--s2); padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: var(--r-md); background: var(--canvas-2);
+    font-size: 13px; color: var(--ink-2); font-weight: 500;
+  }
+  .readonly .lk { margin-left: auto; font-size: 11px; color: var(--ink-4); font-weight: 400; }
+  .fab-bar {
+    position: sticky; bottom: 0; z-index: 20;
+    padding: var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(248,250,252,0), var(--canvas) 30%);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .count { font-size: 11px; color: var(--ink-4); text-align: right; }
+</style>
+</head>
+<body>
+<main class="stage" style="padding-bottom:0">
+  <div class="topbar">
+    <button class="back" onclick="history.length>1?history.back():location.href='index.html'">‹</button>
+    <div>
+      <h1>报修</h1>
+      <div class="sub">拍一张 · 说一句 · 选个时段</div>
+    </div>
+  </div>
+
+  <div class="body" id="main">
+
+    <div class="card">
+      <div class="card-bd">
+        <div class="field">
+          <label class="label">现场照片<span class="req">*</span></label>
+          <div class="photo-row">
+            <div class="photo-box" id="photoBox">
+              <div class="big">📷</div>
+              <div>拍一张</div>
+            </div>
+            <div class="small muted" style="line-height:1.6">
+              一张就够，能看出坏在哪儿。<br>
+              <span class="tiny">不需要录视频，也不需要传很多张。</span>
+            </div>
+          </div>
+          <div class="hint err" id="photoErr" style="display:none">还没拍照，这是唯一必须的步骤</div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="field">
+          <label class="label">一句话说清什么问题<span class="req">*</span></label>
+          <textarea class="textarea" id="desc" maxlength="200"
+            placeholder="例：洗手盆下面的软管一直滴水，水桶快接满了"></textarea>
+          <div class="count"><span id="descLen">0</span> / 200</div>
+          <div class="hint err" id="descErr" style="display:none">至少写 4 个字，让师傅能提前判断</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">位置</div>
+      <div class="card-bd">
+        <div class="readonly">
+          <span>🏢</span>
+          <span id="locText">东区7号楼 402</span>
+          <span class="lk">按学籍自动带出，不用填</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">你什么时候在寝室<span class="spacer"></span><span class="tiny muted">选填</span></div>
+      <div class="card-bd">
+        <div class="segmented" id="windowGroup">
+          <label><input type="radio" name="w" value="全天" checked>全天都行</label>
+          <label><input type="radio" name="w" value="上午 08:00-12:00">上午</label>
+          <label><input type="radio" name="w" value="下午 14:00-18:00">下午</label>
+          <label><input type="radio" name="w" value="晚上 18:00-22:00">晚上</label>
+        </div>
+        <div class="hint">不选就按全天处理。这条只影响师傅挑哪一趟跑这间，不改应急程度。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">系统判断<span class="spacer"></span><span class="tiny muted">你不需要选</span></div>
+      <div class="card-bd">
+        <div class="ai-box" id="aiBox">
+          <div class="small muted">写完描述，这里会实时给出故障类型和紧急程度。</div>
+        </div>
+        <div class="notice" data-tone="info" style="margin-top:2px">
+          <div>紧急程度由系统判断，不由你选。这样避免有人全填"紧急"把队列搞乱，也避免真急的被压下去。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fab-bar">
+      <button class="btn btn-primary btn-block" style="height:50px;font-size:15px" id="btnSubmit">提交报修</button>
+      <div class="tiny muted center">提交后立刻拿到工单号，可以随时看进度</div>
+    </div>
+  </div>
+</main>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+  App.tick(true);
+  let photos = 0;
+  const desc = App.el('#desc');
+  const box = App.el('#photoBox');
+
+  // 演示环境没有真相机，点一下就算拍了一张
+  box.onclick = () => {
+    photos = photos ? 0 : 1;
+    box.classList.toggle('filled', !!photos);
+    box.innerHTML = photos
+      ? '<div class="big">🖼️</div><div>已拍 1 张</div>'
+      : '<div class="big">📷</div><div>拍一张</div>';
+    App.el('#photoErr').style.display = 'none';
+    updateAI();
+  };
+
+  function updateAI() {
+    const text = desc.value.trim();
+    App.el('#descLen').textContent = text.length;
+    const b = App.el('#aiBox');
+
+    if (text.length < 4) {
+      b.innerHTML = '<div class="small muted">写完描述，这里会实时给出故障类型和紧急程度。</div>';
+      return;
+    }
+
+    const ai = App.judge(text);
+    const tone = { '紧急': 'danger', '较急': 'warn', '普通': 'muted' }[ai.level];
+    b.innerHTML = `
+      <div class="ai-head">故障类型<span class="pill" data-tone="info">${ai.category}</span></div>
+      <div class="ai-head">紧急程度<span class="pill" data-tone="${tone}">${ai.level}</span>
+        <span class="tiny muted mono">置信度 ${ai.confidence.toFixed(2)}</span></div>
+      <div class="ai-basis">依据：${App.esc(ai.basis)}</div>
+      <div class="tiny muted" style="margin-top:2px">这条依据会跟着工单走，事后能查到为什么这么判。</div>`;
+  }
+
+  desc.oninput = () => {
+    updateAI();
+    App.el('#descErr').style.display = 'none';
+  };
+
+  App.el('#btnSubmit').onclick = () => {
+    const text = desc.value.trim();
+    let bad = false;
+    if (!photos) { App.el('#photoErr').style.display = 'block'; bad = true; }
+    if (text.length < 4) { App.el('#descErr').style.display = 'block'; bad = true; }
+    if (bad) { App.toast('还有必填项没填', 'err'); return; }
+
+    const w = (document.querySelector('input[name="w"]:checked') || {}).value || '全天';
+    let o;
+    try {
+      o = App.create({
+        desc: text, photosBefore: photos, window: w,
+        building: 'B7', room: '402', studentName: '张同学'
+      });
+    } catch (e) {
+      App.toast(e.message, 'err');
+      return;
+    }
+
+    // 系统立刻受理：AI 定级已完成，尝试自动派工
+    const assigned = App.assignPending('B7');
+    const now = App.order(o.no);
+    const w2 = now.workerId ? App.worker(now.workerId) : null;
+
+    showSuccess(now, w2);
+  };
+
+  function showSuccess(o, w) {
+    const mask = document.createElement('div');
+    mask.className = 'sheet-mask is-open';
+    mask.innerHTML = `
+      <div class="sheet">
+        <div style="font-size:34px;text-align:center">✅</div>
+        <h3 class="center" style="margin:0">已受理，工单已生成</h3>
+        <div class="center">
+          <div class="mono" style="font-size:20px;font-weight:700;letter-spacing:.02em">${o.no}</div>
+          <div class="tiny muted" style="margin-top:4px">这个号你随时能查，不用再问任何人</div>
+        </div>
+        <div class="card flat" style="background:var(--canvas);border-radius:var(--r-md)">
+          <div class="card-bd" style="gap:8px">
+            <div class="between small"><span class="muted">故障类型</span><span class="strong">${o.category}</span></div>
+            <div class="between small"><span class="muted">紧急程度</span>${App.levelPill(o.level)}</div>
+            <div class="between small"><span class="muted">可上门时段</span><span>${o.window}</span></div>
+            <div class="between small"><span class="muted">当前状态</span>${App.pill(o.status)}</div>
+            <div class="between small"><span class="muted">师傅</span><span>${w ? w.name + ' · ' + w.team : '排队中，稍后自动派'}</span></div>
+          </div>
+        </div>
+        <div class="notice" data-tone="ok">
+          <div>${w
+            ? `已经派给 ${w.name}。师傅进楼打卡时你会看到状态变化，修完拍照上传后等你确认。`
+            : '前面还有几单，系统会按截止时间自动派，不用你催。'}</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="location.href='list.html'">看我的报修</button>
+          <button class="btn btn-primary" onclick="location.href='detail.html?no=${encodeURIComponent(o.no)}'">看进度</button>
+        </div>
+      </div>`;
+    document.body.appendChild(mask);
+  }
+
+  updateAI();
+</script>
+</body>
+</html>

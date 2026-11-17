@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="宿舍维修 V5.0 流程图：以「项目完整闭环」为标准的全自动主干，学生填报可上门时段，管理端在流程之外只做监测与例外兜底">
+<title>宿舍维修流程图 V5.0｜全自动主干 + 可上门时段 + 监测式管理端</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #eff2f5;
+    --card: #ffffff;
+    --fg: #16202e;
+    --muted: #64748b;
+    --line: #dde3ec;
+    --student: #2f6fed;
+    --system: #6b4de0;
+    --worker: #0f8a5f;
+    --auto: #b5720b;
+    --admin: #0e7490;
+    --band: #f7f9fc;
+    --node: #ffffff;
+    --shadow: rgba(20, 34, 56, .12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #0a0f16;
+      --card: #121a24;
+      --fg: #e7eef7;
+      --muted: #9aa8b8;
+      --line: #2b3746;
+      --student: #7ba7ff;
+      --system: #a99bff;
+      --worker: #4ecfa0;
+      --auto: #f0b055;
+      --admin: #5cc8e0;
+      --band: #161f2a;
+      --node: #1a2431;
+      --shadow: rgba(0, 0, 0, .5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 26px 22px 44px;
+    background: var(--bg); color: var(--fg);
+    font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+    font-size: 15px; line-height: 1.55;
+  }
+  .sheet {
+    max-width: 1420px; margin: 0 auto; padding: 26px 26px 20px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+    box-shadow: 0 22px 60px var(--shadow);
+  }
+  h1 { font-size: 24px; margin: 0 0 6px; font-weight: 650; letter-spacing: .01em; }
+  .lede { margin: 0 0 14px; color: var(--muted); max-width: 62em; }
+  .lede b { color: var(--fg); font-weight: 600; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+  .meta span {
+    font-size: 12.5px; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px;
+  }
+  .meta span.hot { color: var(--worker); border-color: #b7e3ce; background: rgba(15,138,95,.06); }
+
+  svg.flow { width: 100%; height: auto; display: block; }
+
+  .band { fill: var(--band); }
+  .band.lane-auto { fill: rgba(181, 114, 11, .04); }
+  .band.lane-admin { fill: rgba(14, 116, 144, .045); }
+  .lane-sep { stroke: var(--line); stroke-width: 1; }
+  .lane-name { font-size: 16.5px; font-weight: 650; }
+  .lane-sub { font-size: 11.5px; fill: var(--muted); }
+  .lane-name.lane-student { fill: var(--student); }
+  .lane-name.lane-system  { fill: var(--system); }
+  .lane-name.lane-worker  { fill: var(--worker); }
+  .lane-name.lane-auto    { fill: var(--auto); }
+  .lane-name.lane-admin   { fill: var(--admin); }
+
+  .node .shape { fill: var(--node); stroke-width: 1.6; }
+  .node.dashed .shape { fill: none; stroke-dasharray: 7 5; }
+  .node.lane-student .shape { stroke: var(--student); }
+  .node.lane-system  .shape { stroke: var(--system); }
+  .node.lane-worker  .shape { stroke: var(--worker); }
+  .node.lane-auto    .shape { stroke: var(--auto); }
+  .node.lane-admin   .shape { stroke: var(--admin); }
+
+  .node .rule { stroke: var(--line); stroke-width: 1; }
+  .t-title { font-size: 16px; font-weight: 640; fill: var(--fg); }
+  .t-sub { font-size: 12.5px; fill: var(--muted); }
+  .t-dec { font-size: 16px; font-weight: 640; fill: var(--fg); }
+  .pill { fill: none; stroke-width: 1; opacity: .55; }
+  .node.lane-student .pill { stroke: var(--student); }
+  .node.lane-system  .pill { stroke: var(--system); }
+  .node.lane-worker  .pill { stroke: var(--worker); }
+  .node.lane-auto    .pill { stroke: var(--auto); }
+  .node.lane-admin   .pill { stroke: var(--admin); }
+  .t-pill { font-size: 11.5px; fill: var(--muted); }
+
+  .edge { fill: none; stroke-width: 1.8; stroke-linecap: round; stroke: var(--muted); }
+  .edge.ret { stroke-dasharray: 6 5; stroke: #b23b3b; }
+  .edge.auto { stroke-dasharray: 3 4; stroke: var(--auto); }
+  .edge.mon { stroke-dasharray: 2 5; stroke: var(--admin); stroke-width: 1.5; opacity: .8; }
+  .elab {
+    font-size: 12px; fill: var(--muted);
+    paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round;
+  }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; margin-top: 22px; }
+  .card { border: 1px solid var(--line); border-radius: 14px; padding: 15px 17px; }
+  .card h2 { font-size: 14.5px; margin: 0 0 10px; font-weight: 650; }
+  .card ul { margin: 0; padding-left: 18px; }
+  .card li { font-size: 13.5px; margin: 6px 0; }
+  .card li i { color: var(--muted); font-style: normal; }
+  .card.warn { border-color: #f0c9a0; background: rgba(181,114,11,.05); }
+  .card.good { border-color: #b7e3ce; background: rgba(15,138,95,.05); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; font-size: 13px; color: var(--muted); }
+  .legend div { display: flex; align-items: center; gap: 8px; }
+  .sw { width: 28px; height: 16px; flex: none; border-radius: 5px; border: 1.6px solid var(--muted); }
+  .sw.term { border-radius: 8px; }
+  .sw.dec { width: 18px; height: 18px; border-radius: 2px; transform: rotate(45deg); margin: 0 5px; }
+  .sw.dash { border-style: dashed; }
+  .sw.l1 { border: 0; height: 0; border-top: 2px solid var(--muted); border-radius: 0; }
+  .sw.l2 { border: 0; height: 0; border-top: 2px dashed #b23b3b; border-radius: 0; }
+  .sw.l3 { border: 0; height: 0; border-top: 2px dotted var(--auto); border-radius: 0; }
+  .sw.l4 { border: 0; height: 0; border-top: 2px dotted var(--admin); border-radius: 0; }
+  .chain { font-size: 13.5px; line-height: 2; }
+  .chain code { white-space: nowrap; font-family: inherit; background: var(--band); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; }
+  footer { margin-top: 16px; color: var(--muted); font-size: 12.5px; }
+
+  @page { size: A3 landscape; margin: 8mm; }
+  @media print {
+    body { padding: 0; background: #fff; }
+    .sheet { box-shadow: none; border: 0; max-width: none; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <h1>宿舍维修流程 V5.0（全自动主干 · 可上门时段 · 监测式管理端）</h1>
+  <p class="lede">这张图的核心只有一句：<b>报修全程由系统自动推进，没有任何一张单需要人审批</b>。V5.0 相对上一版的实质变化是<b>学生多填一个「可上门时段」</b>——有了它，「到访未遇」从一个只能事后登记的事故，变成一件事先能约掉的事；排队规则也随之从「一条混合权重」拆成「安全闸 / 截止时间 / 紧急度 / 先来先修」。管理端仍然不在主干上，只做两件事——看数据对不对、兜真正的例外。</p>
+  <div class="meta">
+    <span class="hot">主干零审批</span>
+    <span>三端：学生 / 维修 / 管理（+ 后台系统）</span>
+    <span>学生只填：照片 + 描述 + 可上门时段</span>
+    <span>3 条异常全部系统自动处理</span>
+    <span>两个「7 天」是两条不同的计时器</span>
+    <span>管理端三类例外都不占状态位</span>
+  </div>
+
+    <svg class="flow" viewBox="0 0 1620 2560" role="img" aria-label="宿舍维修 V3.1 流程图：主干全自动，管理端只做监测">
+      <defs><marker id="ar-main" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+      <rect class="band lane-student" x="40" y="76" width="280" height="2464" rx="16"/>
+      <text class="lane-name lane-student" x="180.0" y="106" text-anchor="middle">学生端</text>
+      <text class="lane-sub lane-student" x="180.0" y="126" text-anchor="middle">手机 · 微信小程序</text>
+      <line class="lane-sep lane-student" x1="56" y1="136" x2="304" y2="136"/>
+      <rect class="band lane-system" x="344" y="76" width="280" height="2464" rx="16"/>
+      <text class="lane-name lane-system" x="484.0" y="106" text-anchor="middle">系统 · AI（后台）</text>
+      <text class="lane-sub lane-system" x="484.0" y="126" text-anchor="middle">全自动，零人工</text>
+      <line class="lane-sep lane-system" x1="360" y1="136" x2="608" y2="136"/>
+      <rect class="band lane-worker" x="648" y="76" width="280" height="2464" rx="16"/>
+      <text class="lane-name lane-worker" x="788.0" y="106" text-anchor="middle">维修端</text>
+      <text class="lane-sub lane-worker" x="788.0" y="126" text-anchor="middle">手机 · 大字 · 三个按钮</text>
+      <line class="lane-sep lane-worker" x1="664" y1="136" x2="912" y2="136"/>
+      <rect class="band lane-auto" x="952" y="76" width="280" height="2464" rx="16"/>
+      <text class="lane-name lane-auto" x="1092.0" y="106" text-anchor="middle">自动处理</text>
+      <text class="lane-sub lane-auto" x="1092.0" y="126" text-anchor="middle">异常也自动走，不等人</text>
+      <line class="lane-sep lane-auto" x1="968" y1="136" x2="1216" y2="136"/>
+      <rect class="band lane-admin" x="1256" y="76" width="280" height="2464" rx="16"/>
+      <text class="lane-name lane-admin" x="1396.0" y="106" text-anchor="middle">管理端（流程外）</text>
+      <text class="lane-sub lane-admin" x="1396.0" y="126" text-anchor="middle">只看数据，只兜例外</text>
+      <line class="lane-sep lane-admin" x1="1272" y1="136" x2="1520" y2="136"/>
+      <path class="edge" d="M 180.0 196.0 L 180.0 230.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 180.0 342.0 L 180.0 357.0 Q 180.0 372.0 195.0 372.0 L 470.0 372.0 Q 484.0 372.0 484.0 386.0 L 484.0 400.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 484.0 496.0 L 484.0 530.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 484.0 670.0 L 484.0 710.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 484.0 822.0 L 484.0 865.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 484.0 961.0 L 484.0 972.0 Q 484.0 983.0 495.0 983.0 L 777.0 983.0 Q 788.0 983.0 788.0 994.0 L 788.0 1005.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 788.0 1117.0 L 788.0 1150.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 788.0 1238.0 L 788.0 1275.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 788.0 1385.0 L 788.0 1430.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="800.0" y="1403.0">能</text>
+      <path class="edge" d="M 788.0 1518.0 L 788.0 1555.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 788.0 1665.0 L 788.0 1710.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="800.0" y="1683.0">能</text>
+      <path class="edge" d="M 788.0 1810.0 L 788.0 1822.0 Q 788.0 1834.0 776.0 1834.0 L 190.5 1834.0 Q 180.0 1834.0 180.0 1844.5 L 180.0 1855.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 180.0 1943.0 L 180.0 1980.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 180.0 2090.0 L 180.0 2135.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="192.0" y="2108.0">通过</text>
+      <path class="edge" d="M 180.0 2223.0 L 180.0 2236.5 Q 180.0 2250.0 193.5 2250.0 L 471.5 2250.0 Q 484.0 2250.0 484.0 2262.5 L 484.0 2275.0" marker-end="url(#ar-main)"/>
+      <path class="edge" d="M 484.0 2375.0 L 484.0 2415.0" marker-end="url(#ar-main)"/>
+      <path class="edge auto" d="M 906.0 1330.0 L 964.0 1330.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="918.0" y="1318.0">不能</text>
+      <path class="edge auto" d="M 906.0 1610.0 L 964.0 1610.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="918.0" y="1598.0">不能</text>
+      <path class="edge auto" d="M 298.0 2035.0 L 964.0 2035.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="310.0" y="2023.0">没修好</text>
+      <path class="edge ret" d="M 1220.0 1310.0 L 1540.0 1310.0 Q 1556.0 1310.0 1556.0 1294.0 L 1556.0 766.0 Q 1556.0 750.0 1540.0 750.0 L 612.0 750.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="1400.0" y="738.0">顺延重排</text>
+      <path class="edge ret" d="M 1220.0 1590.0 L 1554.0 1590.0 Q 1570.0 1590.0 1570.0 1574.0 L 1570.0 780.0 Q 1570.0 764.0 1554.0 764.0 L 612.0 764.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="1400.0" y="778.0">配件到位重排</text>
+      <path class="edge ret" d="M 1220.0 2005.0 L 1568.0 2005.0 Q 1584.0 2005.0 1584.0 1989.0 L 1584.0 906.0 Q 1584.0 890.0 1568.0 890.0 L 612.0 890.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="1400.0" y="878.0">返修自动重派</text>
+      <path class="edge mon" d="M 308.0 300.0 L 1224.0 300.0 Q 1240.0 300.0 1240.0 316.0 L 1240.0 456.0 Q 1240.0 470.0 1254.0 470.0 L 1268.0 470.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="330.0" y="288.0">自己改，系统核对台账</text>
+      <path class="edge mon" d="M 612.0 630.0 L 1268.0 630.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="700.0" y="618.0">低置信样本进校准池</text>
+      <path class="edge mon" d="M 1220.0 1655.0 L 1230.0 1655.0 Q 1240.0 1655.0 1240.0 1645.0 L 1240.0 1614.0 Q 1240.0 1600.0 1254.0 1600.0 L 1268.0 1600.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="1180.0" y="1588.0">仅超预算</text>
+      <path class="edge mon" d="M 1220.0 2085.0 L 1230.0 2085.0 Q 1240.0 2085.0 1240.0 2075.0 L 1240.0 1684.0 Q 1240.0 1670.0 1254.0 1670.0 L 1268.0 1670.0" marker-end="url(#ar-main)"/>
+      <text class="elab" x="1160.0" y="2073.0">仅连续 2 次</text>
+      <g class="node lane-student">
+      <rect class="shape" x="52.0" y="140.0" width="256" height="56" rx="28"/>
+      <text class="t-title" x="180.0" y="160.0" text-anchor="middle">学生发现设施故障</text>
+      </g>
+      <g class="node lane-student">
+      <rect class="shape" x="52.0" y="230.0" width="256" height="112" rx="12"/>
+      <text class="t-title" x="180.0" y="244.0" text-anchor="middle">拍照 + 描述 + 时段，一键提交</text>
+      <text class="t-sub" x="180.0" y="266.0" text-anchor="middle">照片、描述必填；时段选填，默认全天</text>
+      <text class="t-sub" x="180.0" y="287.0" text-anchor="middle">楼栋寝室手机号自动带入，不用手填</text>
+      <rect class="pill" x="114.5" y="312.0" width="131.0" height="21" rx="10.5"/>
+      <text class="t-pill" x="180.0" y="323.0" text-anchor="middle" dominant-baseline="middle">紧急程度不由学生选</text>
+      </g>
+      <g class="node lane-system">
+      <rect class="shape" x="356.0" y="400.0" width="256" height="96" rx="12"/>
+      <text class="t-title" x="484.0" y="419.0" text-anchor="middle">生成工单</text>
+      <text class="t-sub" x="484.0" y="441.0" text-anchor="middle">单号 BX+日期+序号</text>
+      <text class="t-sub" x="484.0" y="462.0" text-anchor="middle">同楼栋自动归入同一批次</text>
+      </g>
+      <g class="node lane-system">
+      <rect class="shape" x="356.0" y="530.0" width="256" height="140" rx="12"/>
+      <text class="t-title" x="484.0" y="558.0" text-anchor="middle">AI 定级：类型 + 紧急度</text>
+      <text class="t-sub" x="484.0" y="580.0" text-anchor="middle">安全类关键词 → 直接定「紧急」</text>
+      <text class="t-sub" x="484.0" y="601.0" text-anchor="middle">置信度低 → 保守升一档，照样走</text>
+      <rect class="pill" x="435.8" y="640.0" width="96.5" height="21" rx="10.5"/>
+      <text class="t-pill" x="484.0" y="651.0" text-anchor="middle" dominant-baseline="middle">只标记，不停单</text>
+      </g>
+      <g class="node lane-system">
+      <rect class="shape" x="356.0" y="710.0" width="256" height="112" rx="12"/>
+      <text class="t-title" x="484.0" y="733.0" text-anchor="middle">入队排序「待派工」</text>
+      <text class="t-sub" x="484.0" y="755.0" text-anchor="middle">①安全闸：安全类不排队，立即派工</text>
+      <text class="t-sub" x="484.0" y="774.0" text-anchor="middle">②截止时间 → ③紧急度 → ④先来先修</text>
+      <text class="t-sub" x="484.0" y="793.0" text-anchor="middle">楼栋只用来攒批，不参与排队先后</text>
+      </g>
+      <g class="node lane-system">
+      <rect class="shape" x="356.0" y="865.0" width="256" height="96" rx="12"/>
+      <text class="t-title" x="484.0" y="884.0" text-anchor="middle">自动派工（楼栋 + 时段攒批）</text>
+      <text class="t-sub" x="484.0" y="906.0" text-anchor="middle">同楼栋且时段重叠 → 攒成一个批次</text>
+      <text class="t-sub" x="484.0" y="927.0" text-anchor="middle">不用抢单，不用接单确认</text>
+      </g>
+      <g class="node lane-worker">
+      <rect class="shape" x="660.0" y="1005.0" width="256" height="112" rx="12"/>
+      <text class="t-title" x="788.0" y="1032.0" text-anchor="middle">今日待办：一单一张卡</text>
+      <text class="t-sub" x="788.0" y="1054.0" text-anchor="middle">寝室号 · 可上门时段 · 一键导航</text>
+      <text class="t-sub" x="788.0" y="1075.0" text-anchor="middle">按钮只有三个，全程不打字</text>
+      </g>
+      <g class="node lane-worker">
+      <rect class="shape" x="660.0" y="1150.0" width="256" height="88" rx="12"/>
+      <text class="t-title" x="788.0" y="1175.5" text-anchor="middle">到门打卡</text>
+      <text class="t-sub" x="788.0" y="1197.5" text-anchor="middle">到场时间同步给学生</text>
+      </g>
+      <g class="node lane-worker">
+      <polygon class="shape" points="788.0,1275.0 906.0,1330.0 788.0,1385.0 670.0,1330.0"/>
+      <text class="t-dec" x="788.0" y="1330.0" text-anchor="middle" dominant-baseline="middle">能进场吗？</text>
+      </g>
+      <g class="node lane-worker">
+      <rect class="shape" x="660.0" y="1430.0" width="256" height="88" rx="12"/>
+      <text class="t-title" x="788.0" y="1455.5" text-anchor="middle">现场检修</text>
+      <text class="t-sub" x="788.0" y="1477.5" text-anchor="middle">按 AI 建议带工具和配件</text>
+      </g>
+      <g class="node lane-worker">
+      <polygon class="shape" points="788.0,1555.0 906.0,1610.0 788.0,1665.0 670.0,1610.0"/>
+      <text class="t-dec" x="788.0" y="1610.0" text-anchor="middle" dominant-baseline="middle">能当场修好吗？</text>
+      </g>
+      <g class="node lane-worker">
+      <rect class="shape" x="660.0" y="1710.0" width="256" height="100" rx="12"/>
+      <text class="t-title" x="788.0" y="1728.5" text-anchor="middle">完工拍照提交</text>
+      <text class="t-sub" x="788.0" y="1750.5" text-anchor="middle">必传 1 张完工照 + 勾选说明</text>
+      <rect class="pill" x="762.8" y="1780.0" width="50.5" height="21" rx="10.5"/>
+      <text class="t-pill" x="788.0" y="1791.0" text-anchor="middle" dominant-baseline="middle">待验收</text>
+      </g>
+      <g class="node lane-student">
+      <rect class="shape" x="52.0" y="1855.0" width="256" height="88" rx="12"/>
+      <text class="t-title" x="180.0" y="1876.0" text-anchor="middle">收到「已完工，请验收」</text>
+      <text class="t-sub" x="180.0" y="1897.0" text-anchor="middle">看完工照与维修说明</text>
+      <rect class="pill" x="87.0" y="1910.0" width="186.0" height="21" rx="10.5"/>
+      <text class="t-pill" x="180.0" y="1921.0" text-anchor="middle" dominant-baseline="middle">7 天未响应 · 系统自动验收</text>
+      </g>
+      <g class="node lane-student">
+      <polygon class="shape" points="180.0,1980.0 298.0,2035.0 180.0,2090.0 62.0,2035.0"/>
+      <text class="t-dec" x="180.0" y="2035.0" text-anchor="middle" dominant-baseline="middle">验收通过吗？</text>
+      </g>
+      <g class="node lane-student">
+      <rect class="shape" x="52.0" y="2135.0" width="256" height="88" rx="12"/>
+      <text class="t-title" x="180.0" y="2156.0" text-anchor="middle">电子签字</text>
+      <text class="t-sub" x="180.0" y="2177.0" text-anchor="middle">状态「已完成」</text>
+      <rect class="pill" x="99.0" y="2190.0" width="162.0" height="21" rx="10.5"/>
+      <text class="t-pill" x="180.0" y="2201.0" text-anchor="middle" dominant-baseline="middle">满 7 天 · 系统自动归档</text>
+      </g>
+      <g class="node lane-system">
+      <rect class="shape" x="356.0" y="2275.0" width="256" height="100" rx="12"/>
+      <line class="rule" x1="368.0" y1="2284.0" x2="600.0" y2="2284.0"/>
+      <text class="t-title" x="484.0" y="2296.0" text-anchor="middle">自动归档留痕</text>
+      <text class="t-sub" x="484.0" y="2318.0" text-anchor="middle">提交照 · AI 依据 · 到访记录</text>
+      <text class="t-sub" x="484.0" y="2339.0" text-anchor="middle">完工照 · 签字 · 全时间戳</text>
+      </g>
+      <g class="node lane-system">
+      <rect class="shape" x="356.0" y="2415.0" width="256" height="56" rx="28"/>
+      <text class="t-title" x="484.0" y="2435.0" text-anchor="middle">工单关闭</text>
+      </g>
+      <g class="node lane-auto dashed">
+      <rect class="shape" x="964.0" y="1275.0" width="256" height="120" rx="12"/>
+      <text class="t-title" x="1092.0" y="1293.0" text-anchor="middle">① 到访未遇</text>
+      <text class="t-sub" x="1092.0" y="1315.0" text-anchor="middle">自动记原因 + 顺延下一批次</text>
+      <text class="t-sub" x="1092.0" y="1336.0" text-anchor="middle">自动通知学生，不找人</text>
+      <rect class="pill" x="1061.0" y="1365.0" width="62.0" height="21" rx="10.5"/>
+      <text class="t-pill" x="1092.0" y="1376.0" text-anchor="middle" dominant-baseline="middle">系统自动</text>
+      </g>
+      <g class="node lane-auto dashed">
+      <rect class="shape" x="964.0" y="1555.0" width="256" height="136" rx="12"/>
+      <text class="t-title" x="1092.0" y="1581.0" text-anchor="middle">② 待配件</text>
+      <text class="t-sub" x="1092.0" y="1603.0" text-anchor="middle">师傅只填：缺件名 + 预计日期</text>
+      <text class="t-sub" x="1092.0" y="1624.0" text-anchor="middle">预算内自动下单，超预算才转</text>
+      <rect class="pill" x="1061.0" y="1661.0" width="62.0" height="21" rx="10.5"/>
+      <text class="t-pill" x="1092.0" y="1672.0" text-anchor="middle" dominant-baseline="middle">系统自动</text>
+      </g>
+      <g class="node lane-auto dashed">
+      <rect class="shape" x="964.0" y="1980.0" width="256" height="136" rx="12"/>
+      <text class="t-title" x="1092.0" y="2006.0" text-anchor="middle">③ 返修单 -R1</text>
+      <text class="t-sub" x="1092.0" y="2028.0" text-anchor="middle">关联原单，紧急度升一档</text>
+      <text class="t-sub" x="1092.0" y="2049.0" text-anchor="middle">自动回派工队列</text>
+      <rect class="pill" x="1061.0" y="2086.0" width="62.0" height="21" rx="10.5"/>
+      <text class="t-pill" x="1092.0" y="2097.0" text-anchor="middle" dominant-baseline="middle">系统自动</text>
+      </g>
+      <g class="node lane-admin dashed">
+      <rect class="shape" x="1268.0" y="230.0" width="256" height="140" rx="12"/>
+      <text class="t-title" x="1396.0" y="258.0" text-anchor="middle">实时监测看板</text>
+      <text class="t-sub" x="1396.0" y="280.0" text-anchor="middle">在办 · 超时 · 今日完成 · 时长</text>
+      <text class="t-sub" x="1396.0" y="301.0" text-anchor="middle">AI 准确率 · 返修率 · 高频点位</text>
+      <rect class="pill" x="1353.5" y="340.0" width="85.0" height="21" rx="10.5"/>
+      <text class="t-pill" x="1396.0" y="351.0" text-anchor="middle" dominant-baseline="middle">只读，不批单</text>
+      </g>
+      <g class="node lane-admin dashed">
+      <rect class="shape" x="1268.0" y="400.0" width="256" height="140" rx="12"/>
+      <text class="t-title" x="1396.0" y="428.0" text-anchor="middle">住宿信息自助修改</text>
+      <text class="t-sub" x="1396.0" y="450.0" text-anchor="middle">学生在「我的」里直接改</text>
+      <text class="t-sub" x="1396.0" y="471.0" text-anchor="middle">系统对宿舍台账，对不上才转</text>
+      <rect class="pill" x="1365.0" y="510.0" width="62.0" height="21" rx="10.5"/>
+      <text class="t-pill" x="1396.0" y="521.0" text-anchor="middle" dominant-baseline="middle">不是审批</text>
+      </g>
+      <g class="node lane-admin dashed">
+      <rect class="shape" x="1268.0" y="560.0" width="256" height="140" rx="12"/>
+      <text class="t-title" x="1396.0" y="588.0" text-anchor="middle">AI 抽样校准</text>
+      <text class="t-sub" x="1396.0" y="610.0" text-anchor="middle">抽查低置信单的最终结果</text>
+      <text class="t-sub" x="1396.0" y="631.0" text-anchor="middle">改规则提高自动化率</text>
+      <rect class="pill" x="1359.2" y="670.0" width="73.5" height="21" rx="10.5"/>
+      <text class="t-pill" x="1396.0" y="681.0" text-anchor="middle" dominant-baseline="middle">不改任何单</text>
+      </g>
+      <g class="node lane-admin dashed">
+      <rect class="shape" x="1268.0" y="1555.0" width="256" height="150" rx="12"/>
+      <text class="t-title" x="1396.0" y="1588.0" text-anchor="middle">例外处理台</text>
+      <text class="t-sub" x="1396.0" y="1610.0" text-anchor="middle">连续返修 · 超预算配件 · 投诉</text>
+      <text class="t-sub" x="1396.0" y="1631.0" text-anchor="middle">超时工单自动置顶</text>
+      <rect class="pill" x="1359.2" y="1675.0" width="73.5" height="21" rx="10.5"/>
+      <text class="t-pill" x="1396.0" y="1686.0" text-anchor="middle" dominant-baseline="middle">只接真异常</text>
+      </g>
+    </svg>
+
+  <div class="cards">
+    <div class="card good">
+      <h2>V5.0 补上的四处（相对 V3.1）</h2>
+      <ul>
+        <li><b>补一个字段</b>：学生报修多填「寝室什么时候有人」。闭环大纲里本来就有这一条，图上一直没画；它是「到访未遇」的<u>事前</u>解法——能约掉，就不必靠事后顺延</li>
+        <li><b>拆开一条权重</b>：原来「安全等级 → 楼栋合并 → 等待时长」是一条混合链，实现时只有一个生效。改成 <b>安全闸 / 截止时间 / 紧急度 / 先来先修</b>，楼栋降级为「攒批」而不是排序键</li>
+        <li><b>分开两个 7 天</b>：验收超时（进「已完成」）和完成后归档（进「已关闭」）原来是同一条边上的一个「7 天」，现在分别命名 T1 / T2</li>
+        <li><b>说清例外位置</b>：管理端三类例外<b>都不占状态位</b>，它们是标记和清单条目，工单状态照常推进</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>状态链（9 个状态 · 详见状态机图）</h2>
+      <p class="chain">
+        <code>待派工</code> → <code>已派工</code> → <code>维修中</code> →
+        <code>待验收</code> → <code>已完成</code> → <code>已关闭</code><br>
+        旁路（自动回流，都回到「待派工」）：<code>待配件</code>（配件到货）· <code>返修中</code>（生成 -R1 新单）<br>
+        作废终态：<code>已取消</code>（学生撤销，只能撤到「师傅进楼」前）<br>
+        不占状态的事件：<code>到访未遇</code>（回待派工）· <code>验收超时</code>（→ 已完成）
+      </p>
+    </div>
+    <div class="card warn">
+      <h2>两个「7 天」不是同一件事</h2>
+      <ul>
+        <li><b>T1 · 验收超时</b>：<code>待验收</code> 停留满 7 天（168 小时）→ 系统自动确认完成，事件写「学生 7 天未响应」，<i>从「完工提交」开始计时</i></li>
+        <li><b>T2 · 归档</b>：<code>已完成</code> 之后满 7 天 → 系统归档为 <b>只读</b>并关闭工单，<i>从「学生签字」开始计时</i></li>
+        <li>两条都写满 7 天，起点不同、终点不同。合成一个计时器，会出现「刚签完字就被归档」或「永远不归档」</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>管理端只在三种情况被叫醒</h2>
+      <ul>
+        <li><b>数据对不上</b>：学生填的位置和宿舍台账不一致 <i>（其余情况系统自动生效；工单照常生成）</i></li>
+        <li><b>钱要花出去</b>：配件超出预算额度，需要有人点头 <i>（预算内自动下单；工单已在待配件，状态不变）</i></li>
+        <li><b>同一单反复</b>：连续 2 次验收不通过，说明不是手艺问题 <i>（第一次自动返修；状态照常走返修中）</i></li>
+      </ul>
+      <p class="chain" style="margin-top:6px">三类都<b>不新增状态、不改在办工单的状态</b>，只产生一条标记和一条清单记录。管理端唯一能改工单状态的地方在别处：<b>维修中学生申请撤销</b>，由管理员决定作废（→ 已取消）或补偿师傅。</p>
+    </div>
+    <div class="card">
+      <h2>图例</h2>
+      <div class="legend">
+        <div><span class="sw term"></span>开始 / 结束</div>
+        <div><span class="sw"></span>处理</div>
+        <div><span class="sw dec"></span>判断</div>
+        <div><span class="sw dash"></span>自动 / 流程外</div>
+        <div><span class="sw l1"></span>主干（自动推进）</div>
+        <div><span class="sw l2"></span>自动回流</div>
+        <div><span class="sw l3"></span>异常转自动处理</div>
+        <div><span class="sw l4"></span>管理端只读 / 兜底</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>V5.0 · 以「宿舍维修 · 项目完整闭环」为唯一标准，其余各图向它对齐 · 主干零审批 · 管理端始终在流程之外</footer>
+</div>
+</body>
+</html>

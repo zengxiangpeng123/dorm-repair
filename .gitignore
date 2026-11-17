@@ -1,0 +1,15 @@
+# 依赖（本项目零第三方依赖，这行是给 app 留的）
+node_modules/
+
+# 演示数据库：每次启动按种子重建，不入库
+app/server/data/*.db
+app/server/data/*.db-journal
+app/server/data/*.db-wal
+app/server/data/*.db-shm
+
+# 截图与临时文件
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+app/web/screens/*.tmp.png

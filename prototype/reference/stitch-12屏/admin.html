@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="宿舍维修 V5 · 管理端监测台">
+<title>管理端 · 宿舍维修 V5</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body class="m-admin">
+<div class="console">
+  <aside class="side" id="side"></aside>
+  <main class="main">
+    <div class="main-h" id="hd"></div>
+    <div id="app"></div>
+  </main>
+</div>
+
+<div class="dlg-mask" id="dlgmask" onclick="if(event.target===this)closeDlg()">
+  <div class="dlg" id="dlg"></div>
+</div>
+<div class="drw-mask" id="drwmask" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh">
+    <div class="grow"><h3 id="drwTitle"></h3><p class="note" id="drwSub" style="margin:2px 0 0"></p></div>
+    <button class="iconbtn" onclick="closeDrawer()" style="width:34px;height:34px">
+      <svg class="ic sm" viewBox="0 0 24 24"><path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"/></svg>
+    </button>
+  </div>
+  <div class="db" id="drwBody"></div>
+</aside>
+<div class="toast" id="toast" style="position:fixed"></div>
+
+<script src="data/seed.js"></script>
+<script src="assets/ai.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>

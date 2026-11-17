@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的报修 · 宿舍维修</title>
+<link rel="stylesheet" href="../assets/ui.css">
+<style>
+  .tabs { display: flex; gap: 4px; padding: 4px; margin: 0 var(--s4);
+          background: var(--canvas-2); border-radius: var(--r-md); }
+  .tabs button {
+    flex: 1; height: 34px; border: 0; border-radius: var(--r-sm); background: transparent;
+    font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-3); cursor: pointer;
+  }
+  .tabs button.is-on { background: #fff; color: var(--ink); box-shadow: var(--sh-1); }
+  .tabs button .n { font-variant-numeric: tabular-nums; color: var(--ink-4); font-weight: 500; }
+  .tabs button.is-on .n { color: var(--primary); }
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="topbar">
+    <button class="back" onclick="location.href='index.html'">‹</button>
+    <div>
+      <h1>我的报修</h1>
+      <div class="sub" id="subLine"></div>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn btn-sm btn-ghost" onclick="location.href='new.html'">＋ 报修</button>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="body" id="main" style="padding-top:var(--s3)"></div>
+</main>
+
+<nav class="nav">
+  <a href="index.html"><span class="ico">🏠</span>首页</a>
+  <a href="list.html" class="is-on"><span class="ico">🧾</span>我的</a>
+  <a href="new.html" class="nav-cta">✚</a>
+  <a href="list.html?tab=all"><span class="ico">📋</span>记录</a>
+</nav>
+
+<script src="../data/seed.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+  App.tick(true);
+  const ICON = { '给排水': '💧', '电气': '⚡', '电器': '🔌', '门窗家具': '🚪', '网络': '🌐' };
+  const DOING = ['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS', 'VERIFYING', 'REWORKING'];
+
+  // 我的 = 我提交过的 + 由我的单派生的返修单
+  function isMine(o) {
+    if ((o.events || []).some(e => e.actor === 'student:张同学')) return true;
+    return false;
+  }
+  const mine = App.orders().filter(isMine).concat(
+    App.orders().filter(o => o.reworkOf && App.order(o.reworkOf) && isMine(App.order(o.reworkOf)))
+  );
+
+  const TABS = [
+    { k: 'doing', label: '进行中', test: o => DOING.indexOf(o.status) >= 0 },
+    { k: 'done', label: '已完工', test: o => o.status === 'DONE' || o.status === 'CLOSED' },
+    { k: 'all', label: '全部', test: () => true }
+  ];
+  let cur = App.qs('tab', 'doing');
+  if (cur === 'closed') cur = 'done';
+
+  function renderTabs() {
+    App.el('#tabs').innerHTML = TABS.map(t => {
+      const n = mine.filter(t.test).length;
+      return `<button data-k="${t.k}" class="${t.k === cur ? 'is-on' : ''}">${t.label} <span class="n">${n}</span></button>`;
+    }).join('');
+    App.els('#tabs button').forEach(b => b.onclick = () => { cur = b.getAttribute('data-k'); render(); });
+  }
+
+  function render() {
+    renderTabs();
+    const tab = TABS.find(t => t.k === cur) || TABS[0];
+    const list = mine.filter(tab.test).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+    App.el('#subLine').textContent = `共 ${mine.length} 单 · 进行中 ${mine.filter(TABS[0].test).length}`;
+
+    App.el('#main').innerHTML = list.length ? `<div class="list">${list.map(o => {
+      const last = (o.events || [])[o.events.length - 1] || {};
+      const t = App.t1(o), t2 = App.t2(o);
+      let line = '';
+      if (t) line = `<span style="color:var(--warn-text);font-weight:600">待验收 · 还剩 ${App.human(t.left)} 自动确认</span>`;
+      else if (t2) line = `<span style="color:var(--success-text);font-weight:600">已完成 · ${App.human(t2.left)} 后自动归档</span>`;
+      else line = App.esc(last.note || '');
+
+      return `
+      <div class="card card-tap" onclick="location.href='detail.html?no=${encodeURIComponent(o.no)}'">
+        <div class="card-bd" style="gap:8px">
+          <div class="between">
+            <div class="hstack gap2">
+              ${App.pill(o.status)}${App.levelPill(o.level)}
+              ${o.reworkOf ? '<span class="pill" data-tone="danger">返修</span>' : ''}
+            </div>
+            <span class="tiny muted mono">${o.no}</span>
+          </div>
+          <div class="hstack gap3">
+            <div class="thumb" style="width:38px;height:38px;font-size:17px">${ICON[o.category] || '🔧'}</div>
+            <div class="grow" style="min-width:0">
+              <div class="strong truncate" style="font-size:14px">${App.esc(o.desc)}</div>
+              <div class="tiny muted" style="margin-top:2px">${App.roomLabel(o)} · ${o.category} · 时段 ${o.window || '全天'}</div>
+            </div>
+          </div>
+          <div class="hr"></div>
+          <div class="between">
+            <span class="tiny" style="color:inherit">${line}</span>
+            <span class="tiny muted mono">${(last.at || o.createdAt || '').slice(5)}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}</div>`
+      : `<div class="card"><div class="empty">
+          <div class="big">📭</div>
+          <div>这里还没有单</div>
+          <div class="tiny">${cur === 'doing' ? '现在没有在办的报修' : '换个标签看看'}</div>
+        </div></div>`;
+  }
+
+  render();
+</script>
+</body>
+</html>
+
