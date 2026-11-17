@@ -43,7 +43,7 @@
    │  │  ├─ lab.html              电脑 | 状态机自检台（120 种组合当场试）
    │  │  └─ assets\               ui.css（手机）/ desk.css（电脑）/ app.js（接口封装 + 组件）
    │  ├─ screens\                 11 张真实运行截图（贴报告用）
-   │  └─ tests\shoot-web.py       截图脚本（Edge 无头 + PIL 裁白边）
+   │  └─ tests\  api.test.js（17 组接口）· smoke.js（24 项冒烟）· shoot-web.py（截图）
    │
    └─ prototype\                  可点击原型（假数据，双击即开，断网可用）
       ├─ index.html / student\ / worker\ / admin\ / lab.html
@@ -53,14 +53,19 @@
       └─ reference\                原始 Stitch 导出，只读存档
 ```
 
-## 怎么跑起来（三步）
+## 怎么跑起来（双击就行）
+
+**Windows：双击 `start.bat`** —— 自动起服务、自动开浏览器，第一次跑会自己建库并灌 14 张样本单。
+关掉那个窗口就是停服务，数据留在 `app\server\data\app.db`。
+
+命令行等价于：
 
 ```bash
 cd 宿舍维修系统
-node app/server/index.js
+node app/server/index.js        # 或： PORT=8080 DEMO=1 node app/server/index.js
 ```
 
-然后浏览器打开 <http://localhost:5173/>。就这样，没有 `npm install`，没有构建，没有外网请求。
+然后浏览器打开 <http://localhost:5173/>。就这样，没有 `npm install`，没有构建，没有外网请求（**答辩断网也能跑**）。
 
 | 想改什么 | 怎么改 |
 |---|---|
@@ -83,6 +88,7 @@ node app/server/index.js
 | 返修是新单 `-R1`、紧急度升一档 | 学生端在待验收单上点「还没修好」 |
 | 管理端平时是空的 | 管理端「例外待看」只出四类，其余一律不露 |
 | 原型状态机也一致（不依赖后端） | `node prototype/tests/selftest.js prototype` → `34 通过 / 0 失败` |
+| 所有页面都打得开、都连真接口、没有假数据 | `node --no-warnings app/tests/smoke.js` → `24 通过 / 0 失败` |
 
 ## 三端各跑在哪（别搞错）
 
