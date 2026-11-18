@@ -1,6 +1,8 @@
 app:
   store: memory
   demo: true
+  order:
+    auto-assign: false
   auth:
     allow-header: true
     ttl-hours: 1

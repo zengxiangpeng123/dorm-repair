@@ -41,11 +41,13 @@ public class OrderService {
     private final ReworkReviewRepository reviews;
     private final UserRepository users;
     private final ExceptionRecordRepository exceptions;
+    private final boolean autoAssign;
 
     public OrderService(OrderRepository store, OrderStateService state, AiClient ai,
                         AiReviewService review, ConfigService config,
                         ReworkReviewRepository reviews, UserRepository users,
-                        ExceptionRecordRepository exceptions) {
+                        ExceptionRecordRepository exceptions,
+                        @org.springframework.beans.factory.annotation.Value("${app.order.auto-assign:true}") boolean autoAssign) {
         this.store = store;
         this.state = state;
         this.ai = ai;
@@ -54,6 +56,7 @@ public class OrderService {
         this.reviews = reviews;
         this.users = users;
         this.exceptions = exceptions;
+        this.autoAssign = autoAssign;
     }
 
     // ---------------------------------------------------------------- 1 建单
@@ -97,6 +100,11 @@ public class OrderService {
                 actor.type().name(), actor.id(), actor.name(), actor.type().manual(),
                 "提交报修：" + desc));
         store.save(o);
+        if (autoAssign) {
+            // 派工是系统动作，由后端在提交事务内完成；学生端不再调用 /assign。
+            assign(o.getNo(), new TransitRequest(null, null, null, null, null,
+                    null, null, null, null, null), Actor.system());
+        }
         if (isBlank(req.category())) {
             review.review(o.getNo(), desc);   // 异步，立刻返回
         }

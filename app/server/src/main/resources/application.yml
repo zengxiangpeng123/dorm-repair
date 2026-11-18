@@ -27,6 +27,8 @@ app:
     ttl-hours: ${APP_AUTH_TTL_HOURS:8}
     # 仅测试脚本允许 X-Actor-*；生产 profile 会拒绝该开关。
     allow-header: ${APP_AUTH_ALLOW_HEADER:false}
+  order:
+    auto-assign: ${APP_ORDER_AUTO_ASSIGN:true}
   ai:
     base-url: ${AI_SERVICE_URL:http://127.0.0.1:8001}
     timeout-ms: ${AI_TIMEOUT_MS:1500}

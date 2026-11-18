@@ -25,6 +25,17 @@ public interface UserMapper extends BaseMapper<UserRow> {
             """)
     UserRow findWorkerForBuilding(@Param("buildingId") String buildingId);
 
+    /** 登录响应里的师傅主责楼栋；只取 is_primary=1，避免把多楼栋支持误当成单一默认楼栋。 */
+    @Select("""
+            SELECT wb.building_id
+            FROM t_worker_building wb
+            JOIN t_worker w ON w.id = wb.worker_id
+            WHERE wb.worker_id = #{workerId} AND wb.is_primary = 1 AND w.active = 1
+            ORDER BY wb.building_id ASC
+            LIMIT 1
+            """)
+    String findPrimaryBuilding(@Param("workerId") String workerId);
+
     @Insert("""
             INSERT INTO t_student (id,name,phone,building_id,room,password_hash,active)
             VALUES (#{id},#{name},#{phone},#{buildingId},#{room},#{password},#{active})

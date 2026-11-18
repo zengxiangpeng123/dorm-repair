@@ -26,7 +26,12 @@ public class MybatisUserRepository implements UserRepository {
         if (id == null || id.isBlank()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(mapper.selectById(id)).map(MybatisUserRepository::toAccount);
+        UserRow row = mapper.selectById(id);
+        if (row != null && "WORKER".equals(row.getRole())) {
+            // t_worker 本身没有 building_id；师傅的主责楼栋在关联表里。
+            row.setBuildingId(mapper.findPrimaryBuilding(id));
+        }
+        return Optional.ofNullable(row).map(MybatisUserRepository::toAccount);
     }
 
     @Override
