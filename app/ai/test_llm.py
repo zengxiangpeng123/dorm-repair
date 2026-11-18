@@ -76,3 +76,10 @@ def test_disabled_without_key(monkeypatch):
     monkeypatch.setenv("AI_MODE", "llm")
     monkeypatch.delenv("AI_API_KEY", raising=False)
     assert llm.classify("插座没电") is None
+
+
+def test_default_model_is_production_model(monkeypatch):
+    """漏配 AI_MODEL 时仍必须使用经联调的正式模型，避免静默漂移。"""
+    monkeypatch.delenv("AI_MODEL", raising=False)
+    assert llm.DEFAULT_MODEL == "raccoon/sn-deepseek-v4-1-flash-1017"
+    assert llm._cfg()["model"] == "raccoon/sn-deepseek-v4-1-flash-1017"
