@@ -1,6 +1,7 @@
 package com.zxp.dormrepair.service;
 
 import com.zxp.dormrepair.store.mapper.ConfigMapper;
+import com.zxp.dormrepair.common.BizException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -89,16 +90,24 @@ public class ConfigService {
     }
 
     public Map<String, Object> update(Map<String, Object> patch) {
+        if (patch == null) {
+            throw BizException.badRequest("配置补丁不能为空");
+        }
+        Map<String, String> accepted = new LinkedHashMap<>();
+        patch.forEach((key, value) -> {
+            if (!DEFAULTS.containsKey(key)) return;
+            if (!(value instanceof Number number) || number.doubleValue() != number.longValue()
+                    || number.longValue() <= 0 || number.longValue() > Integer.MAX_VALUE) {
+                throw BizException.badRequest(key + " 必须是正整数");
+            }
+            accepted.put(key, Long.toString(number.longValue()));
+        });
         if (useDb) {
-            patch.forEach((k, v) -> {
-                if (DEFAULTS.containsKey(k)) {
-                    mapper.upsert(k, String.valueOf(v), com.zxp.dormrepair.common.TimeUtil.now());
-                }
+            accepted.forEach((k, v) -> {
+                mapper.upsert(k, v, com.zxp.dormrepair.common.TimeUtil.now());
             });
         }
-        patch.forEach((k, v) -> {
-            if (DEFAULTS.containsKey(k)) cache.put(k, String.valueOf(v));
-        });
+        cache.putAll(accepted);
         loadedAtMs = System.currentTimeMillis();
         return all();
     }
