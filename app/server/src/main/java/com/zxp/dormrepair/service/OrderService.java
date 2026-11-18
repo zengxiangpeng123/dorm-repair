@@ -592,6 +592,9 @@ public class OrderService {
         return ms == null ? at : TimeUtil.fmt(ms + days * 24 * 3600_000L);
     }
 
+    public OrderRepository.Page page(String status, int page, int pageSize) {
+        return store.page(status, Math.max(1, page), Math.max(1, Math.min(pageSize, 200)));
+    }
     public List<OrderView> list(String status) {
         return store.all().stream()
                 .filter(o -> {

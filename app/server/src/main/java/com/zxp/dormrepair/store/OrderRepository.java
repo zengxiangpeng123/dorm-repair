@@ -21,6 +21,9 @@ public interface OrderRepository {
     /** 全部工单，按创建时间倒序。 */
     List<WorkOrder> all();
 
+    /** 管理端分页：数据库/内存只加载当前页及本页明细。 */
+    Page page(String status, int page, int pageSize);
+
     /** 定时器专用：只返回仍可能到期的待验收与已完成工单。 */
     List<WorkOrder> findTimerCandidates();
 
@@ -47,4 +50,7 @@ public interface OrderRepository {
     void clear();
 
     int size();
+
+    record Page(List<WorkOrder> items, int total, int page, int pageSize) {
+    }
 }

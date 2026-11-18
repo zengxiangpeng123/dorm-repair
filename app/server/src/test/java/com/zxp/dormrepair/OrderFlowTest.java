@@ -255,6 +255,41 @@ class OrderFlowTest {
     }
 
     @Test
+    @DisplayName("管理端工单列表按 page/pageSize 分页并返回总数")
+    void adminListPaginates() throws Exception {
+        JsonNode first = call("GET", "/orders?page=1&pageSize=2", null, "admin", "A001").data();
+        assertEquals(2, first.get("items").size());
+        assertEquals(2, first.get("pageSize").asInt());
+        assertTrue(first.get("total").asInt() >= 2);
+        assertTrue(first.get("hasMore").asBoolean());
+
+        JsonNode second = call("GET", "/orders?page=2&pageSize=2", null, "admin", "A001").data();
+        assertNotEquals(first.get("items").get(0).get("no").asText(),
+                second.get("items").get(0).get("no").asText());
+    }
+
+    @Test
+    @DisplayName("管理端状态过滤与分页组合不改变 ACTIVE/DONE 口径")
+    void adminListFiltersAndPaginates() throws Exception {
+        JsonNode active = call("GET", "/orders?status=ACTIVE&page=1&pageSize=2", null, "admin", "A001").data();
+        assertEquals(2, active.get("items").size());
+        for (JsonNode item : active.get("items")) {
+            assertTrue(java.util.Set.of("PENDING", "ASSIGNED", "REPAIRING", "PARTS", "VERIFYING", "REWORKING")
+                    .contains(item.get("status").asText()));
+        }
+        JsonNode done = call("GET", "/orders?status=DONE&page=1&pageSize=2", null, "admin", "A001").data();
+        for (JsonNode item : done.get("items")) {
+            assertTrue(java.util.Set.of("DONE", "CLOSED", "CANCELLED").contains(item.get("status").asText()));
+        }
+    }
+    @Test
+    @DisplayName("管理端分页参数有上限，pageSize 最大 200")
+    void adminListCapsPageSize() throws Exception {
+        JsonNode data = call("GET", "/orders?page=1&pageSize=10000", null, "admin", "A001").data();
+        assertEquals(200, data.get("pageSize").asInt());
+    }
+
+    @Test
     @DisplayName("身份不对给 403，不是 409")
     void forbidden() throws Exception {
         String no = pending().get("no").asText();

@@ -339,7 +339,12 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 | `summary.repairing` | number | 维修中 |
 | `summary.parts` | number | 待配件 |
 
-### 7.4 楼栋看板 `GET /buildings/{id}/board`
+### 7.4 管理端工单列表 `GET /orders`
+
+仅管理员。查询参数：`status`（可选，支持 `ACTIVE`、`DONE` 或具体状态）、`page`（默认 1）、`pageSize`（默认 50，最大 200）。数据库查询会下推状态过滤与 `LIMIT/OFFSET`，只加载当前页的事件与照片。
+
+响应：`items[]`、`total`、`page`、`pageSize`、`hasMore`。`ACTIVE` 为六种在办状态；`DONE` 为 `DONE/CLOSED/CANCELLED`。
+### 7.5 楼栋看板 `GET /buildings/{id}/board`
 
 查询参数 `floors` 可重复或逗号分隔，如 `?floors=5&floors=4`。响应：`buildingId`、`buildingName`、`floors[{floor,orders:OrderView[]}]`、`emptyFloors:number[]`。
 

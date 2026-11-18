@@ -195,12 +195,24 @@ public class OrderController {
         return ApiResponses.ok(orders.adminCancel(no, orEmpty(req), admin));
     }
 
-    @GetMapping("/orders")    public Map<String, Object> list(@RequestParam(required = false) String status,
-                                     HttpServletRequest http) {
+    @GetMapping("/orders")
+    public Map<String, Object> list(@RequestParam(required = false) String status,
+                                    @RequestParam(defaultValue = "1") int page,
+                                    @RequestParam(defaultValue = "50") int pageSize,
+                                    HttpServletRequest http) {
         com.zxp.dormrepair.common.ActorResolver.require(actor(http),
                 com.zxp.dormrepair.statemachine.ActorType.ADMIN);
-        List<OrderView> items = orders.list(status);
-        return ApiResponses.ok(Map.of("items", items, "total", items.size()));
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(pageSize, 200));
+        var result = orders.page(status, safePage, safeSize);
+        List<OrderView> items = result.items().stream().map(OrderView::of).toList();
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("items", items);
+        out.put("total", result.total());
+        out.put("page", result.page());
+        out.put("pageSize", result.pageSize());
+        out.put("hasMore", (long) result.page() * result.pageSize() < result.total());
+        return ApiResponses.ok(out);
     }
 
     @GetMapping("/orders/{no}")

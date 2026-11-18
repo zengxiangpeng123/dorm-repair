@@ -72,6 +72,28 @@ public class MybatisOrderRepository implements OrderRepository {
     }
 
     @Override
+    public Page page(String status, int page, int pageSize) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(pageSize, 200));
+        var query = Wrappers.<WorkOrder>query();
+        if ("ACTIVE".equalsIgnoreCase(status)) {
+            query.in("status", "PENDING", "ASSIGNED", "REPAIRING", "PARTS", "VERIFYING", "REWORKING");
+        } else if ("DONE".equalsIgnoreCase(status)) {
+            query.in("status", "DONE", "CLOSED", "CANCELLED");
+        } else if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+            query.eq("status", status.toUpperCase());
+        }
+        Long count = orders.selectCount(query);
+        int total = count == null ? 0 : count.intValue();
+        int from = Math.min(total, (safePage - 1) * safeSize);
+        List<WorkOrder> items = from >= total ? List.of() : orders.selectList(query
+                .orderByDesc("created_at").orderByDesc("no")
+                .last("LIMIT " + safeSize + " OFFSET " + from));
+        items.forEach(this::fill);
+        return new Page(items, total, safePage, safeSize);
+    }
+
+    @Override
     public List<WorkOrder> findTimerCandidates() {
         List<WorkOrder> list = orders.selectList(Wrappers.<WorkOrder>query()
                 .in("status", "VERIFYING", "DONE")
