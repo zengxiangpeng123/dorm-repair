@@ -8,7 +8,6 @@ spring:
   jackson:
     default-property-inclusion: non_null
   datasource:
-    # 库名、账号、密码都用环境变量可以被覆盖；本机默认 root/123456
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:dorm_repair}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
     username: ${DB_USER:root}
     password: ${DB_PASSWORD:123456}
@@ -22,30 +21,21 @@ spring:
 # memory = 内存（单元测试用） / mysql = 正式库（默认）
 app:
   store: ${APP_STORE:mysql}
-  # 演示相关接口（/demo/reset、/demo/advance、/auth/system-token）只在演示模式注册
-  demo: ${APP_DEMO:true}
+  # 演示数据与演示接口默认关闭；只有测试/演示环境显式打开。
+  demo: ${APP_DEMO:false}
   auth:
-    # 令牌有效期（小时）。重启服务令牌就全失效，这是有意的：会话只放内存
     ttl-hours: ${APP_AUTH_TTL_HOURS:8}
-    # 允许用 X-Actor-* 请求头冒充身份。只给接口测试脚本用，正式运行必须 false
+    # 仅测试脚本允许 X-Actor-*；生产 profile 会拒绝该开关。
     allow-header: ${APP_AUTH_ALLOW_HEADER:false}
   ai:
-    # Python 定级服务，两条路两个超时，别合并成一个：
     base-url: ${AI_SERVICE_URL:http://127.0.0.1:8001}
-    # 学生点提交那一步：只跑规则，毫秒级。1.5 秒还拿不到就兜底，绝不让提交卡住
     timeout-ms: ${AI_TIMEOUT_MS:1500}
-    # 后台复核：真模型单次实测 2~19 秒（同一模型两次能差 10 倍），所以给 30 秒，
-    # 而且跑在独立线程池里，不挂在学生的请求上
     review-timeout-ms: ${AI_REVIEW_TIMEOUT_MS:30000}
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    # 枚举存 name()：库里看到的就是 PENDING / ASSIGNED 这些词
     default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
-  # 注意：不要配 type-handlers-package。那个开关会把 DateTimeStringTypeHandler 当成
-  # 全局的 String 处理器，结果 "20261118" 这种普通字符串也会被拿去 Timestamp.valueOf 解析。
-  # 这个 Handler 只在 @TableField(typeHandler=...) 和 @Update 的 #{} 里显式点名使用。
   global-config:
     banner: false
     db-config:
@@ -54,6 +44,6 @@ mybatis-plus:
 logging:
   level:
     root: INFO
-    com.zxp.dormrepair: DEBUG
+    com.zxp.dormrepair: INFO
   pattern:
     console: "%d{HH:mm:ss} %-5level %logger{24} - %msg%n"

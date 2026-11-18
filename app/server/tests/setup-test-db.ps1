@@ -19,5 +19,5 @@ $dataPath = Join-Path $temp 'data.sql'
 & $mysql -uroot -p123456 --default-character-set=utf8mb4 -e "source $($dataPath.Replace('\','/'))"
 
 $tables = (& $mysql -uroot -p123456 --default-character-set=utf8mb4 -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='dorm_repair_test' AND table_type='BASE TABLE';")
-if ([int]$tables -ne 15) { throw "测试库表数应为 15，实际 $tables" }
-Write-Host "测试库已重建：dorm_repair_test，15 张表" -ForegroundColor Green
+if ([int]$tables -ne 16) { throw "测试库表数应为 16，实际 $tables" }
+Write-Host "测试库已重建：dorm_repair_test，16 张表" -ForegroundColor Green

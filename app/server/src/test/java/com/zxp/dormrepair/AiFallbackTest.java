@@ -109,7 +109,8 @@ class AiFallbackTest {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + path))
                 .timeout(Duration.ofSeconds(15))
                 .header("X-Actor-Type", actorType)
-                .header("X-Actor-Id", actorId);
+                .header("X-Actor-Id", actorId)
+                .header("X-Actor-Name", actorType + "-" + actorId);
         if (body == null) {
             b.method(method, HttpRequest.BodyPublishers.noBody());
         } else {

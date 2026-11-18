@@ -1,6 +1,7 @@
 package com.zxp.dormrepair.controller;
 
 import com.zxp.dormrepair.common.ApiResponses;
+import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.common.TimeUtil;
 import com.zxp.dormrepair.statemachine.ActorType;
 import com.zxp.dormrepair.statemachine.OrderEvent;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,16 +38,19 @@ public class MetaController {
     private final ConfigService config;
     private final TimerService timers;
     private final BuildingCatalogService buildingCatalog;
+    private final boolean demo;
 
     public MetaController(OrderRepository store, SeedService seeder, AiClient ai,
                           ConfigService config, TimerService timers,
-                          BuildingCatalogService buildingCatalog) {
+                          BuildingCatalogService buildingCatalog,
+                          @Value("${app.demo:false}") boolean demo) {
         this.store = store;
         this.seeder = seeder;
         this.ai = ai;
         this.config = config;
         this.timers = timers;
         this.buildingCatalog = buildingCatalog;
+        this.demo = demo;
     }
 
     @GetMapping("/health")
@@ -138,6 +143,7 @@ public class MetaController {
     @PostMapping("/demo/advance")
     public Map<String, Object> advance(@RequestParam(defaultValue = "168") int hours,
                                        jakarta.servlet.http.HttpServletRequest http) {
+        requireDemo();
         com.zxp.dormrepair.common.ActorResolver.require(
                 com.zxp.dormrepair.common.ActorResolver.resolve(http),
                 com.zxp.dormrepair.statemachine.ActorType.ADMIN,
@@ -151,6 +157,7 @@ public class MetaController {
     /** 演示用：清空再重灌一套演示数据（内存库和 MySQL 同一个动作）。 */
     @PostMapping("/demo/reset")
     public Map<String, Object> reset(jakarta.servlet.http.HttpServletRequest http) {
+        requireDemo();
         com.zxp.dormrepair.common.ActorResolver.require(
                 com.zxp.dormrepair.common.ActorResolver.resolve(http),
                 com.zxp.dormrepair.statemachine.ActorType.ADMIN,
@@ -162,5 +169,11 @@ public class MetaController {
         m.put("seeded", after);
         m.put("orders", store.size());
         return ApiResponses.ok(m);
+    }
+
+    private void requireDemo() {
+        if (!demo) {
+            throw BizException.notFound("演示接口未开启");
+        }
     }
 }

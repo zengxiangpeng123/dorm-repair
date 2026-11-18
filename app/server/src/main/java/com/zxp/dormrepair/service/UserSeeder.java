@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component;
  * 而且换口令要手改 SQL。这里放进 Java 里，口令只在一个地方（{@link PasswordHasher#DEFAULT_PASSWORD}）。
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "app.demo", havingValue = "true")
 public class UserSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(UserSeeder.class);

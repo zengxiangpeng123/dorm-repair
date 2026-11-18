@@ -23,6 +23,7 @@ function Check($name, $cond, $detail) {
 function Start-App {
     $env:APP_STORE = 'mysql'
     $env:DB_NAME = 'dorm_repair_test'
+    $env:APP_DEMO = 'true'
     $env:DB_USER = 'root'
     $env:DB_PASSWORD = '123456'
     # 鉴权上线后，脚本仍用 X-Actor-* 头冒充身份：这个开关只给测试用，线上默认关

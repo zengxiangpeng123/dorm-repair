@@ -48,7 +48,8 @@ Check '快接满了 → 给排水' ($r2.category -eq '给排水')
 Check '依据里写明浸水风险' ($r2.basis -like '*浸水风险*') $r2.basis
 
 "== 3 起后端（连真库）"
-$env:APP_STORE = 'mysql'; $env:DB_NAME = 'dorm_repair_test'; $env:DB_USER = 'root'; $env:DB_PASSWORD = '123456'
+$env:APP_STORE = 'mysql'; $env:DB_NAME = 'dorm_repair_test'
+    $env:APP_DEMO = 'true'; $env:DB_USER = 'root'; $env:DB_PASSWORD = '123456'
 $jar = Join-Path $serverDir 'target\dorm-repair-server-1.0.0.jar'
 if (-not (Test-Path $jar)) { throw "先打包：cd app/server; mvn -q -DskipTests package" }
 $srvLog = Join-Path $env:TEMP 'm3-server.log'

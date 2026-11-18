@@ -10,16 +10,19 @@ public enum ActorType {
     ADMIN,
     SYSTEM;
 
+    /**
+     * 严格解析。身份不能因为参数缺失或拼错就退化成学生，否则会形成隐式提权。
+     */
     public static ActorType of(String raw) {
         if (raw == null || raw.isBlank()) {
-            return STUDENT;
+            throw new IllegalArgumentException("角色不能为空");
         }
         for (ActorType t : values()) {
             if (t.name().equalsIgnoreCase(raw.trim())) {
                 return t;
             }
         }
-        return STUDENT;
+        throw new IllegalArgumentException("未知角色：" + raw);
     }
 
     /** system 的动作不算人工介入。 */

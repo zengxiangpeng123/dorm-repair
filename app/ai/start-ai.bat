@@ -8,7 +8,7 @@ rem 想永久设一次，在本机 CMD 里跑：  setx AI_API_KEY "sk-你的密�
 rem 想临时用真模型：这里默认 llm，没设密钥会自动退回规则模式，不影响演示。
 if "%AI_MODE%"=="" set AI_MODE=llm
 if "%AI_BASE_URL%"=="" set AI_BASE_URL=http://127.0.0.1:3065/v1
-if "%AI_MODEL%"=="" set AI_MODEL=workbuddy/deepseek-v4.1-flash
+if "%AI_MODEL%"=="" set AI_MODEL=raccoon/sn-deepseek-v4-1-flash-1017
 if "%AI_TIMEOUT_S%"=="" set AI_TIMEOUT_S=20
 
 echo ================================================

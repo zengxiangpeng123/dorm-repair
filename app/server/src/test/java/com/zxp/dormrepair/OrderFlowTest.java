@@ -24,7 +24,8 @@ import tools.jackson.databind.ObjectMapper;
  *
  * <p>走真 HTTP，不用 mock —— 规矩 S-04：数据库、状态机都不能假。
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {"app.ai.base-url=http://127.0.0.1:9", "app.ai.timeout-ms=200"})
 class OrderFlowTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -314,6 +315,7 @@ class OrderFlowTest {
         b.header("X-Actor-Type", type);
         if (id != null) {
             b.header("X-Actor-Id", id);
+            b.header("X-Actor-Name", type + "-" + id);
         }
         if (body == null) {
             b.method(method, HttpRequest.BodyPublishers.noBody());

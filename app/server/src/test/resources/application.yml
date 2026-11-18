@@ -1,10 +1,7 @@
-# 测试配置：一律用内存仓库，跑 mvn test 不需要 MySQL 在跑
-# DataSource 只是为了让 MyBatis-Plus 的自动配置能起来；Hikari 是懒连接，测试全程不会真的连库
 app:
   store: memory
   demo: true
   auth:
-    # 已有 20 个用例用 X-Actor-* 头模拟身份，这里放行；AuthTest 会单独关掉它验证真令牌
     allow-header: true
     ttl-hours: 1
 

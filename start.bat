@@ -11,7 +11,7 @@ echo   前端  cd app\web ^&^& npm run dev  ->  http://localhost:5173
 echo ------------------------------------------------------------
 echo   会开两个黑窗口：一个 AI，一个后端。关掉窗口就是停服务。
 echo   数据库：MySQL 8 的 dorm_repair 库（root/123456）
-echo   想重置演示数据：POST http://localhost:8082/api/v1/demo/reset
+echo   演示模式：set APP_DEMO=true 后才可重置/快进演示数据
 echo ============================================================
 echo.
 
@@ -20,6 +20,7 @@ start "宿舍维修 AI" cmd /k "cd /d %~dp0app\ai && D:\develop\python-envs\dorm
 timeout /t 3 >nul
 start "" http://localhost:8082/api/v1/health
 
+if "%APP_DEMO%"=="" set APP_DEMO=true
 cd /d "%~dp0app\server"
 if not exist "target\dorm-repair-server-1.0.0.jar" (
   echo 第一次跑，先打包……

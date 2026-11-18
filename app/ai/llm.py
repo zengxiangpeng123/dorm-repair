@@ -7,7 +7,7 @@
 配置全走环境变量，密钥不进仓库：
     AI_MODE=llm
     AI_BASE_URL=http://127.0.0.1:3065/v1
-    AI_MODEL=workbuddy/deepseek-v4.1-flash
+    AI_MODEL=raccoon/sn-deepseek-v4-1-flash-1017
     AI_API_KEY=sk-...
     AI_TIMEOUT_S=8
 """
@@ -25,7 +25,27 @@ import httpx
 from rules import CATEGORIES, LEVELS
 
 DEFAULT_BASE_URL = "http://127.0.0.1:3065/v1"
-DEFAULT_MODEL = "workbuddy/deepseek-v4.1-flash"
+
+
+def _load_local_env() -> None:
+    """加载被 .gitignore 排除的 app/ai/.env.local；已有环境变量优先。"""
+    from pathlib import Path
+    path = Path(__file__).with_name(".env.local")
+    if not path.exists():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_local_env()
+DEFAULT_MODEL = "raccoon/sn-deepseek-v4-1-flash-1017"
 
 SYSTEM_PROMPT = f"""你是宿舍维修系统的故障定级助手。只输出一行 JSON，不要解释，不要代码块。
 

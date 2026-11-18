@@ -2,6 +2,7 @@ package com.zxp.dormrepair;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
@@ -10,6 +11,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import com.zxp.dormrepair.auth.AuthSessionRepository;
+import com.zxp.dormrepair.auth.InMemoryAuthSessionRepository;
+import com.zxp.dormrepair.auth.TokenStore;
+import com.zxp.dormrepair.domain.Actor;
+import com.zxp.dormrepair.statemachine.ActorType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,6 +62,33 @@ class AuthTest {
         assertEquals("张同学", d.get("user").get("name").asText());
         assertTrue(d.get("user").get("password") == null, "响应里不能带口令字段");
         assertTrue(d.get("ttlSeconds").asInt() > 0);
+    }
+
+    @Test
+    @DisplayName("身份缺字段不会被猜成默认学生或默认姓名")
+    void actorNeverFallsBackToDemoIdentity() {
+        assertThrows(IllegalArgumentException.class, () -> Actor.of("STUDENT", null, null));
+        assertThrows(IllegalArgumentException.class, () -> Actor.of("STUDENT", "S001", null));
+        assertThrows(IllegalArgumentException.class, () -> Actor.of("NOT_A_ROLE", "S001", "张同学"));
+        assertThrows(IllegalArgumentException.class, () -> ActorType.of("NOT_A_ROLE"));
+    }
+
+    @Test
+    @DisplayName("持久化会话：同一摘要可恢复身份，撤销后立即失效")
+    void persistedSessionCanBeRestoredAndRevoked() {
+        AuthSessionRepository repo = new InMemoryAuthSessionRepository();
+        TokenStore store = new TokenStore(repo);
+        TokenStore.Session issued = store.issue(
+                new Actor(ActorType.STUDENT, "S001", "张同学"), "S001", 60_000);
+
+        TokenStore restored = new TokenStore(repo);
+        TokenStore.Session found = restored.resolve(issued.token());
+        assertNotNull(found);
+        assertEquals("S001", found.actor().id());
+        assertEquals("STUDENT", found.actor().type().name());
+
+        assertTrue(restored.revoke(issued.token()));
+        assertEquals(null, restored.resolve(issued.token()));
     }
 
     @Test

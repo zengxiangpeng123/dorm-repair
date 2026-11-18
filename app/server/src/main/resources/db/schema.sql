@@ -76,6 +76,24 @@ SELECT id, 'ADMIN' AS role, name, NULL AS team, NULL AS building_id, NULL AS roo
 FROM t_admin;
 
 -- ------------------------------------------------------------
+-- 1.1 认证会话（只保存令牌摘要，不保存 Bearer 原文）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_auth_session (
+  token_hash    CHAR(64)     NOT NULL COMMENT 'SHA-256(token)',
+  account       VARCHAR(20)  NOT NULL,
+  role          VARCHAR(12)  NOT NULL COMMENT 'STUDENT/WORKER/ADMIN/SYSTEM',
+  name          VARCHAR(30)  NOT NULL,
+  account_id    VARCHAR(20)  NOT NULL,
+  issued_at_ms  BIGINT       NOT NULL,
+  expires_at_ms BIGINT       NOT NULL,
+  revoked_at_ms BIGINT       NULL,
+  PRIMARY KEY (token_hash),
+  KEY idx_auth_account (account),
+  KEY idx_auth_expiry (expires_at_ms),
+  KEY idx_auth_active (revoked_at_ms, expires_at_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='认证会话';
+
+-- ------------------------------------------------------------
 -- 2 楼栋与楼层
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS t_building (

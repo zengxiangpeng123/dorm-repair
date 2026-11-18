@@ -19,7 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * {@code ActorResolver.resolve(req)} 取——controller 里不再自己解析身份。
  *
  * <p>{@code app.auth.allow-header=true} 时额外接受原来的三个 X-Actor-* 请求头，
- * 只给接口脚本（m1/m2/m4）用，正式部署默认关闭。
+ * 只给测试脚本使用；该开关在生产配置启动时会被拒绝。
  */
 @Component
 public class AuthFilter extends OncePerRequestFilter {
@@ -65,10 +65,16 @@ public class AuthFilter extends OncePerRequestFilter {
         }
         if (allowHeader) {
             String type = req.getHeader("X-Actor-Type");
-            if (type != null && !type.isBlank()) {
-                req.setAttribute(ATTR, Actor.of(type, req.getHeader("X-Actor-Id"), req.getHeader("X-Actor-Name")));
-                chain.doFilter(req, res);
-                return;
+            String actorId = req.getHeader("X-Actor-Id");
+            if (type != null && !type.isBlank() && actorId != null && !actorId.isBlank()) {
+                try {
+                    Actor actor = Actor.of(type, actorId, req.getHeader("X-Actor-Name"));
+                    req.setAttribute(ATTR, actor);
+                    chain.doFilter(req, res);
+                    return;
+                } catch (IllegalArgumentException ignored) {
+                    // 测试开关也不接受无效身份，继续返回 401。
+                }
             }
         }
         reject(res, token == null ? "请先登录" : "登录已失效，请重新登录");
@@ -78,7 +84,6 @@ public class AuthFilter extends OncePerRequestFilter {
         res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         res.setCharacterEncoding(StandardCharsets.UTF_8.name());
         res.setContentType("application/json;charset=UTF-8");
-        res.getWriter().write("{\"ok\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\""
-                + message + "\"}}");
+        res.getWriter().write("{\"ok\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"" + message + "\"}}");
     }
 }

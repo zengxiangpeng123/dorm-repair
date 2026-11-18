@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
  * 空库时灌一遍样本单。库里有数据就一个字都不动 —— 重启不会把演示数据冲掉。
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "app.demo", havingValue = "true")
 public class OrderSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(OrderSeeder.class);

@@ -8,6 +8,7 @@
 # 验的是"不登录进不来"这件事本身：没有任何 X-Actor-* 头，全靠 Authorization: Bearer
 
 $ErrorActionPreference = 'Stop'
+$env:APP_DEMO = 'true'
 $base = 'http://127.0.0.1:8082/api/v1'
 $pass = 0; $fail = 0
 

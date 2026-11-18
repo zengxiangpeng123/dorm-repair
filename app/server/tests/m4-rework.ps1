@@ -27,6 +27,7 @@ function Api($method, $path, $body, $actor) {
 Write-Host "== 0. 起服务（APP_STORE=mysql） =="
 $env:APP_STORE = 'mysql'
 $env:DB_NAME = 'dorm_repair_test'
+    $env:APP_DEMO = 'true'
 Get-CimInstance Win32_Process -Filter "Name='java.exe'" | Where-Object { $_.CommandLine -like '*dorm-repair-server*' } |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force; Write-Host ("  killed pid " + $_.ProcessId) }
 $jar = Join-Path $serverDir 'target\dorm-repair-server-1.0.0.jar'

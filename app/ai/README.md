@@ -13,6 +13,18 @@ D:\develop\python-envs\dorm-ai\Scripts\python.exe -m uvicorn app:app --host 127.
 
 或双击 `start-ai.bat`。
 
+真模型配置放在 `app/ai/.env.local`（已被 Git 忽略）：
+
+```text
+AI_MODE=llm
+AI_BASE_URL=http://127.0.0.1:3065/v1
+AI_MODEL=raccoon/sn-deepseek-v4-1-flash-1017
+AI_API_KEY=sk-...
+AI_TIMEOUT_S=20
+```
+
+模型限流、超时或非法 JSON 时，服务自动退回规则结果，不阻断建单。
+
 装依赖（只在换机器时需要）：
 
 ```powershell

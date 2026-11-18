@@ -1,64 +1,89 @@
 package com.zxp.dormrepair.auth;
 
 import com.zxp.dormrepair.domain.Actor;
+import com.zxp.dormrepair.statemachine.ActorType;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HexFormat;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
- * 令牌表。演示项目存在内存里：重启之后所有人都要重新登录，这是有意为之——
- * 不用为一张会话表再引一次数据库迁移，也不会出现"旧 token 在库里躺三个月"。
+ * 认证会话服务。原始 Bearer 只返回给客户端，数据库仅保存 SHA-256 摘要；
+ * 会话可跨进程重启恢复，也可在数据库中即时撤销。
  */
 @Component
 public class TokenStore {
 
-    /**
-     * @param account 登录用的账号（system 令牌没有账号，落 "system"）
-     */
     public record Session(String token, Actor actor, String account, long issuedAt, long expiresAt) {
-
         public boolean expired(long now) {
             return now >= expiresAt;
         }
     }
 
     private static final SecureRandom RANDOM = new SecureRandom();
+    private final AuthSessionRepository sessions;
 
-    private final Map<String, Session> sessions = new ConcurrentHashMap<>();
+    public TokenStore(AuthSessionRepository sessions) {
+        this.sessions = sessions;
+    }
 
     public Session issue(Actor actor, String account, long ttlMillis) {
         byte[] raw = new byte[32];
         RANDOM.nextBytes(raw);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
         long now = System.currentTimeMillis();
-        Session s = new Session(token, actor, account, now, now + ttlMillis);
-        sessions.put(token, s);
-        return s;
+        long expiresAt = now + ttlMillis;
+        sessions.save(hash(token), account, actor.type().name(), actor.name(),
+                actor.id(), now, expiresAt);
+        return new Session(token, actor, account, now, expiresAt);
     }
 
-    /** 取会话。过期就顺手删掉，返回 null。 */
     public Session resolve(String token) {
         if (token == null || token.isBlank()) {
             return null;
         }
-        Session s = sessions.get(token);
-        if (s == null) {
+        Optional<AuthSessionRepository.StoredSession> found = sessions.findActive(hash(token),
+                System.currentTimeMillis());
+        if (found.isEmpty()) {
             return null;
         }
-        if (s.expired(System.currentTimeMillis())) {
-            sessions.remove(token);
-            return null;
-        }
-        return s;
+        AuthSessionRepository.StoredSession s = found.get();
+        Actor actor = new Actor(ActorType.of(s.role()), s.accountId(), s.name());
+        return new Session(token, actor, s.account(), s.issuedAtMs(), s.expiresAtMs());
     }
 
     public boolean revoke(String token) {
-        return token != null && sessions.remove(token) != null;
+        if (token == null || token.isBlank()) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        Session active = resolve(token);
+        if (active == null) {
+            return false;
+        }
+        sessions.revoke(hash(token), now);
+        return true;
+    }
+
+    public int deleteExpired() {
+        return sessions.deleteExpired(System.currentTimeMillis());
     }
 
     public int size() {
-        return sessions.size();
+        return sessions.count();
+    }
+
+    static String hash(String token) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(token.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 不可用", e);
+        }
     }
 }

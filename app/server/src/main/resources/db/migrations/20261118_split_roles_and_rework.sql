@@ -141,6 +141,21 @@ CREATE TABLE IF NOT EXISTS t_rework_review (
   KEY idx_rework_order (order_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS t_auth_session (
+  token_hash    CHAR(64)     NOT NULL,
+  account       VARCHAR(20)  NOT NULL,
+  role          VARCHAR(12)  NOT NULL,
+  name          VARCHAR(30)  NOT NULL,
+  account_id    VARCHAR(20)  NOT NULL,
+  issued_at_ms  BIGINT       NOT NULL,
+  expires_at_ms BIGINT       NOT NULL,
+  revoked_at_ms BIGINT       NULL,
+  PRIMARY KEY (token_hash),
+  KEY idx_auth_account (account),
+  KEY idx_auth_expiry (expires_at_ms),
+  KEY idx_auth_active (revoked_at_ms, expires_at_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE OR REPLACE VIEW v_user_account AS
 SELECT id,'STUDENT' AS role,name,NULL AS team,building_id,room,phone,password_hash,active,created_at FROM t_student
 UNION ALL
