@@ -29,4 +29,9 @@ if [ ! -s "$TMP_SQL" ]; then
   exit 1
 fi
 mysql --defaults-extra-file="$CNF" "$DB_NAME" < "$TMP_SQL"
-echo "restore complete: $1"
+table_count="$(mysql --defaults-extra-file="$CNF" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$DB_NAME' AND TABLE_TYPE='BASE TABLE'")"
+if [ "${table_count:-0}" -lt 20 ]; then
+  echo "restore failed: expected at least 20 base tables after import, got ${table_count:-0}" >&2
+  exit 1
+fi
+echo "restore complete: $1 (base tables=$table_count)"
