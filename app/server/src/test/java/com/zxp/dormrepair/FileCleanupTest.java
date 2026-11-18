@@ -3,6 +3,7 @@ package com.zxp.dormrepair;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zxp.dormrepair.domain.Actor;
 import com.zxp.dormrepair.file.FileCleanupService;
@@ -38,6 +39,24 @@ class FileCleanupTest {
         assertEquals(1, result.get("deleted"));
         assertNull(repo.find(old.id()).orElse(null));
         assertNotNull(repo.find(bound.id()).orElse(null));
+    }
+
+    @Test
+    @DisplayName("进程崩溃遗留的过期清理租约会被回收")
+    void releasesStaleCleanupClaim() throws Exception {
+        var repo = new InMemoryFileRepository();
+        var storage = new InMemoryFileStorage();
+        var files = new FileService(storage, repo);
+        var cleanup = new FileCleanupService(repo, storage, 1, 100);
+        Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
+        FileRecord stale = files.upload(png("stale.png"), student, "BEFORE");
+
+        assertTrue(repo.claimForCleanup(stale.id(), "2020-01-01 00:00:00"));
+        var result = cleanup.sweep("2099-01-01 00:00:00");
+
+        assertEquals(1, result.get("recoveredClaims"));
+        assertEquals(1, result.get("deleted"));
+        assertNull(repo.find(stale.id()).orElse(null));
     }
 
     private static MockMultipartFile png(String name) throws Exception {

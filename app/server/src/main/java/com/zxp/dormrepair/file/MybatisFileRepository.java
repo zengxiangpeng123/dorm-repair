@@ -102,6 +102,15 @@ public class MybatisFileRepository implements FileRepository {
     }
 
     @Override
+    public int releaseStaleClaims(String staleBefore) {
+        return mapper.update(null, new LambdaUpdateWrapper<FileRecordRow>()
+                .isNull(FileRecordRow::getOrderNo)
+                .isNotNull(FileRecordRow::getCleanupClaimedAt)
+                .lt(FileRecordRow::getCleanupClaimedAt, staleBefore)
+                .set(FileRecordRow::getCleanupClaimedAt, null));
+    }
+
+    @Override
     public void delete(String id) {
         mapper.deleteById(id);
     }

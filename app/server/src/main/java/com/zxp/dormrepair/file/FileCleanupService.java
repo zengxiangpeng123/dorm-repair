@@ -20,6 +20,9 @@ public class FileCleanupService {
     private final int retentionHours;
     private final int batchSize;
 
+    @Value("${app.file.cleanup.claim-timeout-minutes:30}")
+    private int claimTimeoutMinutes = 30;
+
     public FileCleanupService(FileRepository repository, FileStorage storage,
                               @Value("${app.file.cleanup.retention-hours:24}") int retentionHours,
                               @Value("${app.file.cleanup.batch-size:100}") int batchSize) {
@@ -42,6 +45,9 @@ public class FileCleanupService {
     public Map<String, Object> sweep(String now) {
         long nowMs = TimeUtil.epochMs(now) == null ? TimeUtil.nowMs() : TimeUtil.epochMs(now);
         String cutoff = TimeUtil.fmt(nowMs - retentionHours * 3600_000L);
+        String staleBefore = TimeUtil.fmt(nowMs
+                - Math.max(1, claimTimeoutMinutes) * 60_000L);
+        int recovered = repository.releaseStaleClaims(staleBefore);
         int deleted = 0;
         int failed = 0;
         for (FileRecord file : repository.findUnboundCreatedBefore(cutoff, batchSize)) {
@@ -61,6 +67,7 @@ public class FileCleanupService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("at", now);
         result.put("cutoff", cutoff);
+        result.put("recoveredClaims", recovered);
         result.put("deleted", deleted);
         result.put("failed", failed);
         return result;

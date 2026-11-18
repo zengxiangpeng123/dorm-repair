@@ -71,11 +71,25 @@ public class InMemoryFileRepository implements FileRepository {
                 .toList();
     }
 
-    private final java.util.Set<String> cleanupClaims = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.Map<String, String> cleanupClaims = new ConcurrentHashMap<>();
 
     @Override
     public boolean claimForCleanup(String id, String claimedAt) {
-        return cleanupClaims.add(id);
+        return cleanupClaims.putIfAbsent(id, claimedAt) == null;
+    }
+
+    @Override
+    public int releaseStaleClaims(String staleBefore) {
+        long cutoff = TimeUtil.epochMs(staleBefore);
+        int released = 0;
+        for (var entry : cleanupClaims.entrySet()) {
+            Long claimedAt = TimeUtil.epochMs(entry.getValue());
+            if (claimedAt != null && claimedAt < cutoff
+                    && cleanupClaims.remove(entry.getKey(), entry.getValue())) {
+                released++;
+            }
+        }
+        return released;
     }
 
     @Override

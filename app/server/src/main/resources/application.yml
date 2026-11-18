@@ -54,6 +54,7 @@ app:
     cleanup:
       retention-hours: ${APP_FILE_CLEANUP_RETENTION_HOURS:24}
       batch-size: ${APP_FILE_CLEANUP_BATCH_SIZE:100}
+      claim-timeout-minutes: ${APP_FILE_CLEANUP_CLAIM_TIMEOUT_MINUTES:30}
     s3:
       endpoint: ${APP_FILE_S3_ENDPOINT:}
       region: ${APP_FILE_S3_REGION:us-east-1}

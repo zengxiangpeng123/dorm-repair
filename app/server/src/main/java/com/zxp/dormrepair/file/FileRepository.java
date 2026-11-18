@@ -19,6 +19,9 @@ public interface FileRepository {
     /** 原子地占用一条孤儿记录，避免多个实例重复清理同一对象。 */
     boolean claimForCleanup(String id, String claimedAt);
 
+    /** 回收进程崩溃后遗留的过期清理租约。 */
+    int releaseStaleClaims(String staleBefore);
+
     /** 对象已删除后移除元数据行。 */
     void delete(String id);
 
