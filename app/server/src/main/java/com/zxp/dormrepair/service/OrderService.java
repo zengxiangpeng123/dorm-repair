@@ -112,9 +112,16 @@ public class OrderService {
         store.save(o);
         files.bindAll(beforePhotoIds, o.getNo(), "BEFORE");
         if (autoAssign) {
-            // 派工是系统动作，由后端在提交事务内完成；学生端不再调用 /assign。
-            assign(o.getNo(), new TransitRequest(null, null, null, null, null, null,
-                    null, null, null, null, null), Actor.system());
+            // 自动派工失败不能让建单回滚：没有可用师傅时保留 PENDING，
+            // 由管理员后续补派。其它错误（状态/数据异常）仍按原事务失败处理。
+            try {
+                assign(o.getNo(), new TransitRequest(null, null, null, null, null, null,
+                        null, null, null, null, null), Actor.system());
+            } catch (BizException e) {
+                if (!"NO_WORKER_AVAILABLE".equals(e.extra().get("reason"))) {
+                    throw e;
+                }
+            }
         }
         WorkOrder created = store.require(o.getNo());
         if (isBlank(req.category())) {
