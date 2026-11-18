@@ -13,6 +13,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
@@ -49,6 +50,11 @@ public class S3FileStorage implements FileStorage {
         var builder = S3Client.builder()
                 .region(Region.of(region))
                 .credentialsProvider(credentials(accessKey, secretKey, sessionToken));
+        builder.serviceConfiguration(S3Configuration.builder()
+                // S3 兼容服务（OSS/MinIO 等）不一定支持 AWS 分块签名请求体。
+                .chunkedEncodingEnabled(false)
+                .checksumValidationEnabled(false)
+                .build());
         if (endpoint != null && !endpoint.isBlank()) {
             builder.endpointOverride(java.net.URI.create(endpoint));
         }
