@@ -1,5 +1,6 @@
 package com.zxp.dormrepair.service;
 
+import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.common.TimeUtil;
 import com.zxp.dormrepair.domain.AiReviewTask;
 import com.zxp.dormrepair.domain.AiReviewTaskStatus;
@@ -75,7 +76,12 @@ public class AiReviewService {
         {
             int attempts = 1;
             try {
-                tasks.markRunning(task.id(), attempts);
+                try {
+                    tasks.markRunning(task.id(), attempts);
+                } catch (BizException e) {
+                    log.debug("AI 复核 {}：任务已被其他实例处理，跳过", no);
+                    return;
+                }
                 AiClient.Verdict v = ai.classify(desc);
                 attempts = Math.max(1, v.attempts());
                 AiReviewTaskStatus resultStatus = v.fallback()
@@ -109,8 +115,12 @@ public class AiReviewService {
                 log.info("AI 复核 {} -> {} / {}（{}）", no, v.category(), v.level(),
                         ok ? "已写回" : "写回失败");
             } catch (Exception e) {
-                tasks.markResult(task.id(), AiReviewTaskStatus.FAILED, attempts, "AI_REVIEW_EXCEPTION",
-                        e.toString(), null, null, null, null, null, 0L);
+                try {
+                    tasks.markResult(task.id(), AiReviewTaskStatus.FAILED, attempts, "AI_REVIEW_EXCEPTION",
+                            e.toString(), null, null, null, null, null, 0L);
+                } catch (BizException stateChanged) {
+                    log.debug("AI 复核 {}：任务已由其他实例结束，不再覆盖状态", no);
+                }
                 log.warn("AI 复核 {} 出错，保留规则定级：{}", no, e.toString());
             }
         }

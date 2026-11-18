@@ -60,47 +60,33 @@ public class MybatisAiReviewTaskRepository implements AiReviewTaskRepository {
 
     @Override
     public void markRunning(String id, int attempts) {
-        update(id, r -> {
-            r.setStatus(AiReviewTaskStatus.RUNNING.name());
-            r.setAttempts(attempts);
-        });
+        if (mapper.markRunning(id, attempts) != 1) {
+            throw BizException.conflict("AI_REVIEW_NOT_PENDING", "AI 复核任务已被其他实例处理");
+        }
     }
 
     @Override
     public void markResult(String id, AiReviewTaskStatus status, int attempts, String errorCode, String errorMessage,
                            String category, String level, Double confidence, String basis, String source,
                            long latencyMs) {
-        update(id, r -> {
-            r.setStatus(status.name());
-            r.setAttempts(attempts);
-            r.setErrorCode(errorCode);
-            r.setErrorMessage(errorMessage);
-            r.setCategory(category);
-            r.setLevel(level);
-            r.setConfidence(confidence);
-            r.setBasis(basis);
-            r.setSource(source);
-            r.setLatencyMs(latencyMs);
-            r.setCompletedAt(TimeUtil.now());
-        });
+        if (mapper.markResult(id, status.name(), attempts, errorCode, errorMessage, category, level,
+                confidence, basis, source, latencyMs, TimeUtil.now()) != 1) {
+            throw BizException.conflict("AI_REVIEW_NOT_RUNNING", "AI 复核任务状态已变化");
+        }
     }
 
     @Override
     public void markApplied(String id, String appliedAt) {
-        update(id, r -> {
-            r.setApplied(true);
-            r.setAppliedAt(appliedAt);
-        });
+        if (mapper.markApplied(id, appliedAt) != 1) {
+            throw BizException.conflict("AI_REVIEW_ALREADY_APPLIED", "AI 复核结果已应用");
+        }
     }
 
     @Override
     public void markSuperseded(String id, String reason) {
-        update(id, r -> {
-            r.setStatus(AiReviewTaskStatus.SUPERSEDED.name());
-            r.setErrorCode("STALE_ORDER");
-            r.setErrorMessage(reason);
-            r.setCompletedAt(TimeUtil.now());
-        });
+        if (mapper.markSuperseded(id, reason, TimeUtil.now()) != 1) {
+            throw BizException.conflict("AI_REVIEW_TERMINAL", "AI 复核任务已是终态");
+        }
     }
 
     @Override
