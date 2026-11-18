@@ -32,4 +32,10 @@ s3_endpoint="$(grep -E '^APP_FILE_S3_ENDPOINT=' "$ENV_FILE" | tail -n1 | cut -d=
 case "$s3_endpoint" in https://*) ;; *) fail "APP_FILE_S3_ENDPOINT must use HTTPS" ;; esac
 grep -q '^DB_USE_SSL=true' "$ENV_FILE" || fail "DB_USE_SSL must be true in production"
 
+echo "checking database schema (read-only)"
+if command -v mysql >/dev/null 2>&1; then
+  tables="$(mysql --host="${DB_HOST:-127.0.0.1}" --user="$DB_USER" --password="$DB_PASSWORD" --batch --skip-column-names "$DB_NAME" -e "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('t_auth_session','t_login_attempt','t_file','t_ai_review_task','t_rework_review','t_idempotency_record')" 2>/dev/null || true)"
+  [ "$(printf '%s\n' "$tables" | wc -l)" -ge 6 ] || fail "database migrations missing; run deploy/scripts/migrate.sh"
+fi
+
 echo "production preflight: PASS"

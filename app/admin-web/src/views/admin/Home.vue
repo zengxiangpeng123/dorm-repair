@@ -188,7 +188,8 @@ onMounted(load)
         </div>
       </div>
       <nav>
-        <a href="#" class="on">监测台</a>
+        <router-link to="/admin" class="on">监测台</router-link>
+        <router-link to="/admin/people">人员管理</router-link>
         <a href="#" @click.prevent="load">刷新数据</a>
       </nav>
       <div class="side-foot">

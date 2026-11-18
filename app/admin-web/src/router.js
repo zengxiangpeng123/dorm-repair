@@ -7,6 +7,7 @@ const routes = [
   { path: '/', redirect: '/admin' },
   { path: '/login', component: Login, meta: { public: true } },
   { path: '/admin', component: () => import('./views/admin/Home.vue') },
+  { path: '/admin/people', component: () => import('./views/admin/People.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/admin' }
 ]
 const router = createRouter({ history: createWebHistory(), routes })
