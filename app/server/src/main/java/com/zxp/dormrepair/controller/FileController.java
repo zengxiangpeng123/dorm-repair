@@ -10,12 +10,12 @@ import com.zxp.dormrepair.service.OrderService;
 import com.zxp.dormrepair.statemachine.ActorType;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -75,7 +75,7 @@ public class FileController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<byte[]> download(@PathVariable String id, HttpServletRequest http) throws IOException {
+    public ResponseEntity<StreamingResponseBody> download(@PathVariable String id, HttpServletRequest http) {
         Actor actor = (Actor) http.getAttribute(AuthFilter.ATTR);
         if (actor == null) throw BizException.unauthorized("请先登录");
         FileRecord f = files.require(id);
@@ -87,15 +87,27 @@ public class FileController {
             orders.detailForActor(f.orderNo(), actor);
         }
         var download = files.download(id);
-        try (InputStream in = download.object().stream()) {
-            byte[] bytes = in.readAllBytes();
-            return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(f.mime()))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"photo\"")
-                    .header("X-Content-Type-Options", "nosniff")
-                    .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0")
-                    .header("Pragma", "no-cache")
-                    .body(bytes);
+        long length = download.object().contentLength();
+        if (length <= 0) {
+            try {
+                download.object().stream().close();
+            } catch (IOException ignored) {
+                // 空对象已确定不可用，关闭失败不改变响应结论。
+            }
+            throw BizException.notFound("文件对象为空：" + id);
         }
+        StreamingResponseBody body = output -> {
+            try (var in = download.object().stream()) {
+                in.transferTo(output);
+            }
+        };
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(f.mime()))
+                .contentLength(length)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"photo\"")
+                .header("X-Content-Type-Options", "nosniff")
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0")
+                .header("Pragma", "no-cache")
+                .body(body);
     }
 }

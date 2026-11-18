@@ -55,10 +55,52 @@ class FileServiceTest {
         var orders = org.mockito.Mockito.mock(com.zxp.dormrepair.service.OrderService.class);
         var controller = new com.zxp.dormrepair.controller.FileController(files, orders);
 
-        ResponseEntity<byte[]> response = controller.download(f.id(), request);
+        ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> response =
+                controller.download(f.id(), request);
 
         assertEquals("private, no-store, max-age=0", response.getHeaders().getCacheControl());
         assertEquals("no-cache", response.getHeaders().getFirst("Pragma"));
+        assertEquals(f.byteSize(), response.getHeaders().getContentLength());
+        var output = new ByteArrayOutputStream();
+        response.getBody().writeTo(output);
+        assertEquals(f.byteSize(), output.size());
+    }
+
+    @Test
+    @DisplayName("学生不能读取他人未绑定照片")
+    void studentCannotReadAnotherUsersUnboundPhoto() throws Exception {
+        FileRecord f = files.upload(png("private-owner.png"), student, "BEFORE");
+        var request = new MockHttpServletRequest();
+        request.setAttribute(com.zxp.dormrepair.auth.AuthFilter.ATTR, other);
+        var orders = org.mockito.Mockito.mock(com.zxp.dormrepair.service.OrderService.class);
+        var controller = new com.zxp.dormrepair.controller.FileController(files, orders);
+
+        var e = org.junit.jupiter.api.Assertions.assertThrows(
+                com.zxp.dormrepair.common.BizException.class,
+                () -> controller.download(f.id(), request));
+
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, e.status());
+    }
+
+    @Test
+    @DisplayName("已绑定照片由工单访问权限控制")
+    void boundPhotoUsesOrderVisibility() throws Exception {
+        var repository = new InMemoryFileRepository();
+        var service = new FileService(new InMemoryFileStorage(), repository);
+        FileRecord bound = service.upload(png("bound-real.png"), student, "BEFORE");
+        repository.bind(bound.id(), "BX20261119001", "BEFORE");
+        var request = new MockHttpServletRequest();
+        request.setAttribute(com.zxp.dormrepair.auth.AuthFilter.ATTR, other);
+        var orders = org.mockito.Mockito.mock(com.zxp.dormrepair.service.OrderService.class);
+        org.mockito.Mockito.when(orders.detailForActor("BX20261119001", other))
+                .thenThrow(com.zxp.dormrepair.common.BizException.forbidden("不能查看不属于你的工单"));
+        var controller = new com.zxp.dormrepair.controller.FileController(service, orders);
+
+        var e = org.junit.jupiter.api.Assertions.assertThrows(
+                com.zxp.dormrepair.common.BizException.class,
+                () -> controller.download(bound.id(), request));
+
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, e.status());
     }
 
     @Test
