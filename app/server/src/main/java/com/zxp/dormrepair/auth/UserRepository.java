@@ -23,5 +23,8 @@ public interface UserRepository {
 
     void insert(UserAccount user);
 
+    /** 创建师傅并写入其服务楼栋；第一个楼栋作为主责楼栋。 */
+    void insertWorkerWithBuildings(UserAccount user, java.util.List<String> buildings);
+
     void setPassword(String id, String passwordHash);
 }

@@ -29,6 +29,11 @@ public class InMemoryLoginAttemptRepository implements LoginAttemptRepository {
         attempts.remove(key);
     }
 
+    /** 测试专用：清除所有限流状态。 */
+    public void clearAll() {
+        attempts.clear();
+    }
+
     @Override
     public int deleteExpired(long nowMs) {
         int before = attempts.size();

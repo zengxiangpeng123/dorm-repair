@@ -410,3 +410,14 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 - 返修审查 UI 只读取 `review`/`reworkReview`，不得从前端自行推断审查状态。
 - 修改后端 DTO 或 Map 返回字段时，必须同步更新本文件、前端接口封装和接口测试。
 - 新照片只能提交 `/files` 返回的 ID；不得再生成 demo 协议占位地址。
+
+
+## 管理员人员管理
+
+| 方法 | 路径 | 权限 | 说明 |
+|---|---|---|---|
+| GET | `/api/v1/admin/users` | ADMIN | 列出人员账号，不返回口令哈希 |
+| POST | `/api/v1/admin/users` | ADMIN | 创建 STUDENT / WORKER / ADMIN；师傅必须提供服务楼栋 |
+| POST | `/api/v1/admin/users/{id}/password` | ADMIN | 重置口令，只保存 PBKDF2 哈希 |
+
+创建师傅时写入 `t_worker` 与 `t_worker_building`，第一个服务楼栋作为主责楼栋；所有写操作仅管理员可用。

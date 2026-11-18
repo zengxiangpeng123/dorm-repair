@@ -73,6 +73,14 @@ public interface UserMapper extends BaseMapper<UserRow> {
             """)
     int insertAdmin(UserRow row);
 
+    @Insert("""
+            INSERT INTO t_worker_building (worker_id,building_id,is_primary)
+            VALUES (#{workerId},#{buildingId},#{primary})
+            """)
+    int insertWorkerBuilding(@Param("workerId") String workerId,
+                             @Param("buildingId") String buildingId,
+                             @Param("primary") boolean primary);
+
     @Update("UPDATE t_student SET password_hash = #{hash} WHERE id = #{id}")
     int setStudentPassword(@Param("id") String id, @Param("hash") String hash);
 

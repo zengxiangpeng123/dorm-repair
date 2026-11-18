@@ -90,6 +90,23 @@ public class MybatisUserRepository implements UserRepository {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void insertWorkerWithBuildings(UserAccount u, java.util.List<String> buildings) {
+        UserRow row = new UserRow();
+        row.setId(u.id());
+        row.setRole(u.role().name());
+        row.setName(u.name());
+        row.setTeam(u.team());
+        row.setPhone(u.phone());
+        row.setActive(u.active());
+        row.setPassword(u.password());
+        mapper.insertWorker(row);
+        for (int i = 0; i < buildings.size(); i++) {
+            mapper.insertWorkerBuilding(u.id(), buildings.get(i), i == 0);
+        }
+    }
+
+    @Override
     public void setPassword(String id, String passwordHash) {
         int changed;
         if (id != null && id.startsWith("W")) {

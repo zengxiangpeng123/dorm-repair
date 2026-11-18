@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class InMemoryUserRepository implements UserRepository {
 
     private final Map<String, UserAccount> users = new ConcurrentHashMap<>();
+    private final Map<String, java.util.List<String>> workerBuildings = new ConcurrentHashMap<>();
 
     public InMemoryUserRepository() {
         String pw = PasswordHasher.demoHash();
@@ -71,6 +72,12 @@ public class InMemoryUserRepository implements UserRepository {
     /** 测试专用：模拟生产空库，避免依赖演示账号。 */
     public void clear() {
         users.clear();
+    }
+
+    @Override
+    public void insertWorkerWithBuildings(UserAccount user, java.util.List<String> buildings) {
+        users.put(user.id(), user);
+        workerBuildings.put(user.id(), new java.util.ArrayList<>(buildings));
     }
 
     @Override
