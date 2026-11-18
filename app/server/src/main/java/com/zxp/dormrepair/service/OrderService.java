@@ -247,12 +247,9 @@ public class OrderService {
     }
 
     public OrderView partsArrived(String no, TransitRequest req, Actor actor) {
+        // 采购事实必须保留到归档：超预算例外要能追溯“这笔钱确实花过”。
         return OrderView.of(state.transit(no, OrderEvent.PARTS_ARRIVED, actor,
-                "配件到货，回队列重排（定级不降）", req.version(), o -> {
-                    o.setPartsName(null);
-                    o.setPartsAmount(null);
-                    o.setPartsEta(null);
-                }));
+                "配件到货，回队列重排（定级不降）", req.version(), o -> { }));
     }
 
     // ------------------------------------------------------------ 8 / 9 验收
