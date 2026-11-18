@@ -81,7 +81,9 @@ WHERE NOT EXISTS (
     AND actual.COLUMN_NAME=c.COLUMN_NAME
 );
 "
-schema_errors="$(mysql --host="${DB_HOST:-127.0.0.1}" --user="$DB_USER" --password="$DB_PASSWORD" --batch --skip-column-names "$DB_NAME" -e "$schema_sql" 2>/dev/null || true)"
+ssl_cipher="$(mysql --host="${DB_HOST:-127.0.0.1}" --user="$DB_USER" --password="$DB_PASSWORD" --ssl-mode=REQUIRED --batch --skip-column-names -e "SHOW STATUS LIKE 'Ssl_cipher'" 2>/dev/null || true)"
+[ -n "$ssl_cipher" ] || fail "database TLS connection failed"
+schema_errors="$(mysql --host="${DB_HOST:-127.0.0.1}" --user="$DB_USER" --password="$DB_PASSWORD" --ssl-mode=REQUIRED --batch --skip-column-names "$DB_NAME" -e "$schema_sql" 2>/dev/null || true)"
 [ -z "$schema_errors" ] || fail "database schema incomplete: ${schema_errors//$'\n'/, }; run deploy/scripts/migrate.sh"
 
 echo "production preflight: PASS"

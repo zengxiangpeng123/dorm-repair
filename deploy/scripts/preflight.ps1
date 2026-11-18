@@ -68,6 +68,8 @@ WHERE NOT EXISTS (
 "@
 $env:MYSQL_PWD = $values['DB_PASSWORD']
 try {
+    $sslCheck = & $mysql.Source --host=$dbHost --user=$values['DB_USER'] --ssl-mode=REQUIRED --batch --skip-column-names --execute="SHOW STATUS LIKE 'Ssl_cipher'" 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not ($sslCheck -match 'Ssl_cipher\s+Ssl_cipher')) { Fail 'database TLS connection failed' }
     $schemaErrors = & $mysql.Source --host=$dbHost --user=$values['DB_USER'] --batch --skip-column-names $values['DB_NAME'] --execute=$schemaSql 2>$null
     if ($LASTEXITCODE -ne 0) { Fail 'could not inspect the production database schema' }
     if ($schemaErrors) { Fail ('database schema incomplete: ' + ($schemaErrors -join ', ') + '; run deploy/scripts/migrate.ps1') }
