@@ -973,7 +973,7 @@ def cg06():
 
     h1(doc, "五　构建与自测")
     table(doc, ["目标", "命令", "期望"], [
-        ["后端单测", "cd app\\server; mvn -B test", "Tests run: 18, Failures: 0"],
+        ["后端单测", "cd app\\server; mvn -B test", "Tests run: 20, Failures: 0"],
         ["后端打包", "mvn -q -DskipTests package", "target\\dorm-repair-server-1.0.0.jar"],
         ["AI 单测", "cd app\\ai; venv python -m pytest -q", "7 passed"],
         ["前端依赖", "cd app\\web; npm install", "119 包"],
