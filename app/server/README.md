@@ -1,6 +1,6 @@
 # app/server —— 正式项目后端（Spring Boot 4）
 
-当前已完成：状态机内核、15 表 MySQL 仓储、三角色 Bearer 鉴权、按楼栋派工、T1/T2、返修审查、Vue 12 页和端到端验收。AI 快速定级超时 1500ms，AI 挂了照样能建单。
+当前已完成：状态机内核、21 表 MySQL 仓储（20 张业务表 + 1 张迁移记录表）、三角色 Bearer 鉴权、按楼栋派工、T1/T2、返修审查、Vue 12 页和端到端验收。AI 快速定级超时 1500ms，AI 挂了照样能建单。
 
 ## 怎么跑
 
@@ -18,7 +18,7 @@ java -jar target/dorm-repair-server-1.0.0.jar
 ## 怎么证明它对
 
 ```bash
-mvn -q test                                    # 34 项：状态机、API、鉴权、返修审查、AI 兜底
+mvn -q test                                    # 70 项：状态机、API、鉴权、返修审查、AI 兜底
 pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：主链、非法边、乐观锁和权限
 pwsh -NoProfile -File tests/m2-mysql.ps1       # 16 项：真库落盘与重启
 pwsh -NoProfile -File tests/m3-ai.ps1          # 20 项：AI 接上与断线兜底
@@ -26,7 +26,7 @@ pwsh -NoProfile -File tests/m4-rework.ps1      # 26 项：兼容返修 + 新审�
 pwsh -NoProfile -File tests/m5-auth.ps1        # 36 项：真 Bearer Token 和角色权限
 ```
 
-期望：`Tests run: 34, Failures: 0`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
+期望：`Tests run: 70, Failures: 0`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
 
 ## 数据库（M2）
 
@@ -42,7 +42,7 @@ Copy-Item src\main\resources\db\data.sql  $tmp
 
 **坑：`source` 打不开中文路径**（`Failed to open file ... error: 42`），所以先复制到 `%TEMP%` 这种纯英文路径再 source。
 
-15 张表：`t_student` / `t_worker` / `t_admin` / `t_worker_building` / `t_building` / `t_building_floor` / `t_work_order` / `t_work_order_event` / `t_work_order_photo` / `t_part` / `t_part_request` / `t_rework_review` / `t_exception_record` / `t_config` / `t_seq`。兼容视图为 `v_user_account`。
+21 张表：`t_student` / `t_worker` / `t_admin` / `t_worker_building` / `t_auth_session` / `t_login_attempt` / `t_building` / `t_building_floor` / `t_work_order` / `t_work_order_event` / `t_work_order_photo` / `t_file` / `t_ai_review_task` / `t_part` / `t_part_request` / `t_rework_review` / `t_exception_record` / `t_config` / `t_idempotency_record` / `t_seq` / `t_schema_migration`。兼容视图为 `v_user_account`。
 
 想推倒重来就 `POST /api/v1/demo/reset`：清表 + 重灌 11 张单，返回 `{"deleted":N,"seeded":11,"orders":11}`。
 

@@ -33,9 +33,45 @@ case "$s3_endpoint" in https://*) ;; *) fail "APP_FILE_S3_ENDPOINT must use HTTP
 grep -q '^DB_USE_SSL=true' "$ENV_FILE" || fail "DB_USE_SSL must be true in production"
 
 echo "checking database schema (read-only)"
-if command -v mysql >/dev/null 2>&1; then
-  tables="$(mysql --host="${DB_HOST:-127.0.0.1}" --user="$DB_USER" --password="$DB_PASSWORD" --batch --skip-column-names "$DB_NAME" -e "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('t_auth_session','t_login_attempt','t_file','t_ai_review_task','t_rework_review','t_idempotency_record')" 2>/dev/null || true)"
-  [ "$(printf '%s\n' "$tables" | wc -l)" -ge 6 ] || fail "database migrations missing; run deploy/scripts/migrate.sh"
-fi
+command -v mysql >/dev/null 2>&1 || fail "mysql client is required to verify the production schema"
+schema_sql="
+SELECT CONCAT('MISSING_TABLE:', TABLE_NAME)
+FROM (
+  SELECT 't_student' TABLE_NAME UNION ALL SELECT 't_worker' UNION ALL SELECT 't_admin'
+  UNION ALL SELECT 't_worker_building' UNION ALL SELECT 't_auth_session'
+  UNION ALL SELECT 't_login_attempt' UNION ALL SELECT 't_building'
+  UNION ALL SELECT 't_building_floor' UNION ALL SELECT 't_work_order'
+  UNION ALL SELECT 't_work_order_event' UNION ALL SELECT 't_work_order_photo'
+  UNION ALL SELECT 't_file' UNION ALL SELECT 't_ai_review_task'
+  UNION ALL SELECT 't_part' UNION ALL SELECT 't_part_request'
+  UNION ALL SELECT 't_rework_review' UNION ALL SELECT 't_exception_record'
+  UNION ALL SELECT 't_config' UNION ALL SELECT 't_idempotency_record'
+  UNION ALL SELECT 't_seq'
+) required
+WHERE NOT EXISTS (
+  SELECT 1 FROM information_schema.TABLES actual
+  WHERE actual.TABLE_SCHEMA=DATABASE() AND actual.TABLE_NAME=required.TABLE_NAME
+    AND actual.TABLE_TYPE='BASE TABLE'
+);
+SELECT 'MISSING_VIEW:v_user_account'
+WHERE NOT EXISTS (
+  SELECT 1 FROM information_schema.VIEWS
+  WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='v_user_account'
+);
+SELECT CONCAT('MISSING_COLUMN:', c.TABLE_NAME, '.', c.COLUMN_NAME)
+FROM (
+  SELECT 't_work_order' TABLE_NAME, 'verify_due_at' COLUMN_NAME UNION ALL
+  SELECT 't_work_order', 'archive_due_at' UNION ALL
+  SELECT 't_file', 'cleanup_claimed_at' UNION ALL
+  SELECT 't_ai_review_task', 'latency_ms'
+) c
+WHERE NOT EXISTS (
+  SELECT 1 FROM information_schema.COLUMNS actual
+  WHERE actual.TABLE_SCHEMA=DATABASE() AND actual.TABLE_NAME=c.TABLE_NAME
+    AND actual.COLUMN_NAME=c.COLUMN_NAME
+);
+"
+schema_errors="$(mysql --host="${DB_HOST:-127.0.0.1}" --user="$DB_USER" --password="$DB_PASSWORD" --batch --skip-column-names "$DB_NAME" -e "$schema_sql" 2>/dev/null || true)"
+[ -z "$schema_errors" ] || fail "database schema incomplete: ${schema_errors//$'\n'/, }; run deploy/scripts/migrate.sh"
 
 echo "production preflight: PASS"

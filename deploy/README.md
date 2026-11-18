@@ -28,8 +28,8 @@ export DB_HOST=mysql DB_USER=dorm_app DB_PASSWORD='...' DB_NAME=dorm_repair
 
 Fresh Compose databases initialize only from `schema.sql`, which already represents the
 current structure. Existing databases use `deploy/scripts/migrate.sh`; never run both
-paths against the same database. The application checks required tables at startup and
-fails instead of serving with an incomplete schema. Never run destructive cleanup or delete `t_user`
+paths against the same database. The application checks the required tables, compatibility view, and critical columns at startup and
+fails instead of serving with an incomplete schema. The same read-only schema contract is enforced by `preflight.sh` and `preflight.ps1`. Never run destructive cleanup or delete `t_user`
 during the observation window.
 
 ## Build and start
