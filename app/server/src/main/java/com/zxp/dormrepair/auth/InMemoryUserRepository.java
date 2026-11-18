@@ -1,0 +1,55 @@
+package com.zxp.dormrepair.auth;
+
+import com.zxp.dormrepair.statemachine.ActorType;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+
+/**
+ * 内存人员表。跑 mvn test 时不连数据库，六个演示账号写死在这里，口令哈希是同一份。
+ */
+@Component
+@ConditionalOnProperty(name = "app.store", havingValue = "memory", matchIfMissing = true)
+public class InMemoryUserRepository implements UserRepository {
+
+    private final Map<String, UserAccount> users = new ConcurrentHashMap<>();
+
+    public InMemoryUserRepository() {
+        String pw = PasswordHasher.demoHash();
+        insert(new UserAccount("S001", ActorType.STUDENT, "张同学", null, "B7", "402", "13800000001", true, pw));
+        insert(new UserAccount("S002", ActorType.STUDENT, "李同学", null, "B7", "508", "13800000002", true, pw));
+        insert(new UserAccount("S003", ActorType.STUDENT, "王同学", null, "B8", "205", "13800000003", true, pw));
+        insert(new UserAccount("W0428", ActorType.WORKER, "李建国", "水电班", "B7", null, "13900000428", true, pw));
+        insert(new UserAccount("W0512", ActorType.WORKER, "王海涛", "综合班", "B8", null, "13900000512", true, pw));
+        insert(new UserAccount("A001", ActorType.ADMIN, "王主任", null, null, null, "13700000001", true, pw));
+    }
+
+    @Override
+    public Optional<UserAccount> find(String id) {
+        return id == null ? Optional.empty() : Optional.ofNullable(users.get(id));
+    }
+
+    @Override
+    public List<UserAccount> all() {
+        return users.values().stream().sorted((a, b) -> a.id().compareTo(b.id())).toList();
+    }
+
+    @Override
+    public long count() {
+        return users.size();
+    }
+
+    @Override
+    public void insert(UserAccount user) {
+        users.put(user.id(), user);
+    }
+
+    @Override
+    public void setPassword(String id, String passwordHash) {
+        users.computeIfPresent(id, (k, u) -> new UserAccount(u.id(), u.role(), u.name(), u.team(),
+                u.building(), u.room(), u.phone(), u.active(), passwordHash));
+    }
+}
