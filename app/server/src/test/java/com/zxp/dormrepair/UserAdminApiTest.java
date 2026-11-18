@@ -69,6 +69,27 @@ class UserAdminApiTest {
         assertEquals(403, r.status, r.body);
     }
 
+    @Test
+    @DisplayName("管理员重置口令后旧会话立即失效，新口令可登录")
+    void passwordResetRevokesExistingSessions() throws Exception {
+        String admin = login("A001", "dorm@2026");
+        Resp created = send("POST", "/admin/users",
+                "{\"id\":\"W9002\",\"role\":\"WORKER\",\"name\":\"重置测试师傅\",\"team\":\"综合班\",\"buildings\":[\"B7\"],\"password\":\"Old-Worker-2026\"}",
+                admin);
+        assertEquals(200, created.status, created.body);
+        String oldToken = login("W9002", "Old-Worker-2026");
+
+        Resp reset = send("POST", "/admin/users/W9002/password",
+                "{\"password\":\"New-Worker-2026\"}", admin);
+        assertEquals(200, reset.status, reset.body);
+        assertTrue(reset.body.contains("revokedSessions"));
+
+        Resp oldAccess = send("GET", "/my/orders", null, oldToken);
+        assertEquals(401, oldAccess.status, oldAccess.body);
+        assertEquals(200, send("POST", "/auth/login",
+                "{\"account\":\"W9002\",\"password\":\"New-Worker-2026\"}", null).status);
+    }
+
     private String login(String account, String password) throws Exception {
         Resp r = send("POST", "/auth/login",
                 "{\"account\":\"" + account + "\",\"password\":\"" + password + "\"}", null);

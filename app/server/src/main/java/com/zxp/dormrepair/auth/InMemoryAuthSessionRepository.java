@@ -40,6 +40,20 @@ public class InMemoryAuthSessionRepository implements AuthSessionRepository {
     }
 
     @Override
+    public int revokeAccount(String account, long nowMs) {
+        int changed = 0;
+        for (var entry : rows.entrySet()) {
+            Row row = entry.getValue();
+            if (account.equals(row.session().account()) && row.revokedAtMs() == 0
+                    && row.session().expiresAtMs() > nowMs) {
+                rows.put(entry.getKey(), new Row(row.session(), nowMs));
+                changed++;
+            }
+        }
+        return changed;
+    }
+
+    @Override
     public int deleteExpired(long nowMs) {
         int before = rows.size();
         rows.entrySet().removeIf(e -> e.getValue().revokedAtMs() > 0

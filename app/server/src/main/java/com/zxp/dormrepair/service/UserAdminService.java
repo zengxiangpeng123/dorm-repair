@@ -3,6 +3,7 @@ package com.zxp.dormrepair.service;
 import com.zxp.dormrepair.auth.PasswordHasher;
 import com.zxp.dormrepair.auth.UserAccount;
 import com.zxp.dormrepair.auth.UserRepository;
+import com.zxp.dormrepair.auth.TokenStore;
 import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.dto.UserCreateRequest;
 import com.zxp.dormrepair.statemachine.ActorType;
@@ -16,9 +17,11 @@ import org.springframework.stereotype.Service;
 public class UserAdminService {
 
     private final UserRepository users;
+    private final TokenStore tokens;
 
-    public UserAdminService(UserRepository users) {
+    public UserAdminService(UserRepository users, TokenStore tokens) {
         this.users = users;
+        this.tokens = tokens;
     }
 
     public Map<String, Object> list() {
@@ -71,6 +74,7 @@ public class UserAdminService {
         }
         users.find(id).orElseThrow(() -> BizException.notFound("账号不存在：" + id));
         users.setPassword(id, PasswordHasher.hash(password));
-        return Map.of("id", id, "passwordReset", true);
+        int revokedSessions = tokens.revokeAccount(id);
+        return Map.of("id", id, "passwordReset", true, "revokedSessions", revokedSessions);
     }
 }

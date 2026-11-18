@@ -51,6 +51,11 @@ public class MybatisAuthSessionRepository implements AuthSessionRepository {
     }
 
     @Override
+    public int revokeAccount(String account, long nowMs) {
+        return mapper.revokeAccount(account, nowMs);
+    }
+
+    @Override
     public int deleteExpired(long nowMs) {
         return mapper.deleteExpired(nowMs);
     }

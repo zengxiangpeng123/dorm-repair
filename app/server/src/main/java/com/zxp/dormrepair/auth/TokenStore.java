@@ -80,6 +80,10 @@ public class TokenStore {
         return sessions.deleteExpired(System.currentTimeMillis());
     }
 
+    public int revokeAccount(String account) {
+        return sessions.revokeAccount(account, System.currentTimeMillis());
+    }
+
     public int size() {
         return sessions.count();
     }

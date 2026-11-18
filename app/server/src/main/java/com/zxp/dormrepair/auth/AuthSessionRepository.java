@@ -16,6 +16,9 @@ public interface AuthSessionRepository {
 
     void revoke(String tokenHash, long nowMs);
 
+    /** 撤销某账号全部活动会话；用于停用、改密等权限回收。 */
+    int revokeAccount(String account, long nowMs);
+
     int deleteExpired(long nowMs);
 
     int count();
