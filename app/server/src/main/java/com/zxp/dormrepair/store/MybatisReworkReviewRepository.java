@@ -21,7 +21,9 @@ public class MybatisReworkReviewRepository implements ReworkReviewRepository {
 
     @Override
     public ReworkReview createRequest(String orderNo, String requestedBy, String reason, String at) {
+        // 调用方已在事务内锁原单；同一工单的并发申请会在此串行。
         ReworkReviewRow row = new ReworkReviewRow();
+        mapper.lockOrder(orderNo);
         row.setOrderNo(orderNo);
         row.setAttemptNo(mapper.nextAttemptNo(orderNo));
         row.setReworkIndex(null);

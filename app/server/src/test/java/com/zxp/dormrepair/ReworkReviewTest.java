@@ -88,6 +88,38 @@ class ReworkReviewTest {
     }
 
     @Test
+    @DisplayName("同一工单并发申请返修只产生一个 PENDING")
+    void concurrentRequestsDoNotCreateDuplicatePendingReviews() throws Exception {
+        WorkOrder original = verifyingOrder();
+        Actor student = actor(ActorType.STUDENT, original.getStudentId(), original.getStudentName());
+        int version = original.getVersion();
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            java.util.concurrent.Callable<Object> call = () -> {
+                start.await();
+                try {
+                    return orders.requestRework(original.getNo(),
+                            new ReworkRequestCreate(version, "并发申请测试，确认审查唯一"), student);
+                } catch (BizException e) {
+                    return e;
+                }
+            };
+            var f1 = pool.submit(call);
+            var f2 = pool.submit(call);
+            start.countDown();
+            Object r1 = f1.get(10, java.util.concurrent.TimeUnit.SECONDS);
+            Object r2 = f2.get(10, java.util.concurrent.TimeUnit.SECONDS);
+            long successes = java.util.stream.Stream.of(r1, r2).filter(Map.class::isInstance).count();
+            assertEquals(1, successes);
+            assertEquals(1, reviews.pending().stream()
+                    .filter(r -> r.orderNo().equals(original.getNo())).count());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     @DisplayName("管理员驳回误报后状态不变，再次申请产生新的 attemptNo")
     void rejectKeepsVerifyingAndAllowsNewAttempt() {
         WorkOrder original = verifyingOrder();
