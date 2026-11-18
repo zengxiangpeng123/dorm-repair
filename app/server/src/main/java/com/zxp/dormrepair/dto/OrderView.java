@@ -55,7 +55,12 @@ public record OrderView(
         CancelRequest hit = null;
         for (OrderEventLog e : o.getEvents()) {
             if (e.event() == com.zxp.dormrepair.statemachine.OrderEvent.CANCEL_REQUEST) {
-                hit = new CancelRequest(e.at(), e.actorName(), e.note());
+                String why = e.note() == null ? "" : e.note();
+                // 事件 note 里带了「申请撤销：」前缀，出参只要原因本身，别让界面再说两遍
+                if (why.startsWith("申请撤销：")) {
+                    why = why.substring("申请撤销：".length());
+                }
+                hit = new CancelRequest(e.at(), e.actorName(), why);
             }
         }
         return hit;

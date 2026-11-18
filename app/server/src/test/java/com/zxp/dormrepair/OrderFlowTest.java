@@ -1,6 +1,7 @@
 package com.zxp.dormrepair;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
@@ -152,6 +153,12 @@ class OrderFlowTest {
                 "{\"version\":3,\"reason\":\"我等不了\"}", "student", "S001");
         assertEquals(202, apply.status);
         assertEquals("REPAIRING", apply.data().get("status").asText(), "申请撤销不改状态");
+
+        JsonNode cr = apply.data().get("cancelRequest");
+        assertNotNull(cr, "申请撤销要能在工单视图里看见，否则师傅照样白跑");
+        assertEquals("我等不了", cr.get("reason").asText());
+        assertEquals("REPAIRING", call("GET", "/orders/" + b, null, "worker", "W0428")
+                .data().get("status").asText(), "重新查一遍也还是维修中");
     }
 
     @Test
