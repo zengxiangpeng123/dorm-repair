@@ -10,6 +10,9 @@ public interface FileRepository {
     List<FileRecord> findByIds(List<String> ids);
     void bind(String id, String orderNo, String kind);
 
+    /** 只绑定尚未归属工单的文件；任一张已被占用时整批失败。 */
+    void bindAll(List<String> ids, String orderNo, String kind);
+
     /** 返回创建时间早于 cutoff、且尚未绑定工单的候选文件。 */
     List<FileRecord> findUnboundCreatedBefore(String cutoff, int limit);
 

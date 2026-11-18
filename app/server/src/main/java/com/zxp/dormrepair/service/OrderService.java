@@ -68,6 +68,7 @@ public class OrderService {
 
     // ---------------------------------------------------------------- 1 建单
 
+    @Transactional
     public OrderView submit(SubmitRequest req, Actor actor) {
         StateMachine.assertCanTrigger(OrderEvent.SUBMIT, actor.type());
         List<String> beforePhotoIds = bindPhotos(req.photoIdsBefore(), req.photosBefore(), "BEFORE", actor);
@@ -109,7 +110,7 @@ public class OrderService {
                 actor.type().name(), actor.id(), actor.name(), actor.type().manual(),
                 "提交报修：" + desc));
         store.save(o);
-        beforePhotoIds.forEach(id -> files.bind(id, o.getNo(), "BEFORE"));
+        files.bindAll(beforePhotoIds, o.getNo(), "BEFORE");
         if (autoAssign) {
             // 派工是系统动作，由后端在提交事务内完成；学生端不再调用 /assign。
             assign(o.getNo(), new TransitRequest(null, null, null, null, null, null,
@@ -208,6 +209,7 @@ public class OrderService {
 
     // ------------------------------------------------- 5 / 6 完工与登记缺件
 
+    @Transactional
     public OrderView finish(String no, TransitRequest req, Actor actor) {
         guard(no, OrderEvent.FINISH, actor);
         List<String> afterPhotoIds = bindPhotos(req.photoIdsAfter(), req.photosAfter(), "AFTER", actor);
@@ -222,7 +224,7 @@ public class OrderService {
                     o.setFinishAt(at);
                     o.setVerifyDueAt(plusHours(at, config.verifyHours()));
                 });
-        afterPhotoIds.forEach(id -> files.bind(id, no, "AFTER"));
+        files.bindAll(afterPhotoIds, no, "AFTER");
         return OrderView.of(updated);
     }
 

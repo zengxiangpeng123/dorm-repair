@@ -67,6 +67,21 @@ public class MybatisFileRepository implements FileRepository {
     }
 
     @Override
+    public void bindAll(List<String> ids, String orderNo, String kind) {
+        if (ids == null || ids.isEmpty()) return;
+        for (String id : ids) {
+            int updated = mapper.update(null, new LambdaUpdateWrapper<FileRecordRow>()
+                    .eq(FileRecordRow::getId, id)
+                    .isNull(FileRecordRow::getOrderNo)
+                    .set(FileRecordRow::getOrderNo, orderNo)
+                    .set(FileRecordRow::getKind, kind));
+            if (updated != 1) {
+                throw BizException.precondition("照片已被其他请求绑定，请重新选择", "FILE_ALREADY_BOUND");
+            }
+        }
+    }
+
+    @Override
     public List<FileRecord> findUnboundCreatedBefore(String cutoff, int limit) {
         return mapper.selectList(new LambdaQueryWrapper<FileRecordRow>()
                         .isNull(FileRecordRow::getOrderNo)

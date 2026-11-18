@@ -56,6 +56,12 @@ public class InMemoryFileRepository implements FileRepository {
     }
 
     @Override
+    public void bindAll(List<String> ids, String orderNo, String kind) {
+        if (ids == null || ids.isEmpty()) return;
+        for (String id : ids) bind(id, orderNo, kind);
+    }
+
+    @Override
     public List<FileRecord> findUnboundCreatedBefore(String cutoff, int limit) {
         long cutoffMs = TimeUtil.epochMs(cutoff);
         return files.values().stream()
