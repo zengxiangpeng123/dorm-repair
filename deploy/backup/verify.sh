@@ -14,4 +14,10 @@ host=$DB_HOST
 user=$DB_USER
 password=$DB_PASSWORD
 EOF
-mysql --defaults-extra-file="$CNF" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME'" "$DB_NAME"
+tables="$(mysql --defaults-extra-file="$CNF" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME' AND table_type='BASE TABLE'" "$DB_NAME")"
+orders="$(mysql --defaults-extra-file="$CNF" -N "$DB_NAME" -e "SELECT COUNT(*) FROM t_work_order")"
+if [ "${tables:-0}" -lt 20 ]; then
+  echo "verify failed: expected at least 20 base tables, got ${tables:-0}" >&2
+  exit 1
+fi
+printf 'database=%s tables=%s orders=%s\n' "$DB_NAME" "$tables" "$orders"
