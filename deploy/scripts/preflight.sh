@@ -18,6 +18,7 @@ required=(
   DB_ROOT_PASSWORD DB_USER DB_PASSWORD DB_NAME
   APP_FILE_S3_ENDPOINT APP_FILE_S3_BUCKET
   AI_BASE_URL AI_MODEL AI_API_KEY
+  BOOTSTRAP_ADMIN_ACCOUNT BOOTSTRAP_ADMIN_NAME BOOTSTRAP_ADMIN_PASSWORD
 )
 for key in "${required[@]}"; do
   value="$(grep -E "^$key=" "$ENV_FILE" | tail -n1 | cut -d= -f2- || true)"

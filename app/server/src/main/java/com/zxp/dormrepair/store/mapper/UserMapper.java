@@ -37,6 +37,14 @@ public interface UserMapper extends BaseMapper<UserRow> {
     String findPrimaryBuilding(@Param("workerId") String workerId);
 
     @Select("""
+            SELECT
+              (SELECT COUNT(*) FROM t_student WHERE #{role}='STUDENT') +
+              (SELECT COUNT(*) FROM t_worker  WHERE #{role}='WORKER') +
+              (SELECT COUNT(*) FROM t_admin   WHERE #{role}='ADMIN')
+            """)
+    Long countByRole(@Param("role") String role);
+
+    @Select("""
             SELECT COUNT(*)
             FROM t_worker_building wb
             JOIN t_worker w ON w.id = wb.worker_id

@@ -15,7 +15,7 @@ $values = @{}
 Get-Content $envPath | ForEach-Object {
     if ($_ -match '^([A-Z0-9_]+)=(.*)$') { $values[$matches[1]] = $matches[2] }
 }
-$required = @('DB_ROOT_PASSWORD','DB_USER','DB_PASSWORD','DB_NAME','APP_FILE_S3_ENDPOINT','APP_FILE_S3_BUCKET','AI_BASE_URL','AI_MODEL','AI_API_KEY')
+$required = @('DB_ROOT_PASSWORD','DB_USER','DB_PASSWORD','DB_NAME','APP_FILE_S3_ENDPOINT','APP_FILE_S3_BUCKET','AI_BASE_URL','AI_MODEL','AI_API_KEY','BOOTSTRAP_ADMIN_ACCOUNT','BOOTSTRAP_ADMIN_NAME','BOOTSTRAP_ADMIN_PASSWORD')
 foreach ($key in $required) {
     $value = $values[$key]
     if ([string]::IsNullOrWhiteSpace($value)) { Fail "$key is empty" }

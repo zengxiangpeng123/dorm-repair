@@ -43,6 +43,11 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public long countByRole(ActorType role) {
+        return users.values().stream().filter(u -> u.role() == role).count();
+    }
+
+    @Override
     public Optional<UserAccount> findWorkerForBuilding(String buildingId) {
         return users.values().stream()
                 .filter(u -> u.role() == ActorType.WORKER && buildingId != null
@@ -61,6 +66,11 @@ public class InMemoryUserRepository implements UserRepository {
     @Override
     public void insert(UserAccount user) {
         users.put(user.id(), user);
+    }
+
+    /** 测试专用：模拟生产空库，避免依赖演示账号。 */
+    public void clear() {
+        users.clear();
     }
 
     @Override

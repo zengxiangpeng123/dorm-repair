@@ -10,6 +10,13 @@ secrets, S3, migrations, and restore drills are verified on the target host.
 - TLS certificate and key in `deploy/certs/tls.crt` and `deploy/certs/tls.key`
 - `deploy/.env.production` copied from `.env.production.example` and filled from a secret manager
 
+## First administrator
+
+A new production database has no accounts. Set `BOOTSTRAP_ADMIN_ACCOUNT`,
+`BOOTSTRAP_ADMIN_NAME`, and `BOOTSTRAP_ADMIN_PASSWORD` (at least 12 characters) for
+the first start only. The initializer runs only when the administrator table is empty;
+remove the password from the deployment environment after the account is created.
+
 ## Database migration
 
 Back up the database before every release. Existing databases must run:

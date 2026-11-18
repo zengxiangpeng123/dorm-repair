@@ -32,6 +32,10 @@ app:
   store: ${APP_STORE:mysql}
   # 演示数据与演示接口默认关闭；只有测试/演示环境显式打开。
   demo: ${APP_DEMO:false}
+  bootstrap-admin:
+    account: ${BOOTSTRAP_ADMIN_ACCOUNT:}
+    name: ${BOOTSTRAP_ADMIN_NAME:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
   auth:
     ttl-hours: ${APP_AUTH_TTL_HOURS:8}
     login-max-failures: ${APP_AUTH_LOGIN_MAX_FAILURES:5}

@@ -46,6 +46,12 @@ public class MybatisUserRepository implements UserRepository {
     }
 
     @Override
+    public long countByRole(ActorType role) {
+        Long n = mapper.countByRole(role.name());
+        return n == null ? 0 : n;
+    }
+
+    @Override
     public Optional<UserAccount> findWorkerForBuilding(String buildingId) {
         if (buildingId == null || buildingId.isBlank()) {
             return Optional.empty();

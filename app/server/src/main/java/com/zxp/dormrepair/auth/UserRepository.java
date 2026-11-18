@@ -14,6 +14,8 @@ public interface UserRepository {
 
     long count();
 
+    long countByRole(com.zxp.dormrepair.statemachine.ActorType role);
+
     Optional<UserAccount> findWorkerForBuilding(String buildingId);
 
     /** 指定师傅派工时校验其服务范围，避免跨楼栋误派。 */
