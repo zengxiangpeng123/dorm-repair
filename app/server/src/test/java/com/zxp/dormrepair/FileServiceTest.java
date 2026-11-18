@@ -66,6 +66,32 @@ class FileServiceTest {
         assertEquals("FILE_TYPE_MISMATCH", e.extra().get("reason"));
     }
 
+    @Test
+    @DisplayName("元数据落库失败时补偿删除已写入对象")
+    void deletesObjectWhenMetadataWriteFails() throws Exception {
+        var storage = new InMemoryFileStorage();
+        var failingRepository = new InMemoryFileRepository() {
+            @Override
+            public FileRecord create(String objectKey, String originalName, String mime, long byteSize,
+                                     String sha256, String uploadedBy, String purpose) {
+                throw new IllegalStateException("数据库暂时不可用");
+            }
+        };
+        var service = new FileService(storage, failingRepository);
+
+        IllegalStateException error = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> service.upload(png("orphan.png"), student, "BEFORE"));
+
+        assertEquals("数据库暂时不可用", error.getMessage());
+        var objects = storage.getClass().getDeclaredFields();
+        assertEquals(1, objects.length);
+        var field = objects[0];
+        field.setAccessible(true);
+        var stored = (java.util.Map<?, ?>) field.get(storage);
+        assertTrue(stored.isEmpty(), "失败上传不应留下无元数据对象");
+    }
+
     private static MockMultipartFile png(String name) throws Exception {
         BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
         ByteArrayOutputStream out = new ByteArrayOutputStream();

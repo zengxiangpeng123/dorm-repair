@@ -57,7 +57,17 @@ public class FileService {
                 + java.util.UUID.randomUUID() + "." + ext;
         String sha256 = sha256(bytes);
         storage.put(objectKey, new java.io.ByteArrayInputStream(bytes), bytes.length, detected);
-        return repository.create(objectKey, original, detected, bytes.length, sha256, actor.id(), purpose);
+        try {
+            return repository.create(objectKey, original, detected, bytes.length, sha256, actor.id(), purpose);
+        } catch (RuntimeException error) {
+            // 元数据落库失败时对象已写入；清理任务看不到这条记录，必须立即补偿删除。
+            try {
+                storage.delete(objectKey);
+            } catch (RuntimeException cleanupError) {
+                error.addSuppressed(cleanupError);
+            }
+            throw error;
+        }
     }
 
     public FileRecord require(String id) {
