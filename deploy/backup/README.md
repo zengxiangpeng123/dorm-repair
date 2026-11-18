@@ -8,7 +8,7 @@ dump also backs up S3 objects.
 export DB_HOST=mysql DB_USER=dorm_app DB_PASSWORD='...' DB_NAME=dorm_repair
 ./backup.sh
 ./verify.sh
-./restore.sh /backup/dorm_repair-YYYYMMDD-HHMMSS.sql.gz
+RESTORE_CONFIRM=dorm_repair ./restore.sh /backup/dorm_repair-YYYYMMDD-HHMMSS.sql.gz
 ```
 
 Run a restore drill against a separate database before production. Keep at least 14 daily
