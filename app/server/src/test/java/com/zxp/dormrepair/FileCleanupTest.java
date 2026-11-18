@@ -59,6 +59,45 @@ class FileCleanupTest {
         assertNull(repo.find(stale.id()).orElse(null));
     }
 
+    @Test
+    @DisplayName("对象已不存在时清理仍完成元数据收口")
+    void cleanupCompletesWhenObjectAlreadyMissing() throws Exception {
+        var repo = new InMemoryFileRepository();
+        var storage = new InMemoryFileStorage();
+        var files = new FileService(storage, repo);
+        var cleanup = new FileCleanupService(repo, storage, 1, 100);
+        Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
+        FileRecord old = files.upload(png("already-gone.png"), student, "BEFORE");
+        storage.delete(old.objectKey());
+
+        var result = cleanup.sweep("2099-01-01 00:00:00");
+
+        assertEquals(1, result.get("deleted"));
+        assertNull(repo.find(old.id()).orElse(null));
+    }
+
+    @Test
+    @DisplayName("对象删除失败时释放租约，下一轮可重试")
+    void failedObjectDeleteIsRetryable() throws Exception {
+        var repo = new InMemoryFileRepository();
+        var storage = new InMemoryFileStorage() {
+            @Override
+            public void delete(String objectKey) {
+                throw new IllegalStateException("对象存储暂时不可用");
+            }
+        };
+        var files = new FileService(storage, repo);
+        var cleanup = new FileCleanupService(repo, storage, 1, 100);
+        Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
+        FileRecord old = files.upload(png("retry.png"), student, "BEFORE");
+
+        var result = cleanup.sweep("2099-01-01 00:00:00");
+
+        assertEquals(1, result.get("failed"));
+        assertNotNull(repo.find(old.id()).orElse(null));
+        assertTrue(repo.claimForCleanup(old.id(), "2099-01-02 00:00:00"));
+    }
+
     private static MockMultipartFile png(String name) throws Exception {
         BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
         ByteArrayOutputStream out = new ByteArrayOutputStream();

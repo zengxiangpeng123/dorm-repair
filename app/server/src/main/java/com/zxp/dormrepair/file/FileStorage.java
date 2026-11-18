@@ -10,6 +10,7 @@ public interface FileStorage {
 
     Optional<StoredObject> open(String objectKey);
 
+    /** 删除对象；对象本来就不存在也应视为成功，保证清理可重入。 */
     void delete(String objectKey);
 
     /** 供就绪探针确认存储后端当前可访问；失败必须抛异常。 */
