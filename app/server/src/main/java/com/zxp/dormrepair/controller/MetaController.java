@@ -55,7 +55,10 @@ public class MetaController {
 
     @GetMapping("/health")
     public Map<String, Object> health() {
-        return ApiResponses.ok(Map.of("status", "UP", "orders", store.size()));
+        if (demo) {
+            return ApiResponses.ok(Map.of("status", "UP", "orders", store.size()));
+        }
+        return ApiResponses.ok(Map.of("status", "UP"));
     }
 
     @GetMapping("/meta")
