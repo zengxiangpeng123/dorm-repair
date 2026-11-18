@@ -103,6 +103,20 @@ class AuthTest {
     }
 
     @Test
+    @DisplayName("同一来源轮换账号也会触发来源维度总限流")
+    void sourceWideFailureLimitBlocksAccountRotation() {
+        var repo = new com.zxp.dormrepair.auth.InMemoryLoginAttemptRepository();
+        var throttle = new com.zxp.dormrepair.auth.LoginThrottle(repo, 5, 15, 3);
+        throttle.failure("S001", "10.0.0.8");
+        throttle.failure("S002", "10.0.0.8");
+        throttle.failure("S003", "10.0.0.8");
+        var error = org.junit.jupiter.api.Assertions.assertThrows(
+                com.zxp.dormrepair.common.BizException.class,
+                () -> throttle.check("S004", "10.0.0.8"));
+        assertEquals("LOGIN_RATE_LIMITED", error.code());
+    }
+
+    @Test
     @DisplayName("连续失败登录会被限流，成功登录会清零")
     void loginFailuresAreRateLimited() throws Exception {
         for (int i = 0; i < 5; i++) {

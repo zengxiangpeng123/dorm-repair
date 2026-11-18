@@ -40,6 +40,7 @@ app:
     ttl-hours: ${APP_AUTH_TTL_HOURS:8}
     login-max-failures: ${APP_AUTH_LOGIN_MAX_FAILURES:5}
     login-block-minutes: ${APP_AUTH_LOGIN_BLOCK_MINUTES:15}
+    login-source-max-failures: ${APP_AUTH_LOGIN_SOURCE_MAX_FAILURES:20}
     session-cleanup-minutes: ${APP_AUTH_SESSION_CLEANUP_MINUTES:60}
     # 仅测试脚本允许 X-Actor-*；生产 profile 会拒绝该开关。
     allow-header: ${APP_AUTH_ALLOW_HEADER:false}
