@@ -11,7 +11,7 @@ import com.zxp.dormrepair.dto.TransitRequest;
 import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.statemachine.StateMachine;
-import com.zxp.dormrepair.store.OrderStore;
+import com.zxp.dormrepair.store.OrderRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -22,10 +22,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class OrderService {
 
-    private final OrderStore store;
+    private final OrderRepository store;
     private final OrderStateService state;
 
-    public OrderService(OrderStore store, OrderStateService state) {
+    public OrderService(OrderRepository store, OrderStateService state) {
         this.store = store;
         this.state = state;
     }
@@ -52,8 +52,8 @@ public class OrderService {
         o.setRoom(isBlank(req.room()) ? "402" : req.room());
         o.setStudentId(actor.id());
         o.setStudentName(actor.name());
-        o.setDesc(desc);
-        o.setWindow(isBlank(req.window()) ? "全天（08:00-22:00）" : req.window());
+        o.setDescription(desc);
+        o.setVisitWindow(isBlank(req.window()) ? "全天（08:00-22:00）" : req.window());
         o.setPhotosBefore(req.photosBefore());
         o.setCategory(isBlank(req.category()) ? "给排水" : req.category());
         o.setLevelSource("DEFAULT");

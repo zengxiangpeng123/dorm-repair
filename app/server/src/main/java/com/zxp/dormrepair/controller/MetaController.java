@@ -6,7 +6,8 @@ import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.statemachine.StateMachine;
 import com.zxp.dormrepair.statemachine.TransitionTable;
-import com.zxp.dormrepair.store.OrderStore;
+import com.zxp.dormrepair.service.SeedService;
+import com.zxp.dormrepair.store.OrderRepository;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,10 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class MetaController {
 
-    private final OrderStore store;
+    private final OrderRepository store;
+    private final SeedService seeder;
 
-    public MetaController(OrderStore store) {
+    public MetaController(OrderRepository store, SeedService seeder) {
         this.store = store;
+        this.seeder = seeder;
     }
 
     @GetMapping("/health")
@@ -79,11 +82,15 @@ public class MetaController {
         return ApiResponses.ok(Map.of("items", items, "total", items.size()));
     }
 
-    /** 演示用：清空内存数据。M2 换成清表 + 重灌种子。 */
+    /** 演示用：清空再重灌一套演示数据（内存库和 MySQL 同一个动作）。 */
     @PostMapping("/demo/reset")
     public Map<String, Object> reset() {
         int before = store.size();
-        store.clear();
-        return ApiResponses.ok(Map.of("deleted", before, "orders", store.size()));
+        int after = seeder.reset();
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("deleted", before);
+        m.put("seeded", after);
+        m.put("orders", store.size());
+        return ApiResponses.ok(m);
     }
 }

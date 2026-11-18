@@ -12,15 +12,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * M1 的内存仓库。M2 换成 MyBatis-Plus 之后，外面的 service 一行都不用改。
+ * 内存仓库。{@code app.store=memory} 时生效（默认，也是单元测试用的那套）。
+ *
+ * <p>换成 MySQL 只需要把配置写成 {@code app.store=mysql}，service 一行都不用改。
  *
  * <p>并发只做两件事：每张单一把锁（同一张单串行）+ version 比对（旧版本写不进去）。
  */
 @Component
-public class OrderStore {
+@ConditionalOnProperty(name = "app.store", havingValue = "memory", matchIfMissing = true)
+public class OrderStore implements OrderRepository {
 
     private final Map<String, WorkOrder> byNo = new ConcurrentHashMap<>();
     private final AtomicLong eventSeq = new AtomicLong();
@@ -120,8 +124,8 @@ public class OrderStore {
         c.setRoom(o.getRoom());
         c.setStudentId(o.getStudentId());
         c.setStudentName(o.getStudentName());
-        c.setDesc(o.getDesc());
-        c.setWindow(o.getWindow());
+        c.setDescription(o.getDescription());
+        c.setVisitWindow(o.getVisitWindow());
         c.setPhotosBefore(new ArrayList<>(o.getPhotosBefore()));
         c.setPhotosAfter(new ArrayList<>(o.getPhotosAfter()));
         c.setCategory(o.getCategory());

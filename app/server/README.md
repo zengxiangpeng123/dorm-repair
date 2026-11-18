@@ -1,6 +1,6 @@
 # app/server —— 正式项目后端（Spring Boot 4）
 
-M1 已完成：状态机内核 + 一条链 + 13 条命令骨架。M2 接 MySQL，M3 接 Python AI，M4 配 Vue 前端。
+M1 已完成：状态机内核 + 一条链 + 13 条命令骨架。M2 已完成：MySQL 8 + MyBatis-Plus 仓储，重启数据还在。M3 接 Python AI，M4 配 Vue 前端。
 
 ## 怎么跑
 
@@ -11,17 +11,37 @@ java -jar target/dorm-repair-server-1.0.0.jar
 ```
 
 - 端口 **8080**（`server.port`，改它别改代码）
-- 现在数据在内存里，**重启就清空**（M2 换成 MySQL 后不再清）
-- 环境：JDK 17、Maven、Spring Boot 4.0.9、Spring Framework 7.0.10
+- 默认连本机 MySQL：`dorm_repair` 库，`root/123456`，可用环境变量改：`DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`
+- **`APP_STORE=mysql`（默认）走数据库，`APP_STORE=memory` 走内存**（内存只用来跑单测和临时演示，重启就没了）
+- 环境：JDK 17、Maven、Spring Boot 4.0.9、Spring Framework 7.0.10、MyBatis-Plus 3.5.18.1、MySQL 8.0.41
 
 ## 怎么证明它对
 
 ```bash
-mvn -q test                                    # 14 项：7 项白盒状态机 + 7 项黑盒接口
+mvn -q test                                    # 14 项：7 项白盒状态机 + 7 项黑盒接口（内存仓库，不碰数据库）
 pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：打真服务，跑一条链 + 该拒的都拒
+pwsh -NoProfile -File tests/m2-mysql.ps1       # 16 项：打真库，含"杀进程重启后数据还在"
 ```
 
-期望：`Tests run: 14, Failures: 0` 与 `结果：13 通过 / 0 失败`。
+期望：`Tests run: 14, Failures: 0`、`结果：13 通过 / 0 失败`、`结果：16 通过 / 0 失败`。
+
+## 数据库（M2）
+
+建库建表 + 灌演示数据：
+
+```powershell
+$tmp = Join-Path $env:TEMP 'dormdb'; New-Item -ItemType Directory -Force $tmp | Out-Null
+Copy-Item src\main\resources\db\schema.sql $tmp
+Copy-Item src\main\resources\db\data.sql  $tmp
+& 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe' -uroot -p123456 --default-character-set=utf8mb4 -e "source $tmp/schema.sql"
+& 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe' -uroot -p123456 --default-character-set=utf8mb4 -e "source $tmp/data.sql"
+```
+
+**坑：`source` 打不开中文路径**（`Failed to open file ... error: 42`），所以先复制到 `%TEMP%` 这种纯英文路径再 source。
+
+10 张表：`t_user` / `t_building` / `t_work_order` / `t_work_order_event` / `t_work_order_photo` / `t_part` / `t_part_request` / `t_exception_record` / `t_config` / `t_seq`（业务表 8 张，不用外键、不用 JSON 列、时间统一 DATETIME）。
+
+想推倒重来就 `POST /api/v1/demo/reset`：清表 + 重灌 6 张单，返回 `{"deleted":N,"seeded":6,"orders":6}`。
 
 ## 接口（M1 已经有）
 
@@ -44,7 +64,7 @@ pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：打真服务，跑一�
 | GET | `/api/v1/meta` | 9 状态、13 事件、阈值、五类故障、四时段 |
 | GET | `/api/v1/state/matrix` | 10 × 13 = 130 种组合，合法 13 |
 | GET | `/api/v1/state/transitions` | 13 条合法转移清单 |
-| POST | `/api/v1/demo/reset` | 清空内存数据 |
+| POST | `/api/v1/demo/reset` | 清空 + 重灌 6 张演示单 |
 
 身份暂时走三个请求头（M4 换 token）：`X-Actor-Type: student|worker|admin|system`、`X-Actor-Id`、`X-Actor-Name`。请求头只能放 ASCII，姓名等中文留给登录后由服务端补。
 
@@ -62,7 +82,8 @@ pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：打真服务，跑一�
 src/main/java/com/zxp/dormrepair/
 ├── statemachine/   OrderStatus / OrderEvent / ActorType / TransitionTable / StateMachine
 ├── domain/         WorkOrder / OrderEventLog / Actor
-├── store/          OrderStore（内存 + 版本 CAS，M2 换 Mapper）
+├── store/          OrderRepository（接口）/ OrderStore（内存）/ MybatisOrderRepository（MySQL）
+│                   mapper/ 三个 Mapper + SeqMapper；entity/ 事件行与照片行；DateTimeStringTypeHandler
 ├── service/        OrderStateService（唯一改状态的地方）/ OrderService（12 条命令）
 ├── controller/     OrderController / MetaController
 ├── dto/            SubmitRequest / TransitRequest / OrderView
@@ -73,7 +94,6 @@ src/main/java/com/zxp/dormrepair/
 
 ## 还没做（按里程碑往下排）
 
-- M2：MySQL 8 + MyBatis-Plus，7 张表，`schema.sql` / `data.sql`，重启数据还在
 - M3：Python AI 服务 `/classify`，800ms 超时兜底，AI 挂了照样能建单
 - M4：Vue3 + Element Plus 11 页
 - M5：管理端 + 自检台 + 测试报告与 CG01–CG14 文档

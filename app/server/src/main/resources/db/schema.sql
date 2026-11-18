@@ -1,0 +1,190 @@
+-- ============================================================
+-- 宿舍维修系统 · 数据库结构（MySQL 8.0 / utf8mb4 / InnoDB）
+-- 规矩：不用外键（应用层保证）、不用 JSON 列装业务数据、时间统一 DATETIME
+-- 表前缀 t_，字段 snake_case；接口出参 camelCase 由 MyBatis-Plus 映射
+-- ============================================================
+
+CREATE DATABASE IF NOT EXISTS dorm_repair
+  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+USE dorm_repair;
+
+-- ------------------------------------------------------------
+-- 1 人员（学生 / 师傅 / 管理员）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_user (
+  id           VARCHAR(20)  NOT NULL COMMENT '学号 / 工号',
+  role         VARCHAR(10)  NOT NULL COMMENT 'STUDENT / WORKER / ADMIN',
+  name         VARCHAR(30)  NOT NULL,
+  team         VARCHAR(20)  NULL COMMENT '师傅班组：水电班 / 综合班',
+  building_id  VARCHAR(10)  NULL COMMENT '所属楼栋：B7 / B8',
+  room         VARCHAR(10)  NULL COMMENT '学生寝室',
+  phone        VARCHAR(20)  NULL,
+  active       TINYINT(1)   NOT NULL DEFAULT 1,
+  created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_user_role (role),
+  KEY idx_user_building (building_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='人员';
+
+-- ------------------------------------------------------------
+-- 2 楼栋（台账与派工的边界）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_building (
+  id        VARCHAR(10) NOT NULL COMMENT 'B7',
+  name      VARCHAR(30) NOT NULL COMMENT '东区7号楼',
+  floors    VARCHAR(60) NOT NULL COMMENT '2,3,4,5',
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='楼栋';
+
+-- ------------------------------------------------------------
+-- 3 工单（核心表，状态只能由 OrderStateService.transit 改）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_work_order (
+  no             VARCHAR(20)  NOT NULL COMMENT 'BX+YYYYMMDD+3位，返修单后缀 -R1',
+  status         VARCHAR(12)  NOT NULL COMMENT 'PENDING/ASSIGNED/REPAIRING/PARTS/VERIFYING/REWORKING/DONE/CLOSED/CANCELLED',
+  version        INT          NOT NULL DEFAULT 1 COMMENT '乐观锁：每次变更 +1',
+  building_id    VARCHAR(10)  NOT NULL,
+  floor          INT          NOT NULL,
+  room           VARCHAR(10)  NOT NULL,
+  student_id     VARCHAR(20)  NOT NULL,
+  student_name   VARCHAR(30)  NOT NULL,
+  description    VARCHAR(500) NOT NULL COMMENT '学生写的描述，≥4 字',
+  visit_window   VARCHAR(40)  NOT NULL COMMENT '可上门时段：全天/上午/下午/晚上',
+  category       VARCHAR(20)  NOT NULL COMMENT '给排水/电气/电器/门窗家具/网络',
+  level          VARCHAR(10)  NOT NULL COMMENT '紧急/较急/普通',
+  level_source   VARCHAR(10)  NOT NULL COMMENT 'AI / DEFAULT / HUMAN',
+  ai_basis       VARCHAR(300) NULL COMMENT 'AI 判断依据，给学生看，不许改',
+  worker_id      VARCHAR(20)  NULL,
+  worker_name    VARCHAR(30)  NULL,
+  parts_name     VARCHAR(50)  NULL COMMENT '缺件名（工单上的快照，明细在 t_part_request）',
+  parts_amount   DECIMAL(10,2) NULL COMMENT '缺件金额',
+  parts_eta      DATE         NULL COMMENT '预计到货日',
+  rework_of      VARCHAR(20)  NULL COMMENT '返修单指向原单',
+  rework_index   INT          NULL COMMENT '第几次返修',
+  rework_count   INT          NOT NULL DEFAULT 0 COMMENT '原单累计返修次数，≥2 进例外清单',
+  no_show_count  INT          NOT NULL DEFAULT 0,
+  cancel_reason  VARCHAR(200) NULL COMMENT '学生申请撤销的原因（进第四类例外）',
+  cancel_at      DATETIME     NULL,
+  created_at     DATETIME     NOT NULL,
+  assigned_at    DATETIME     NULL,
+  arrive_at      DATETIME     NULL COMMENT '到门打卡；撤销边界就看它有没有值',
+  finish_at      DATETIME     NULL COMMENT 'T1 从这算 168 小时',
+  sign_at        DATETIME     NULL COMMENT 'T2 从这算 7 天',
+  closed_at      DATETIME     NULL,
+  cancelled_at   DATETIME     NULL,
+  status_at      DATETIME     NULL,
+  PRIMARY KEY (no),
+  KEY idx_wo_status (status),
+  KEY idx_wo_building (building_id, status),
+  KEY idx_wo_worker (worker_id, status),
+  KEY idx_wo_student (student_id, created_at),
+  KEY idx_wo_rework (rework_of)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='工单';
+
+-- ------------------------------------------------------------
+-- 4 工单事件（时间线，只增不改）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_work_order_event (
+  seq        BIGINT       NOT NULL AUTO_INCREMENT,
+  order_no   VARCHAR(20)  NOT NULL,
+  at         DATETIME     NOT NULL,
+  event      VARCHAR(20)  NOT NULL COMMENT 'SUBMIT/ASSIGN/ARRIVE/NO_SHOW/FINISH/NEED_PARTS/PARTS_ARRIVED/ACCEPT/REJECT/AUTO_ACCEPT/ARCHIVE/CANCEL/CANCEL_REQUEST',
+  actor_type VARCHAR(10)  NOT NULL COMMENT 'STUDENT/WORKER/ADMIN/SYSTEM',
+  actor_id   VARCHAR(20)  NOT NULL,
+  actor_name VARCHAR(30)  NOT NULL,
+  manual     TINYINT(1)   NOT NULL COMMENT '0=系统自动 1=人推的。零人工完成率全靠它',
+  note       VARCHAR(300) NULL,
+  PRIMARY KEY (seq),
+  KEY idx_evt_order (order_no, seq),
+  KEY idx_evt_manual (manual)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='工单事件（只增不改）';
+
+-- ------------------------------------------------------------
+-- 5 工单照片（现场照 / 完工照）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_work_order_photo (
+  id        BIGINT      NOT NULL AUTO_INCREMENT,
+  order_no  VARCHAR(20) NOT NULL,
+  kind      VARCHAR(10) NOT NULL COMMENT 'BEFORE 现场 / AFTER 完工',
+  url       VARCHAR(300) NOT NULL,
+  uploaded_by VARCHAR(20) NOT NULL,
+  created_at DATETIME   NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_photo_order (order_no, kind)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='工单照片';
+
+-- ------------------------------------------------------------
+-- 6 配件台账（老师要求第 5 张业务表：配件与领用）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_part (
+  id        BIGINT       NOT NULL AUTO_INCREMENT,
+  name      VARCHAR(50)  NOT NULL COMMENT '软管 / 角阀 / 面板模块',
+  spec      VARCHAR(60)  NULL,
+  unit      VARCHAR(10)  NOT NULL DEFAULT '个',
+  price     DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  stock     INT          NOT NULL DEFAULT 0,
+  updated_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_part_name (name),
+  KEY idx_part_stock (stock)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配件台账';
+
+-- ------------------------------------------------------------
+-- 7 配件申请（缺件登记）—— 预算线在这里判
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_part_request (
+  id          BIGINT        NOT NULL AUTO_INCREMENT,
+  order_no    VARCHAR(20)   NOT NULL,
+  part_id     BIGINT        NULL COMMENT '能对上台账就填',
+  part_name   VARCHAR(50)   NOT NULL,
+  amount      DECIMAL(10,2) NOT NULL COMMENT '金额，管理端按预算线 200 判超没超',
+  eta_date    DATE          NOT NULL,
+  over_budget TINYINT(1)    NOT NULL DEFAULT 0,
+  status      VARCHAR(12)   NOT NULL DEFAULT 'REQUESTED' COMMENT 'REQUESTED/APPROVED/ARRIVED/REJECTED',
+  created_by  VARCHAR(20)   NOT NULL,
+  created_at  DATETIME      NOT NULL,
+  arrived_at  DATETIME      NULL,
+  PRIMARY KEY (id),
+  KEY idx_pr_order (order_no),
+  KEY idx_pr_status (status),
+  KEY idx_pr_over (over_budget)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配件申请';
+
+-- ------------------------------------------------------------
+-- 8 例外清单（三类不占状态位 + 第四类申请撤销）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_exception_record (
+  id         BIGINT       NOT NULL AUTO_INCREMENT,
+  kind       VARCHAR(20)  NOT NULL COMMENT 'MISMATCH/OVER_BUDGET/REPEAT_REWORK/CANCEL_REQUEST',
+  order_no   VARCHAR(20)  NOT NULL,
+  detail     VARCHAR(500) NULL,
+  status     VARCHAR(12)  NOT NULL DEFAULT 'OPEN' COMMENT 'OPEN/CLOSED',
+  handled_by VARCHAR(20)  NULL,
+  created_at DATETIME     NOT NULL,
+  closed_at  DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY idx_ex_kind (kind, status),
+  KEY idx_ex_order (order_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='例外清单';
+
+-- ------------------------------------------------------------
+-- 9 配置（阈值不许写死在代码里）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_config (
+  k          VARCHAR(40) NOT NULL,
+  v          VARCHAR(100) NOT NULL,
+  note       VARCHAR(200) NULL,
+  updated_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (k)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置：预算线、验收小时、归档天数';
+
+-- ------------------------------------------------------------
+-- 10 单号序号（按天递增，避免并发撞号）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_seq (
+  day      VARCHAR(8) NOT NULL COMMENT 'yyyyMMdd',
+  name     VARCHAR(10) NOT NULL DEFAULT 'BX',
+  next_val INT        NOT NULL DEFAULT 1,
+  PRIMARY KEY (day, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='单号序号';

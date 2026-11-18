@@ -8,7 +8,7 @@ import com.zxp.dormrepair.domain.WorkOrder;
 import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.statemachine.StateMachine;
-import com.zxp.dormrepair.store.OrderStore;
+import com.zxp.dormrepair.store.OrderRepository;
 import java.util.function.Consumer;
 import org.springframework.stereotype.Service;
 
@@ -20,9 +20,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class OrderStateService {
 
-    private final OrderStore store;
+    private final OrderRepository store;
 
-    public OrderStateService(OrderStore store) {
+    public OrderStateService(OrderRepository store) {
         this.store = store;
     }
 

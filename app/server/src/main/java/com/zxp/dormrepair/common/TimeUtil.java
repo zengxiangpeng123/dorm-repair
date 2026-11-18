@@ -28,4 +28,14 @@ public final class TimeUtil {
     public static LocalDateTime parse(String s) {
         return s == null || s.isBlank() ? null : LocalDateTime.parse(s, FMT);
     }
+
+    /** 现在往前推 n 分钟的时间串。演示数据的"两小时前"就是这么来的。 */
+    public static String agoMinutes(int minutes) {
+        return LocalDateTime.now(ZONE).minusMinutes(minutes).format(FMT);
+    }
+
+    /** 今天往后推 n 天的日期串（配件到货日这种只有日期的）。 */
+    public static String dateAfterDays(int days) {
+        return LocalDateTime.now(ZONE).plusDays(days).toLocalDate().toString();
+    }
 }
