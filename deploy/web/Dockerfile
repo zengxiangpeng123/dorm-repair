@@ -8,7 +8,9 @@ RUN cd student-web && npm ci && cd ../worker-web && npm ci && cd ../admin-web &&
 COPY app/student-web ./student-web
 COPY app/worker-web ./worker-web
 COPY app/admin-web ./admin-web
+COPY app/tests/check-three-apps.mjs ./tests/check-three-apps.mjs
 RUN cd student-web && npm run build && cd ../worker-web && npm run build && cd ../admin-web && npm run build
+RUN node tests/check-three-apps.mjs
 
 FROM nginx:1.27-alpine
 COPY deploy/nginx/nginx.conf /etc/nginx/conf.d/default.conf
