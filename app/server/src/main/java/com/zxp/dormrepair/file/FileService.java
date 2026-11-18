@@ -56,13 +56,15 @@ public class FileService {
                 + actor.type().name().toLowerCase(Locale.ROOT) + "/"
                 + java.util.UUID.randomUUID() + "." + ext;
         String sha256 = sha256(bytes);
-        storage.put(objectKey, new java.io.ByteArrayInputStream(bytes), bytes.length, detected);
+        FileRecord metadata = repository.create(
+                objectKey, original, detected, bytes.length, sha256, actor.id(), purpose);
         try {
-            return repository.create(objectKey, original, detected, bytes.length, sha256, actor.id(), purpose);
+            storage.put(objectKey, new java.io.ByteArrayInputStream(bytes), bytes.length, detected);
+            return metadata;
         } catch (RuntimeException error) {
-            // 元数据落库失败时对象已写入；清理任务看不到这条记录，必须立即补偿删除。
+            // 先登记元数据再写对象：若对象写入失败或进程中断，清理任务始终能发现并回收孤儿记录。
             try {
-                storage.delete(objectKey);
+                repository.delete(metadata.id());
             } catch (RuntimeException cleanupError) {
                 error.addSuppressed(cleanupError);
             }

@@ -67,29 +67,35 @@ class FileServiceTest {
     }
 
     @Test
-    @DisplayName("元数据落库失败时补偿删除已写入对象")
-    void deletesObjectWhenMetadataWriteFails() throws Exception {
+    @DisplayName("对象写入失败时补偿删除已登记元数据")
+    void deletesMetadataWhenObjectWriteFails() throws Exception {
         var storage = new InMemoryFileStorage();
-        var failingRepository = new InMemoryFileRepository() {
+        var created = new java.util.concurrent.atomic.AtomicReference<FileRecord>();
+        var repository = new InMemoryFileRepository() {
             @Override
             public FileRecord create(String objectKey, String originalName, String mime, long byteSize,
                                      String sha256, String uploadedBy, String purpose) {
-                throw new IllegalStateException("数据库暂时不可用");
+                FileRecord record = super.create(objectKey, originalName, mime, byteSize,
+                        sha256, uploadedBy, purpose);
+                created.set(record);
+                return record;
             }
         };
-        var service = new FileService(storage, failingRepository);
+        var failingStorage = new InMemoryFileStorage() {
+            @Override
+            public void put(String objectKey, java.io.InputStream input, long contentLength,
+                            String contentType) {
+                throw new IllegalStateException("对象存储暂时不可用");
+            }
+        };
+        var service = new FileService(failingStorage, repository);
 
         IllegalStateException error = org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalStateException.class,
                 () -> service.upload(png("orphan.png"), student, "BEFORE"));
 
-        assertEquals("数据库暂时不可用", error.getMessage());
-        var objects = storage.getClass().getDeclaredFields();
-        assertEquals(1, objects.length);
-        var field = objects[0];
-        field.setAccessible(true);
-        var stored = (java.util.Map<?, ?>) field.get(storage);
-        assertTrue(stored.isEmpty(), "失败上传不应留下无元数据对象");
+        assertEquals("对象存储暂时不可用", error.getMessage());
+        assertEquals(null, created.get() == null ? null : repository.find(created.get().id()).orElse(null));
     }
 
     private static MockMultipartFile png(String name) throws Exception {
