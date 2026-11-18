@@ -104,6 +104,78 @@ class FileServiceTest {
     }
 
     @Test
+    @DisplayName("同一上传者重复上传同一图片返回同一文件，不生成重复对象")
+    void duplicateUploadReusesExistingFile() throws Exception {
+        FileRecord first = files.upload(png("same.png"), student, "BEFORE");
+        FileRecord second = files.upload(png("same-copy.png"), student, "BEFORE");
+
+        assertEquals(first.id(), second.id());
+        assertEquals(first.objectKey(), second.objectKey());
+    }
+
+    @Test
+    @DisplayName("不同上传者的相同图片仍各自保留")
+    void sameImageForDifferentUploadersStaysSeparate() throws Exception {
+        FileRecord mine = files.upload(png("same.png"), student, "BEFORE");
+        FileRecord theirs = files.upload(png("same.png"), other, "BEFORE");
+
+        assertFalse(mine.id().equals(theirs.id()));
+    }
+
+    @Test
+    @DisplayName("图片绑定后再次上传会生成新记录，不复活已绑定文件")
+    void boundImageDoesNotBlockNewUpload() throws Exception {
+        var repository = new InMemoryFileRepository();
+        var service = new FileService(new InMemoryFileStorage(), repository);
+        FileRecord bound = service.upload(png("first.png"), student, "BEFORE");
+        repository.bind(bound.id(), "BX20261119001", "BEFORE");
+
+        FileRecord next = service.upload(png("again.png"), student, "BEFORE");
+
+        assertFalse(bound.id().equals(next.id()));
+        assertEquals(null, next.orderNo());
+    }
+
+    @Test
+    @DisplayName("并发上传同一图片只登记一个文件")
+    void concurrentUploadsShareOneFile() throws Exception {
+        var repository = new InMemoryFileRepository();
+        var service = new FileService(new InMemoryFileStorage(), repository);
+        var bytes = png("race.png").getBytes();
+        var ready = new java.util.concurrent.CountDownLatch(8);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(8);
+        try {
+            var tasks = java.util.stream.IntStream.range(0, 8)
+                    .mapToObj(i -> (java.util.concurrent.Callable<FileRecord>) () -> {
+                        ready.countDown();
+                        start.await();
+                        return service.upload(new MockMultipartFile(
+                                "file", "race-" + i + ".png", "image/png", bytes), student, "BEFORE");
+                    }).toList();
+            var futures = tasks.stream().map(pool::submit).toList();
+            ready.await();
+            start.countDown();
+            var ids = new java.util.HashSet<String>();
+            for (var future : futures) ids.add(future.get().id());
+            assertEquals(1, ids.size());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+    @Test
+    @DisplayName("并发请求不会覆盖已经存在的对象字节")
+    void concurrentWriterDoesNotOverwriteExistingObject() throws Exception {
+        var storage = new InMemoryFileStorage();
+        byte[] first = {1, 2, 3};
+        byte[] second = {9, 8, 7};
+        assertTrue(storage.putIfAbsent("same-key", new java.io.ByteArrayInputStream(first), first.length, "image/png"));
+        assertFalse(storage.putIfAbsent("same-key", new java.io.ByteArrayInputStream(second), second.length, "image/png"));
+        var stored = storage.open("same-key").orElseThrow();
+        assertEquals(1, stored.stream().readAllBytes()[0]);
+    }
+
+    @Test
     @DisplayName("伪装成 PNG 的文本被拒绝")
     void rejectsSpoofedContent() {
         MockMultipartFile fake = new MockMultipartFile(
@@ -142,8 +214,8 @@ class FileServiceTest {
         };
         var failingStorage = new InMemoryFileStorage() {
             @Override
-            public void put(String objectKey, java.io.InputStream input, long contentLength,
-                            String contentType) {
+            public boolean putIfAbsent(String objectKey, java.io.InputStream input, long contentLength,
+                                       String contentType) {
                 throw new IllegalStateException("对象存储暂时不可用");
             }
         };

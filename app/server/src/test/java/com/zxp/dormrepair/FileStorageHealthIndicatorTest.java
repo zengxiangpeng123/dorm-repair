@@ -21,6 +21,11 @@ class FileStorageHealthIndicatorTest {
             }
 
             @Override
+            public boolean putIfAbsent(String objectKey, InputStream input, long contentLength, String contentType) {
+                return true;
+            }
+
+            @Override
             public Optional<StoredObject> open(String objectKey) {
                 return Optional.empty();
             }
@@ -47,6 +52,11 @@ class FileStorageHealthIndicatorTest {
         FileStorage storage = new FileStorage() {
             @Override
             public void put(String objectKey, InputStream input, long contentLength, String contentType) {
+            }
+
+            @Override
+            public boolean putIfAbsent(String objectKey, InputStream input, long contentLength, String contentType) {
+                return true;
             }
 
             @Override

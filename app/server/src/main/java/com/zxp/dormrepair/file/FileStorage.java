@@ -8,6 +8,9 @@ public interface FileStorage {
 
     void put(String objectKey, InputStream input, long contentLength, String contentType);
 
+    /** 仅在对象不存在时写入，返回是否由本次写入。实现必须使用原子条件写。 */
+    boolean putIfAbsent(String objectKey, InputStream input, long contentLength, String contentType);
+
     Optional<StoredObject> open(String objectKey);
 
     /** 删除对象；对象本来就不存在也应视为成功，保证清理可重入。 */

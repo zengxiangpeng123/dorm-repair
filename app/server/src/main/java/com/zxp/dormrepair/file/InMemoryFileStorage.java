@@ -22,6 +22,15 @@ public class InMemoryFileStorage implements FileStorage {
     }
 
     @Override
+    public boolean putIfAbsent(String objectKey, java.io.InputStream input, long contentLength, String contentType) {
+        try {
+            return objects.putIfAbsent(objectKey, input.readAllBytes()) == null;
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("内存文件写入失败", e);
+        }
+    }
+
+    @Override
     public Optional<StoredObject> open(String objectKey) {
         byte[] bytes = objects.get(objectKey);
         return bytes == null ? Optional.empty() : Optional.of(

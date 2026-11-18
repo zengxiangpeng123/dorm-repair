@@ -39,6 +39,28 @@ public class LocalFileStorage implements FileStorage {
     }
 
     @Override
+    public boolean putIfAbsent(String objectKey, InputStream input, long contentLength, String contentType) {
+        try {
+            Path target = resolve(objectKey);
+            Files.createDirectories(target.getParent());
+            Path temp = Files.createTempFile(target.getParent(), ".upload-", ".part");
+            try {
+                Files.copy(input, temp, StandardCopyOption.REPLACE_EXISTING);
+                try {
+                    Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE);
+                    return true;
+                } catch (java.nio.file.FileAlreadyExistsException exists) {
+                    return false;
+                }
+            } finally {
+                Files.deleteIfExists(temp);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("本地文件写入失败", e);
+        }
+    }
+
+    @Override
     public Optional<StoredObject> open(String objectKey) {
         try {
             Path file = resolve(objectKey);

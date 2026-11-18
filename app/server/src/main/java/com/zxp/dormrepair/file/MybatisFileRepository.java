@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 /** 文件元数据仓库。对象存储只保存字节，权限与归属以这里和工单为准。 */
@@ -51,6 +52,30 @@ public class MybatisFileRepository implements FileRepository {
         return mapper.selectBatchIds(ids).stream().map(this::toRecord).toList();
     }
 
+    @Override
+    public FileRecord findOrCreateUnbound(String objectKey, String originalName, String mime,
+                                          long byteSize, String sha256, String uploadedBy, String purpose) {
+        Optional<FileRecord> existing = findUnboundByDigest(uploadedBy, purpose, sha256);
+        if (existing.isPresent()) return existing.get();
+        try {
+            return create(objectKey, originalName, mime, byteSize, sha256, uploadedBy, purpose);
+        } catch (DuplicateKeyException conflict) {
+            // uk_file_unbound_digest 是并发上传的最终裁决者；输家读取赢家已提交的行。
+            return findUnboundByDigest(uploadedBy, purpose, sha256)
+                    .orElseThrow(() -> conflict);
+        }
+    }
+
+    private Optional<FileRecord> findUnboundByDigest(String uploadedBy, String purpose, String sha256) {
+        return mapper.selectList(new LambdaQueryWrapper<FileRecordRow>()
+                        .isNull(FileRecordRow::getOrderNo)
+                        .eq(FileRecordRow::getUploadedBy, uploadedBy)
+                        .eq(FileRecordRow::getPurpose, purpose)
+                        .eq(FileRecordRow::getSha256, sha256)
+                        .orderByAsc(FileRecordRow::getCreatedAt)
+                        .last("LIMIT 1"))
+                .stream().findFirst().map(this::toRecord);
+    }
     @Override
     public void bind(String id, String orderNo, String kind) {
         FileRecordRow row = mapper.selectById(id);
@@ -113,6 +138,13 @@ public class MybatisFileRepository implements FileRepository {
     @Override
     public void delete(String id) {
         mapper.deleteById(id);
+    }
+
+    @Override
+    public void deleteIfUnbound(String id) {
+        mapper.delete(new LambdaQueryWrapper<FileRecordRow>()
+                .eq(FileRecordRow::getId, id)
+                .isNull(FileRecordRow::getOrderNo));
     }
 
     @Override

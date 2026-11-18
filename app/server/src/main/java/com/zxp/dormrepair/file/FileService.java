@@ -52,19 +52,25 @@ public class FileService {
                 && !(ext.equals("jpg") && original.toLowerCase(Locale.ROOT).endsWith(".jpeg"))) {
             throw BizException.precondition("文件扩展名与实际内容不一致", "FILE_EXTENSION_MISMATCH");
         }
+        String sha256 = sha256(bytes);
         String objectKey = java.time.LocalDate.now().toString().replace("-", "") + "/"
                 + actor.type().name().toLowerCase(Locale.ROOT) + "/"
                 + java.util.UUID.randomUUID() + "." + ext;
-        String sha256 = sha256(bytes);
-        FileRecord metadata = repository.create(
+        FileRecord metadata = repository.findOrCreateUnbound(
                 objectKey, original, detected, bytes.length, sha256, actor.id(), purpose);
+        ensureObject(metadata, bytes, detected);
+        return metadata;
+    }
+
+    /** 并发上传可能由另一请求先登记并写对象；缺失时补齐，已存在则不重复覆盖。 */
+    private void ensureObject(FileRecord metadata, byte[] bytes, String contentType) {
+        if (storage.open(metadata.objectKey()).isPresent()) return;
         try {
-            storage.put(objectKey, new java.io.ByteArrayInputStream(bytes), bytes.length, detected);
-            return metadata;
+            storage.putIfAbsent(metadata.objectKey(), new java.io.ByteArrayInputStream(bytes), bytes.length, contentType);
         } catch (RuntimeException error) {
-            // 先登记元数据再写对象：若对象写入失败或进程中断，清理任务始终能发现并回收孤儿记录。
+            // 仅本轮仍占用的孤儿记录可删除；若已被并发请求取走，不能误删对方刚写入的对象。
             try {
-                repository.delete(metadata.id());
+                repository.deleteIfUnbound(metadata.id());
             } catch (RuntimeException cleanupError) {
                 error.addSuppressed(cleanupError);
             }

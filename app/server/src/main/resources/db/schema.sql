@@ -214,8 +214,12 @@ CREATE TABLE IF NOT EXISTS t_file (
   deleted_at    DATETIME     NULL,
   cleanup_claimed_at DATETIME NULL,
   created_at    DATETIME     NOT NULL,
+  unbound_digest VARCHAR(100) GENERATED ALWAYS AS (
+    CASE WHEN order_no IS NULL THEN CONCAT(uploaded_by, ':', purpose, ':', sha256) ELSE NULL END
+  ) STORED,
   PRIMARY KEY (id),
   UNIQUE KEY uk_file_object_key (object_key),
+  UNIQUE KEY uk_file_unbound_digest (unbound_digest),
   KEY idx_file_order (order_no, kind),
   KEY idx_file_uploader (uploaded_by, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件元数据';

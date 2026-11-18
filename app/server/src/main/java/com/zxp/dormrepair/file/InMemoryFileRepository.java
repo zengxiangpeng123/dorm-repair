@@ -16,10 +16,16 @@ import org.springframework.stereotype.Repository;
 public class InMemoryFileRepository implements FileRepository {
 
     private final ConcurrentHashMap<String, FileRecord> files = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> unboundByDigest = new ConcurrentHashMap<>();
 
     @Override
     public FileRecord create(String objectKey, String originalName, String mime, long byteSize,
                              String sha256, String uploadedBy, String purpose) {
+        return createUnbound(objectKey, originalName, mime, byteSize, sha256, uploadedBy, purpose);
+    }
+
+    private FileRecord createUnbound(String objectKey, String originalName, String mime, long byteSize,
+                                     String sha256, String uploadedBy, String purpose) {
         String id = UUID.randomUUID().toString();
         FileRecord f = new FileRecord(id, objectKey, originalName, mime, byteSize, sha256,
                 uploadedBy, purpose, null, null, TimeUtil.now());
@@ -45,14 +51,30 @@ public class InMemoryFileRepository implements FileRepository {
     }
 
     @Override
+    public FileRecord findOrCreateUnbound(String objectKey, String originalName, String mime,
+                                          long byteSize, String sha256, String uploadedBy, String purpose) {
+        String digestKey = digestKey(uploadedBy, purpose, sha256);
+        String id = unboundByDigest.compute(digestKey, (key, existingId) -> {
+            if (existingId != null && files.containsKey(existingId)) return existingId;
+            FileRecord created = createUnbound(objectKey, originalName, mime, byteSize, sha256, uploadedBy, purpose);
+            return created.id();
+        });
+        return files.get(id);
+    }
+    @Override
     public void bind(String id, String orderNo, String kind) {
-        files.compute(id, (key, f) -> {
+        FileRecord bound = files.compute(id, (key, f) -> {
             if (f == null) throw BizException.notFound("文件不存在：" + id);
             if (f.orderNo() != null && f.orderNo().equals(orderNo) && f.kind() != null) return f;
             if (f.orderNo() != null) throw BizException.precondition("文件已经绑定到其他工单", "FILE_ALREADY_BOUND");
             return new FileRecord(f.id(), f.objectKey(), f.originalName(), f.mime(), f.byteSize(),
                     f.sha256(), f.uploadedBy(), f.purpose(), orderNo, kind, f.createdAt());
         });
+        unboundByDigest.remove(digestKey(bound.uploadedBy(), bound.purpose(), bound.sha256()), id);
+    }
+
+    private static String digestKey(String uploadedBy, String purpose, String sha256) {
+        return uploadedBy + "\n" + purpose + "\n" + sha256;
     }
 
     @Override
@@ -94,8 +116,18 @@ public class InMemoryFileRepository implements FileRepository {
 
     @Override
     public void delete(String id) {
-        files.remove(id);
+        FileRecord removed = files.remove(id);
+        if (removed != null) unboundByDigest.remove(digestKey(removed.uploadedBy(), removed.purpose(), removed.sha256()), id);
         cleanupClaims.remove(id);
+    }
+
+    @Override
+    public void deleteIfUnbound(String id) {
+        files.computeIfPresent(id, (key, f) -> {
+            if (f.orderNo() != null) return f;
+            unboundByDigest.remove(digestKey(f.uploadedBy(), f.purpose(), f.sha256()), id);
+            return null;
+        });
     }
 
     @Override

@@ -18,7 +18,7 @@ java -jar target/dorm-repair-server-1.0.0.jar
 ## 怎么证明它对
 
 ```bash
-mvn -q test                                    # 70 项：状态机、API、鉴权、返修审查、AI 兜底
+mvn -q test                                    # 110 项：状态机、API、鉴权、返修审查、文件治理、AI 兜底
 pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：主链、非法边、乐观锁和权限
 pwsh -NoProfile -File tests/m2-mysql.ps1       # 16 项：真库落盘与重启
 pwsh -NoProfile -File tests/m3-ai.ps1          # 20 项：AI 接上与断线兜底
@@ -26,7 +26,7 @@ pwsh -NoProfile -File tests/m4-rework.ps1      # 26 项：兼容返修 + 新审�
 pwsh -NoProfile -File tests/m5-auth.ps1        # 36 项：真 Bearer Token 和角色权限
 ```
 
-期望：`Tests run: 70, Failures: 0`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
+期望：`Tests run: 110, Failures: 0`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
 
 ## 数据库（M2）
 
@@ -103,6 +103,6 @@ src/main/java/com/zxp/dormrepair/
 
 - 三角色分表、Bearer 登录、按楼栋派工、返修审查 R1/R2、反复返修例外、T1/T2 和 12 页 Vue UI 已验收。
 - 旧 `/reject` 只保留兼容；新 UI 使用 `/rework-request` 与 `/rework-review`。
-- 后续增强：对象存储、持久化会话、幂等键与并发压测。
+- 后续增强：真实 S3/MinIO 部署验证、生产容量与生命周期演练。
 - M5：管理端 + 自检台 + 测试报告与 CG01–CG14 文档
 - Bearer 登录、分角色人员表和会话撤销已实现；`REPAIRING→CANCELLED` 已作为管理员撤销决定接口实现，要求先有学生撤销申请。

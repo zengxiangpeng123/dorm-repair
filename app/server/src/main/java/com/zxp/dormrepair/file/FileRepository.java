@@ -7,6 +7,9 @@ public interface FileRepository {
     FileRecord create(String objectKey, String originalName, String mime, long byteSize,
                       String sha256, String uploadedBy, String purpose);
     Optional<FileRecord> find(String id);
+    /** 原子地取得同一上传者、用途和内容摘要的未绑定文件，不存在时创建。 */
+    FileRecord findOrCreateUnbound(String objectKey, String originalName, String mime, long byteSize,
+                                   String sha256, String uploadedBy, String purpose);
     List<FileRecord> findByIds(List<String> ids);
     void bind(String id, String orderNo, String kind);
 
@@ -24,6 +27,9 @@ public interface FileRepository {
 
     /** 对象已删除后移除元数据行。 */
     void delete(String id);
+
+    /** 仅当文件仍未绑定工单时删除，避免并发上传补偿误删已认领记录。 */
+    void deleteIfUnbound(String id);
 
     /** 清理失败时释放占用，下一轮可重试。 */
     void releaseClaim(String id);

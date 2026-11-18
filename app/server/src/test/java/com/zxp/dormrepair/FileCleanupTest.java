@@ -30,8 +30,8 @@ class FileCleanupTest {
         var cleanup = new FileCleanupService(repo, storage, 1, 100);
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
 
-        FileRecord old = files.upload(png("old.png"), student, "BEFORE");
-        FileRecord bound = files.upload(png("bound.png"), student, "BEFORE");
+        FileRecord old = files.upload(png("old.png", 3, 2), student, "BEFORE");
+        FileRecord bound = files.upload(png("bound.png", 4, 2), student, "BEFORE");
         repo.bind(bound.id(), "BX20261118001", "BEFORE");
 
         var result = cleanup.sweep("2099-01-01 00:00:00");
@@ -49,7 +49,7 @@ class FileCleanupTest {
         var files = new FileService(storage, repo);
         var cleanup = new FileCleanupService(repo, storage, 1, 100);
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
-        FileRecord stale = files.upload(png("stale.png"), student, "BEFORE");
+        FileRecord stale = files.upload(png("stale.png", 5, 2), student, "BEFORE");
 
         assertTrue(repo.claimForCleanup(stale.id(), "2020-01-01 00:00:00"));
         var result = cleanup.sweep("2099-01-01 00:00:00");
@@ -67,7 +67,7 @@ class FileCleanupTest {
         var files = new FileService(storage, repo);
         var cleanup = new FileCleanupService(repo, storage, 1, 100);
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
-        FileRecord old = files.upload(png("already-gone.png"), student, "BEFORE");
+        FileRecord old = files.upload(png("already-gone.png", 6, 2), student, "BEFORE");
         storage.delete(old.objectKey());
 
         var result = cleanup.sweep("2099-01-01 00:00:00");
@@ -89,7 +89,7 @@ class FileCleanupTest {
         var files = new FileService(storage, repo);
         var cleanup = new FileCleanupService(repo, storage, 1, 100);
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
-        FileRecord old = files.upload(png("retry.png"), student, "BEFORE");
+        FileRecord old = files.upload(png("retry.png", 7, 2), student, "BEFORE");
 
         var result = cleanup.sweep("2099-01-01 00:00:00");
 
@@ -99,7 +99,11 @@ class FileCleanupTest {
     }
 
     private static MockMultipartFile png(String name) throws Exception {
-        BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
+        return png(name, 2, 2);
+    }
+
+    private static MockMultipartFile png(String name, int width, int height) throws Exception {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(image, "png", out);
         return new MockMultipartFile("file", name, "image/png", out.toByteArray());

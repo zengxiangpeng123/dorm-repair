@@ -86,6 +86,27 @@ public class S3FileStorage implements FileStorage {
     }
 
     @Override
+    public boolean putIfAbsent(String objectKey, InputStream input, long contentLength, String contentType) {
+        try {
+            client.putObject(PutObjectRequest.builder().bucket(bucket).key(objectKey)
+                            .contentType(contentType).contentLength(contentLength)
+                            .acl(ObjectCannedACL.PRIVATE)
+                            .ifNoneMatch("*").build(),
+                    RequestBody.fromInputStream(input, contentLength));
+            return true;
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception error) {
+            if (error.statusCode() == 409 || error.statusCode() == 412) return false;
+            // 部分 S3 兼容服务不实现 If-None-Match；退回存在性检查后再写入。
+            if (error.statusCode() == 400 || error.statusCode() == 501) {
+                if (open(objectKey).isPresent()) return false;
+                put(objectKey, input, contentLength, contentType);
+                return true;
+            }
+            throw error;
+        }
+    }
+
+    @Override
     public Optional<StoredObject> open(String objectKey) {
         try {
             var response = client.getObject(GetObjectRequest.builder().bucket(bucket).key(objectKey).build());
