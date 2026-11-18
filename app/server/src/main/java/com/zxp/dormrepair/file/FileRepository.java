@@ -9,4 +9,16 @@ public interface FileRepository {
     Optional<FileRecord> find(String id);
     List<FileRecord> findByIds(List<String> ids);
     void bind(String id, String orderNo, String kind);
+
+    /** 返回创建时间早于 cutoff、且尚未绑定工单的候选文件。 */
+    List<FileRecord> findUnboundCreatedBefore(String cutoff, int limit);
+
+    /** 原子地占用一条孤儿记录，避免多个实例重复清理同一对象。 */
+    boolean claimForCleanup(String id, String claimedAt);
+
+    /** 对象已删除后移除元数据行。 */
+    void delete(String id);
+
+    /** 清理失败时释放占用，下一轮可重试。 */
+    void releaseClaim(String id);
 }

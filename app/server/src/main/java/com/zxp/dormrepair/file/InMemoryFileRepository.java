@@ -54,4 +54,32 @@ public class InMemoryFileRepository implements FileRepository {
                     f.sha256(), f.uploadedBy(), f.purpose(), orderNo, kind, f.createdAt());
         });
     }
+
+    @Override
+    public List<FileRecord> findUnboundCreatedBefore(String cutoff, int limit) {
+        long cutoffMs = TimeUtil.epochMs(cutoff);
+        return files.values().stream()
+                .filter(f -> f.orderNo() == null)
+                .filter(f -> TimeUtil.epochMs(f.createdAt()) < cutoffMs)
+                .limit(limit)
+                .toList();
+    }
+
+    private final java.util.Set<String> cleanupClaims = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    @Override
+    public boolean claimForCleanup(String id, String claimedAt) {
+        return cleanupClaims.add(id);
+    }
+
+    @Override
+    public void delete(String id) {
+        files.remove(id);
+        cleanupClaims.remove(id);
+    }
+
+    @Override
+    public void releaseClaim(String id) {
+        cleanupClaims.remove(id);
+    }
 }

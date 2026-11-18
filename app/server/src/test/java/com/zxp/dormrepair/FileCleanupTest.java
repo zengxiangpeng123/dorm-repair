@@ -1,0 +1,49 @@
+package com.zxp.dormrepair;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+import com.zxp.dormrepair.domain.Actor;
+import com.zxp.dormrepair.file.FileCleanupService;
+import com.zxp.dormrepair.file.FileRecord;
+import com.zxp.dormrepair.file.FileService;
+import com.zxp.dormrepair.file.InMemoryFileRepository;
+import com.zxp.dormrepair.file.InMemoryFileStorage;
+import com.zxp.dormrepair.statemachine.ActorType;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
+
+class FileCleanupTest {
+
+    @Test
+    @DisplayName("超期未绑定文件被清理，已绑定文件保留")
+    void cleansOnlyOldUnboundFiles() throws Exception {
+        var repo = new InMemoryFileRepository();
+        var storage = new InMemoryFileStorage();
+        var files = new FileService(storage, repo);
+        var cleanup = new FileCleanupService(repo, storage, 1, 100);
+        Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
+
+        FileRecord old = files.upload(png("old.png"), student, "BEFORE");
+        FileRecord bound = files.upload(png("bound.png"), student, "BEFORE");
+        repo.bind(bound.id(), "BX20261118001", "BEFORE");
+
+        var result = cleanup.sweep("2099-01-01 00:00:00");
+
+        assertEquals(1, result.get("deleted"));
+        assertNull(repo.find(old.id()).orElse(null));
+        assertNotNull(repo.find(bound.id()).orElse(null));
+    }
+
+    private static MockMultipartFile png(String name) throws Exception {
+        BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", out);
+        return new MockMultipartFile("file", name, "image/png", out.toByteArray());
+    }
+}

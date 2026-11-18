@@ -23,6 +23,9 @@ public class FileRecordRow {
     private String visibility;
     private String orderNo;
     private String kind;
+    @TableField(value = "deleted_at", typeHandler = DateTimeStringTypeHandler.class)
+    private String deletedAt;
+    private String cleanupClaimedAt;
     @TableField(value = "created_at", typeHandler = DateTimeStringTypeHandler.class)
     private String createdAt;
 }

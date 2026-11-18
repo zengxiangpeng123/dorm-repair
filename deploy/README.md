@@ -53,6 +53,10 @@ Production supports either workload IAM credentials or explicit static credentia
 The readiness endpoint includes the `fileStorage` health contributor and performs a
 bucket access check. A running process with an unavailable bucket is not ready.
 
+Uploaded files that remain unbound to an order for 24 hours are deleted by the scheduled
+cleanup job. Adjust `APP_FILE_CLEANUP_RETENTION_HOURS` and `APP_FILE_CLEANUP_BATCH_SIZE`
+for the deployment policy.
+
 ## Operations
 
 - Liveness/readiness: `/actuator/health/liveness`, `/actuator/health/readiness`

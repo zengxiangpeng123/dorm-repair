@@ -203,6 +203,7 @@ CREATE TABLE IF NOT EXISTS t_file (
   order_no      VARCHAR(20)  NULL,
   kind          VARCHAR(10)  NULL COMMENT 'BEFORE/AFTER',
   deleted_at    DATETIME     NULL,
+  cleanup_claimed_at DATETIME NULL,
   created_at    DATETIME     NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uk_file_object_key (object_key),

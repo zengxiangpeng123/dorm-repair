@@ -1,5 +1,7 @@
 package com.zxp.dormrepair.file;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.common.TimeUtil;
 import com.zxp.dormrepair.store.mapper.FileRecordMapper;
@@ -62,6 +64,38 @@ public class MybatisFileRepository implements FileRepository {
         row.setOrderNo(orderNo);
         row.setKind(kind);
         mapper.updateById(row);
+    }
+
+    @Override
+    public List<FileRecord> findUnboundCreatedBefore(String cutoff, int limit) {
+        return mapper.selectList(new LambdaQueryWrapper<FileRecordRow>()
+                        .isNull(FileRecordRow::getOrderNo)
+                        .isNull(FileRecordRow::getCleanupClaimedAt)
+                        .lt(FileRecordRow::getCreatedAt, cutoff)
+                        .orderByAsc(FileRecordRow::getCreatedAt)
+                        .last("LIMIT " + Math.max(1, limit)))
+                .stream().map(this::toRecord).toList();
+    }
+
+    @Override
+    public boolean claimForCleanup(String id, String claimedAt) {
+        return mapper.update(null, new LambdaUpdateWrapper<FileRecordRow>()
+                .eq(FileRecordRow::getId, id)
+                .isNull(FileRecordRow::getOrderNo)
+                .isNull(FileRecordRow::getCleanupClaimedAt)
+                .set(FileRecordRow::getCleanupClaimedAt, claimedAt)) == 1;
+    }
+
+    @Override
+    public void delete(String id) {
+        mapper.deleteById(id);
+    }
+
+    @Override
+    public void releaseClaim(String id) {
+        mapper.update(null, new LambdaUpdateWrapper<FileRecordRow>()
+                .eq(FileRecordRow::getId, id)
+                .set(FileRecordRow::getCleanupClaimedAt, null));
     }
 
     private FileRecord toRecord(FileRecordRow r) {

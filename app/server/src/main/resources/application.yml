@@ -44,6 +44,9 @@ app:
     # 仅旧测试/演示数据可开启；生产必须为 false，新照片只能走上传接口。
     allow-legacy-demo-urls: ${APP_FILE_ALLOW_LEGACY_DEMO_URLS:false}
     local-root: ${APP_FILE_LOCAL_ROOT:./data/uploads}
+    cleanup:
+      retention-hours: ${APP_FILE_CLEANUP_RETENTION_HOURS:24}
+      batch-size: ${APP_FILE_CLEANUP_BATCH_SIZE:100}
     s3:
       endpoint: ${APP_FILE_S3_ENDPOINT:}
       region: ${APP_FILE_S3_REGION:us-east-1}
