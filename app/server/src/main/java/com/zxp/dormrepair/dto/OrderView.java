@@ -40,6 +40,9 @@ public record OrderView(
         String closedAt,
         String cancelledAt,
         String statusAt,
+        String reworkOf,
+        Integer reworkIndex,
+        int reworkCount,
         List<String> allowed,
         List<OrderEventLog> events,
         CancelRequest cancelRequest) {
@@ -98,6 +101,9 @@ public record OrderView(
                 o.getClosedAt(),
                 o.getCancelledAt(),
                 o.getStatusAt(),
+                o.getReworkOf(),
+                o.getReworkIndex(),
+                o.getReworkCount() == null ? 0 : o.getReworkCount(),
                 StateMachine.allowedEvents(o.getStatus()),
                 o.getEvents(),
                 cancelRequestOf(o));

@@ -65,7 +65,7 @@ public final class StateMachine {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("from", from);
             List<Map<String, Object>> cells = new ArrayList<>();
-            for (OrderEvent ev : OrderEvent.values()) {
+            for (OrderEvent ev : TransitionTable.EVENTS) {
                 String to = null;
                 if ("NEW".equals(from)) {
                     OrderStatus t = TransitionTable.CREATION.get(ev);
@@ -86,13 +86,30 @@ public final class StateMachine {
             row.put("cells", cells);
             rows.add(row);
         }
-        int total = rows.size() * OrderEvent.values().length;
+        int total = rows.size() * TransitionTable.EVENTS.size();
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("rows", rows);
         out.put("rowCount", rows.size());
-        out.put("eventCount", OrderEvent.values().length);
+        out.put("eventCount", TransitionTable.EVENTS.size());
         out.put("total", total);
         out.put("legal", legal);
         return out;
+    }
+
+    /**
+     * 级联副作用：返修单验收通过时，原单从"返修中"关到"已关闭"。
+     *
+     * <p>它不占 13 条转移，也不许被当成命令调用 —— 只由 {@code OrderService.accept} 在验过
+     * "这是一张返修单" 之后显式调用一次。
+     */
+    public static OrderStatus nextCascade(OrderStatus from, OrderEvent cascade) {
+        Map<OrderStatus, OrderStatus> m = TransitionTable.cascades().get(cascade.name());
+        OrderStatus to = m == null ? null : m.get(from);
+        if (to == null) {
+            throw BizException.stateConflict(
+                    "状态「" + from.label() + "」没有级联「" + cascade.label() + "」",
+                    from.name(), cascade.name(), allowedEvents(from));
+        }
+        return to;
     }
 }

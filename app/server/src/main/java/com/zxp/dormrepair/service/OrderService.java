@@ -192,9 +192,19 @@ public class OrderService {
         if (isBlank(req.signerName())) {
             throw BizException.precondition("签字人必填", "SIGNER_REQUIRED");
         }
-        return OrderView.of(state.transit(no, OrderEvent.ACCEPT, actor,
+        WorkOrder done = state.transit(no, OrderEvent.ACCEPT, actor,
                 "验收通过，签字人 " + req.signerName(), req.version(),
-                o -> o.setSignAt(TimeUtil.now())));
+                o -> o.setSignAt(TimeUtil.now()));
+        // SYS-004 第 8 条：验收的是返修单，原单同时关闭（级联，不占 13 条转移）
+        String base = done.getReworkOf();
+        if (base != null) {
+            WorkOrder origin = store.get(base);
+            if (origin != null && origin.getStatus() == OrderStatus.REWORKING) {
+                state.cascadeClose(base, actor,
+                        "返修单 " + no + " 验收通过，原单关闭（级联，不占 13 条转移）");
+            }
+        }
+        return OrderView.of(store.get(no));
     }
 
     public OrderView reject(String no, TransitRequest req, Actor actor) {
@@ -203,10 +213,73 @@ public class OrderService {
         if (reason.length() < 2) {
             throw BizException.precondition("请写清哪里没修好，至少 2 个字", "REASON_REQUIRED");
         }
-        // M1：原单转返修中。M2 接数据库时在这里同时新建 -R1 单（紧急度升一档），
-        // 原单挂起、新单回待派工，SYS-004 第 9 条。
-        return OrderView.of(state.transit(no, OrderEvent.REJECT, actor,
-                "验收不通过：" + reason, req.version(), o -> o.setFinishAt(o.getFinishAt())));
+        // 9 原单转返修中（挂起，等返修单走完）
+        WorkOrder origin = state.transit(no, OrderEvent.REJECT, actor,
+                "验收不通过：" + reason, req.version(), o -> { });
+        WorkOrder rework = createRework(origin, reason, actor);
+        return OrderView.of(store.get(rework.getNo()));
+    }
+
+    /**
+     * 生成返修单（SYS-004 第 9 条）：新单号 原单号-R{n}，回待派工重新排队。
+     *
+     * <p>继承位置、报修人、类型与现场照片；紧急度升一档（普通→较急→紧急，到顶不再升）；
+     * 原单的 reworkCount +1，累计到 2 次就进管理端"同一单反复返修"例外清单。
+     */
+    private WorkOrder createRework(WorkOrder origin, String reason, Actor actor) {
+        String base = origin.getReworkOf() == null ? origin.getNo() : origin.getReworkOf();
+        int max = 0;
+        for (WorkOrder o : store.all()) {
+            if (o.getNo().startsWith(base + "-R")) {
+                String tail = o.getNo().substring((base + "-R").length());
+                try {
+                    max = Math.max(max, Integer.parseInt(tail));
+                } catch (NumberFormatException ignored) {
+                    // 单号不是数字就不算，防御性跳过
+                }
+            }
+        }
+        int idx = max + 1;
+        String at = TimeUtil.now();
+
+        WorkOrder r = new WorkOrder();
+        r.setNo(base + "-R" + idx);
+        r.setVersion(1);
+        r.setStatus(StateMachine.onCreation(OrderEvent.SUBMIT));
+        r.setBuilding(origin.getBuilding());
+        r.setFloor(origin.getFloor());
+        r.setRoom(origin.getRoom());
+        r.setStudentId(origin.getStudentId());
+        r.setStudentName(origin.getStudentName());
+        r.setDescription(origin.getDescription());
+        r.setVisitWindow(origin.getVisitWindow());
+        r.setPhotosBefore(new java.util.ArrayList<>(origin.getPhotosBefore()));
+        r.setCategory(origin.getCategory());
+        String up = levelUp(origin.getLevel());
+        r.setLevel(up);
+        r.setLevelSource("REWORK");
+        r.setAiBasis("返修单继承原单判定（" + origin.getLevel() + "→" + up + "）；第 " + idx
+                + " 次返修，原因：" + reason);
+        r.setCreatedAt(at);
+        r.setStatusAt(at);
+        r.setReworkOf(base);
+        r.setReworkIndex(idx);
+        r.setReworkCount(0);
+        r.getEvents().add(new OrderEventLog(store.nextEventSeq(), at, OrderEvent.SUBMIT,
+                actor.type().name(), actor.id(), actor.name(), 1,
+                "返修单：由「" + origin.getNo() + "」验收不通过生成（" + reason + "）"));
+        store.save(r);
+
+        int count = (origin.getReworkCount() == null ? 0 : origin.getReworkCount()) + 1;
+        store.update(base, origin.getVersion(), o -> o.setReworkCount(count));
+        return r;
+    }
+
+    private static String levelUp(String level) {
+        if ("普通".equals(level)) {
+            return "较急";
+        }
+        return "紧急";
     }
 
     // --------------------------------------------------------- 12 / 13 撤销

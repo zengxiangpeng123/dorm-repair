@@ -97,4 +97,29 @@ public final class TransitionTable {
         }
         return out;
     }
+
+    /**
+     * 矩阵与事件清单只认这 13 个（CANCEL_REQUEST 也在内，它不改状态但要能申请）。
+     *
+     * <p>级联事件 ORIGIN_CLOSED 不在这里：它不是人能推的命令，是返修单验收通过时的附带效果。
+     */
+    public static final List<OrderEvent> EVENTS = List.of(
+            OrderEvent.SUBMIT, OrderEvent.ASSIGN, OrderEvent.ARRIVE, OrderEvent.NO_SHOW,
+            OrderEvent.FINISH, OrderEvent.NEED_PARTS, OrderEvent.PARTS_ARRIVED,
+            OrderEvent.ACCEPT, OrderEvent.REJECT, OrderEvent.AUTO_ACCEPT,
+            OrderEvent.ARCHIVE, OrderEvent.CANCEL, OrderEvent.CANCEL_REQUEST);
+
+    /** 级联副作用：不占 13 条转移名额，只在特定事件成功之后由服务层显式调用。 */
+    private static final Map<String, Map<OrderStatus, OrderStatus>> CASCADE;
+
+    static {
+        Map<String, Map<OrderStatus, OrderStatus>> c = new java.util.LinkedHashMap<>();
+        c.put(OrderEvent.ORIGIN_CLOSED.name(), new EnumMap<>(Map.of(
+                OrderStatus.REWORKING, OrderStatus.CLOSED)));
+        CASCADE = Collections.unmodifiableMap(c);
+    }
+
+    public static Map<String, Map<OrderStatus, OrderStatus>> cascades() {
+        return CASCADE;
+    }
 }

@@ -61,7 +61,7 @@ Copy-Item app\server\src\main\resources\db\data.sql  $tmp
 
 > `source` 打不开中文路径，所以先复制到 `%TEMP%` 再 source。
 
-重置演示数据：`POST /api/v1/demo/reset` → 清表 + 重灌 6 张样本单。
+重置演示数据：`POST /api/v1/demo/reset` → 清表 + 重灌 11 张样本单（含一条 `-R1`/`-R2` 返修链）。
 
 ---
 
@@ -84,6 +84,7 @@ npm run dev          # http://localhost:5173，/api 代理到 8080
 | 一条链真跑通（打真服务，不是 mock） | `pwsh -NoProfile -File app\server\tests\m1-chain.ps1` | `13 通过 / 0 失败` |
 | 重启之后数据还在（真 MySQL） | `pwsh -NoProfile -File app\server\tests\m2-mysql.ps1` | `16 通过 / 0 失败` |
 | AI 接上了；**杀掉 AI 之后建单仍成功**走兜底 | `pwsh -NoProfile -File app\server\tests\m3-ai.ps1` | `20 通过 / 0 失败` |
+| 驳回生成 `-R1`、返修单验收后**原单级联关闭** | `pwsh -NoProfile -File app\server\tests\m4-rework.ps1` | `18 通过 / 0 失败` |
 | AI 规则本身（安全类定紧急、浸水风险算安全类…） | `cd app\ai; <venv>\python.exe -m pytest -q` | `7 passed` |
 | 原型状态机与后端一致（离线也算得对） | `node prototype/tests/selftest.js prototype` | `34 通过 / 0 失败` |
 

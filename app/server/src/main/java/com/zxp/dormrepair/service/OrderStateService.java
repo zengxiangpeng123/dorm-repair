@@ -54,8 +54,7 @@ public class OrderStateService {
     }
 
     /** 只留记录、不动状态的那种事件（学生申请撤销）。 */
-    public WorkOrder logOnly(String no, OrderEvent event, Actor actor, String note, Integer expectVersion) {
-        WorkOrder cur = store.require(no);
+    public WorkOrder logOnly(String no, OrderEvent event, Actor actor, String note, Integer expectVersion) {        WorkOrder cur = store.require(no);
         StateMachine.assertCanTrigger(event, actor.type());
         String at = TimeUtil.now();
         boolean ok = store.update(no, expectVersion, o -> o.getEvents().add(new OrderEventLog(
@@ -64,6 +63,32 @@ public class OrderStateService {
         if (!ok) {
             WorkOrder latest = store.require(no);
             throw BizException.versionConflict(expectVersion, latest.getVersion(),
+                    StateMachine.allowedEvents(latest.getStatus()));
+        }
+        return store.get(no);
+    }
+
+    /**
+     * 级联副作用：返修单验收通过时，原单从"返修中"关到"已关闭"。
+     *
+     * <p>这条不在 13 条转移里（SYS-004 第 8 条的附带效果），所以不走 transit 的查表，
+     * 改由 {@link StateMachine#nextCascade} 校验"只有返修中能被级联关闭"。
+     * 事件记在学生头上（manual=1）—— 是他的验收动作导致原单关闭，不算系统自动化。
+     */
+    public WorkOrder cascadeClose(String no, Actor actor, String note) {
+        WorkOrder cur = store.require(no);
+        OrderStatus to = StateMachine.nextCascade(cur.getStatus(), OrderEvent.ORIGIN_CLOSED);
+        String at = TimeUtil.now();
+        boolean ok = store.update(no, cur.getVersion(), o -> {
+            o.setStatus(to);
+            o.setClosedAt(at);
+            o.setStatusAt(at);
+            o.getEvents().add(new OrderEventLog(store.nextEventSeq(), at, OrderEvent.ORIGIN_CLOSED,
+                    actor.type().name(), actor.id(), actor.name(), 1, note));
+        });
+        if (!ok) {
+            WorkOrder latest = store.require(no);
+            throw BizException.versionConflict(cur.getVersion(), latest.getVersion(),
                     StateMachine.allowedEvents(latest.getStatus()));
         }
         return store.get(no);

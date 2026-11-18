@@ -99,6 +99,9 @@ public class SeedService {
         add(o6, OrderEvent.SUBMIT, "STUDENT", "S003", "王同学", 1, 2880, "提交报修：窗户把手松了，关不严");
         add(o6, OrderEvent.ASSIGN, "SYSTEM", "system", "系统自动派工", 0, 2820, "派给 王海涛（综合班）");
         add(o6, OrderEvent.ARRIVE, "WORKER", "W0512", "王海涛", 1, 2760, "到门打卡");
+        // 这张单中途缺件、由王主任确认到货 —— 留一条管理端事件，零人工完成率才不会永远是 100%
+        add(o6, OrderEvent.NEED_PARTS, "WORKER", "W0512", "王海涛", 1, 2745, "缺件：把手 ¥45，预算内");
+        add(o6, OrderEvent.PARTS_ARRIVED, "ADMIN", "A001", "王主任", 1, 2730, "配件到货，确认收货（管理端介入过一次）");
         add(o6, OrderEvent.FINISH, "WORKER", "W0512", "王海涛", 1, 2700, "完工提交：紧固把手，上润滑油");
         add(o6, OrderEvent.ACCEPT, "STUDENT", "S003", "王同学", 1, 2640, "验收通过，签字人 王同学");
         o6.setArriveAt(TimeUtil.agoMinutes(2760));
@@ -120,8 +123,63 @@ public class SeedService {
         o7.setPartsAmount(new BigDecimal("480.00"));
         o7.setPartsEta(TimeUtil.dateAfterDays(3));
 
+        // 8 返修链：原单返修 2 次（管理端「反复返修」的例子，也是学生/师傅看到的 -R1、-R2）
+        WorkOrder o8 = base(8, OrderStatus.REWORKING, "B8", 2, "211", "S003", "王同学",
+                "卫生间门锁卡死，钥匙拧不动", "上午 08:00-12:00", "门窗家具", "较急",
+                "命中「门锁/卡死」，归门窗家具；影响进出，抬一档到较急",
+                "W0512", "王海涛", 4320);
+        add(o8, OrderEvent.SUBMIT, "STUDENT", "S003", "王同学", 1, 4320, "提交报修：门锁卡死");
+        add(o8, OrderEvent.ASSIGN, "SYSTEM", "system", "系统自动派工", 0, 4260, "派给 王海涛（综合班）");
+        add(o8, OrderEvent.ARRIVE, "WORKER", "W0512", "王海涛", 1, 4210, "到门打卡");
+        add(o8, OrderEvent.FINISH, "WORKER", "W0512", "王海涛", 1, 4180, "换了锁芯，门能开了");
+        add(o8, OrderEvent.REJECT, "STUDENT", "S003", "王同学", 1, 4140, "锁芯还是涩，拧着费劲");
+        o8.setArriveAt(TimeUtil.agoMinutes(4210));
+        o8.setFinishAt(TimeUtil.agoMinutes(4180));
+        o8.setPhotosAfter(new ArrayList<>(List.of("demo://after/211.jpg")));
+        o8.setReworkCount(2);
+
+        WorkOrder o9 = base(8, OrderStatus.REWORKING, "B8", 2, "211", "S003", "王同学",
+                "卫生间门锁卡死，钥匙拧不动", "上午 08:00-12:00", "门窗家具", "紧急",
+                "返修单继承原单判定（较急→紧急）；第 1 次返修，原因：锁芯还是涩，拧着费劲",
+                "W0512", "王海涛", 4140);
+        o9.setNo(o8.getNo() + "-R1");
+        o9.setReworkOf(o8.getNo());
+        o9.setReworkIndex(1);
+        add(o9, OrderEvent.SUBMIT, "STUDENT", "S003", "王同学", 1, 4140, "返修单：由「" + o8.getNo() + "」验收不通过生成（锁芯还是涩）");
+        add(o9, OrderEvent.ASSIGN, "SYSTEM", "system", "系统自动派工", 0, 4080, "派给 王海涛（综合班）");
+        add(o9, OrderEvent.ARRIVE, "WORKER", "W0512", "王海涛", 1, 4040, "到门打卡");
+        add(o9, OrderEvent.FINISH, "WORKER", "W0512", "王海涛", 1, 4010, "整个锁体换了");
+        add(o9, OrderEvent.REJECT, "STUDENT", "S003", "王同学", 1, 3960, "门能锁但反锁卡住");
+        o9.setArriveAt(TimeUtil.agoMinutes(4040));
+        o9.setFinishAt(TimeUtil.agoMinutes(4010));
+        o9.setPhotosAfter(new ArrayList<>(List.of("demo://after/211-r1.jpg")));
+
+        WorkOrder o10 = base(8, OrderStatus.PENDING, "B8", 2, "211", "S003", "王同学",
+                "卫生间门锁卡死，钥匙拧不动", "上午 08:00-12:00", "门窗家具", "紧急",
+                "返修单继承原单判定（紧急→紧急，已是最紧急不再升）；第 2 次返修，原因：门能锁但反锁卡住",
+                null, null, 3960);
+        o10.setNo(o8.getNo() + "-R2");
+        o10.setReworkOf(o8.getNo());
+        o10.setReworkIndex(2);
+        add(o10, OrderEvent.SUBMIT, "STUDENT", "S003", "王同学", 1, 3960, "返修单：由「" + o9.getNo() + "」验收不通过生成（反锁卡住）");
+
+        // 11 已完成：全程没让管理端碰过，最后一环是超时自动验收 —— 零人工完成率的分子
+        WorkOrder o11 = base(11, OrderStatus.DONE, "B7", 5, "508", "S002", "李同学",
+                "洗手台下面漏水，柜子里全是水", "上午 08:00-12:00", "给排水", "紧急",
+                "命中「漏水/全是水」，按浸水风险算安全类，直接定紧急，不再往下判",
+                "W0428", "李建国", 5760);
+        add(o11, OrderEvent.SUBMIT, "STUDENT", "S002", "李同学", 1, 5760, "提交报修：洗手台下面漏水");
+        add(o11, OrderEvent.ASSIGN, "SYSTEM", "system", "系统自动派工", 0, 5700, "派给 李建国（水电班）");
+        add(o11, OrderEvent.ARRIVE, "WORKER", "W0428", "李建国", 1, 5640, "到门打卡");
+        add(o11, OrderEvent.FINISH, "WORKER", "W0428", "李建国", 1, 5600, "完工提交：更换软管，重新打胶");
+        add(o11, OrderEvent.AUTO_ACCEPT, "SYSTEM", "system", "定时任务", 0, 5600, "满 168 小时学生没回应，系统自动验收");
+        o11.setArriveAt(TimeUtil.agoMinutes(5640));
+        o11.setFinishAt(TimeUtil.agoMinutes(5600));
+        o11.setSignAt(TimeUtil.agoMinutes(5600));
+        o11.setPhotosAfter(new ArrayList<>(List.of("demo://after/508.jpg")));
+
         int n = 0;
-        for (WorkOrder o : List.of(o1, o2, o3, o4, o5, o6, o7)) {
+        for (WorkOrder o : List.of(o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11)) {
             o.setVersion(Math.max(1, o.getEvents().size()));
             o.setStatusAt(o.getEvents().isEmpty() ? o.getCreatedAt()
                     : o.getEvents().get(o.getEvents().size() - 1).at());

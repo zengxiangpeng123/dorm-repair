@@ -108,6 +108,7 @@ def main():
     # 截图要用"有戏"的单：师傅作业页用维修中，学生详情用待验收
     task_no = by.get("REPAIRING") or by.get("ASSIGNED") or first
     detail_no = by.get("VERIFYING") or first
+    rework_no = next((o["no"] for o in orders if o.get("reworkOf")), first)
 
     pages = [
         ("/", "entry", 1440, 1400, True),
@@ -115,6 +116,7 @@ def main():
         ("/student/new", "student-new", PHONE_W, 1800, False),
         ("/student/list", "student-list", PHONE_W, 1200, False),
         (f"/student/detail?no={detail_no}", "student-detail", PHONE_W, 2400, False),
+        (f"/student/detail?no={rework_no}", "student-rework", PHONE_W, 2000, False),
         ("/worker", "worker-home", PHONE_W, 1600, False),
         ("/worker/building", "worker-building", PHONE_W, 1800, False),
         (f"/worker/task?no={task_no}", "worker-task", PHONE_W, 2000, False),
@@ -123,7 +125,7 @@ def main():
         ("/lab", "lab", 1440, 1800, True),
     ]
     for path, name, width, guess, desk in pages:
-        if only and only not in path:
+        if only and only not in path and only not in name:
             continue
         out = os.path.join(OUT, name + ".png")
         sep = "&" if "?" in path else "?"

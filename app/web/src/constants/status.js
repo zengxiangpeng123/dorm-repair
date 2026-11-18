@@ -25,7 +25,8 @@ export const EVENT = {
   REJECT: '验收不通过',
   AUTO_ACCEPT: '超时自动验收',
   CANCEL: '学生撤销',
-  CANCEL_REQUEST: '申请撤销'
+  CANCEL_REQUEST: '申请撤销',
+  ORIGIN_CLOSED: '原单关闭（级联）'
 }
 
 /** 谁在跑这单（不参与状态机，只用于界面分组） */

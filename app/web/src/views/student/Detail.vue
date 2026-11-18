@@ -125,6 +125,23 @@ onUnmounted(() => clearInterval(timer))
       </div>
     </div>
 
+    <!-- 返修关系：新单指向原单，原单上记次数 -->
+    <div v-if="o.reworkOf" class="card rework-strip">
+      <span class="tag">返修单 · 第 {{ o.reworkIndex }} 次</span>
+      <div class="tx">
+        <b>这张是返修单</b>
+        <span class="tiny muted">原单 <span class="num">{{ o.reworkOf }}</span> 挂在「返修中」，位置、照片和历史都继承过来；紧急度往上提了一档（已经最紧急就停在紧急）。</span>
+      </div>
+      <button class="dbtn sm" @click="router.push({ path: '/student/detail', query: { no: o.reworkOf } })">看原单</button>
+    </div>
+    <div v-else-if="o.reworkCount > 0" class="card rework-strip">
+      <span class="tag">已返修 {{ o.reworkCount }} 次</span>
+      <div class="tx">
+        <b>这单被打回过</b>
+        <span class="tiny muted">每次打回都生成一张 -R 的新单在原位置重排队；同一单返修到 2 次会进管理端「反复返修」清单。</span>
+      </div>
+    </div>
+
     <!-- 两颗计时器：起点不一样，不要合成一颗 -->
     <div v-if="tm.t1" class="card">
       <div class="card-hd"><h3>学生还差多久自动验收</h3><span class="hint">T1</span></div>

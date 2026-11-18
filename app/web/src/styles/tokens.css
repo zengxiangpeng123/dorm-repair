@@ -423,3 +423,17 @@ body.shot .dock {
 .dbtn.ghost { color: var(--ink-2); }
 .dbtn:disabled { opacity: .55; cursor: not-allowed; }
 .desk-top .sp { flex: 1; }
+
+/* 返修关系条（学生详情页 + 师傅作业页共用） */
+.card.rework-strip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 13px; border-left: 3px solid var(--violet);
+  background: #f6f4ff;
+}
+.card.rework-strip .tag {
+  flex: none; padding: 3px 8px; border-radius: 999px;
+  background: var(--violet); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.card.rework-strip .tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.card.rework-strip .tx b { font-size: 13px; font-weight: 600; color: var(--ink); }
+.card.rework-strip .dbtn, .card.rework-strip .btn { flex: none; white-space: nowrap; }

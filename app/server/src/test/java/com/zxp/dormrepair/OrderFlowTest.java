@@ -1,6 +1,7 @@
 package com.zxp.dormrepair;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,6 +78,63 @@ class OrderFlowTest {
         assertEquals("DONE", accepted.data().get("status").asText());
         assertTrue(accepted.data().get("signAt").isTextual(), "验收要写 signAt");
         assertEquals(5, accepted.data().get("version").asInt());
+    }
+
+    @Test
+    @DisplayName("返修：驳回生成 -R1、原单挂起、紧急度升档；返修单验收通过后原单级联关闭")
+    void reworkAndCascade() throws Exception {
+        String no = pending().get("no").asText();
+        assign(no, 1);
+        call("POST", "/orders/" + no + "/arrive", "{\"version\":2}", "worker", "W0428");
+        call("POST", "/orders/" + no + "/finish",
+                "{\"version\":3,\"photosAfter\":[\"demo://a1.jpg\"]}", "worker", "W0428");
+
+        JsonNode before = call("GET", "/orders/" + no, null, null, null).data();
+        String originLevel = before.get("level").asText();
+
+        Resp rejected = call("POST", "/orders/" + no + "/reject",
+                "{\"version\":4,\"reason\":\"水还在滴\"}", "student", "S001");
+        assertEquals(200, rejected.status, rejected.body);
+        JsonNode rw = rejected.data();
+        assertEquals(no + "-R1", rw.get("no").asText(), "返修单号是原单号加 -R1");
+        assertEquals("PENDING", rw.get("status").asText(), "返修单回待派工重新排队");
+        assertEquals(no, rw.get("reworkOf").asText());
+        assertEquals(1, rw.get("reworkIndex").asInt());
+        assertEquals(before.get("building").asText(), rw.get("building").asText(), "位置继承");
+        assertEquals(before.get("room").asText(), rw.get("room").asText(), "房间继承");
+        assertEquals(before.get("category").asText(), rw.get("category").asText(), "类型继承");
+        if ("紧急".equals(originLevel)) {
+            // 原单已经是最高档（这张单命中浸水风险），返修不再往上加
+            assertEquals("紧急", rw.get("level").asText(), "已经最紧急就停在紧急");
+        } else {
+            assertNotEquals(originLevel, rw.get("level").asText(), "紧急度要升一档");
+        }
+
+        JsonNode origin = call("GET", "/orders/" + no, null, null, null).data();
+        assertEquals("REWORKING", origin.get("status").asText(), "原单挂在返修中");
+        assertEquals(1, origin.get("reworkCount").asInt(), "原单累计返修次数 +1");
+
+        // 返修单走完到验收通过，原单应被级联关闭
+        String rno = rw.get("no").asText();
+        call("POST", "/orders/" + rno + "/assign", "{\"version\":1,\"workerId\":\"W0428\"}", "system", "system");
+        call("POST", "/orders/" + rno + "/arrive", "{\"version\":2}", "worker", "W0428");
+        call("POST", "/orders/" + rno + "/finish",
+                "{\"version\":3,\"photosAfter\":[\"demo://a2.jpg\"]}", "worker", "W0428");
+        Resp ok = call("POST", "/orders/" + rno + "/accept",
+                "{\"version\":4,\"signerName\":\"张同学\"}", "student", "S001");
+        assertEquals("DONE", ok.data().get("status").asText());
+
+        JsonNode closed = call("GET", "/orders/" + no, null, null, null).data();
+        assertEquals("CLOSED", closed.get("status").asText(), "返修单验收通过，原单关闭");
+        assertTrue(closed.get("closedAt").isTextual());
+        boolean cascaded = false;
+        for (JsonNode e : closed.get("events")) {
+            if ("ORIGIN_CLOSED".equals(e.get("event").asText())) {
+                cascaded = true;
+                assertEquals(1, e.get("manual").asInt(), "级联关闭是人验收导致的，不算系统自动化");
+            }
+        }
+        assertTrue(cascaded, "原单要留下一条 ORIGIN_CLOSED 事件");
     }
 
     @Test

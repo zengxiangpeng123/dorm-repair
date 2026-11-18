@@ -61,10 +61,10 @@ class StateMachineTest {
     }
 
     @Test
-    @DisplayName("117 条非法组合全部 409，且带着 allowed 列表")
+    @DisplayName("96 条非法组合全部 409，且带着 allowed 列表（级联事件不在其中）")
     void illegalCombinations() {
         int illegal = 0;
-        for (OrderEvent ev : OrderEvent.values()) {
+        for (OrderEvent ev : TransitionTable.EVENTS) {
             if (!ev.changesStatus()) {
                 continue;
             }
@@ -114,7 +114,7 @@ class StateMachineTest {
     void terminalStates() {
         assertTrue(OrderStatus.CLOSED.terminal());
         assertTrue(OrderStatus.CANCELLED.terminal());
-        for (OrderEvent ev : OrderEvent.values()) {
+        for (OrderEvent ev : TransitionTable.EVENTS) {
             if (!ev.changesStatus()) {
                 continue;
             }

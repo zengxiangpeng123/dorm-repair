@@ -89,6 +89,16 @@ public class WorkOrder {
     @TableField(value = "status_at", typeHandler = DateTimeStringTypeHandler.class)
     private String statusAt;
 
+    /** 返修关系：返修单指向原始单（没有 -R 后缀的那个），原单的 reworkCount 由驳回时 +1。 */
+    @TableField("rework_of")
+    private String reworkOf;
+
+    @TableField("rework_index")
+    private Integer reworkIndex;
+
+    @TableField("rework_count")
+    private Integer reworkCount = 0;
+
     @TableField(exist = false)
     private List<OrderEventLog> events = new ArrayList<>();
 

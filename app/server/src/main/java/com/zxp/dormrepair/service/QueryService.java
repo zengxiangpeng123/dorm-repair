@@ -164,11 +164,11 @@ public class QueryService {
                                 + "，超过预算线 " + budget + " 元"
                                 + (arrived ? "（配件已到、单已回队列，这条留到归档）" : "")));
             }
-            // 3 反复返修：同一张单验收不通过 ≥2 次
-            long rejects = o.getEvents().stream().filter(e -> e.event() == OrderEvent.REJECT).count();
-            if (rejects >= 2) {
+            // 3 反复返修：同一张原单被打回 ≥2 次（返修链上的每张单各自只有 1 次驳回，所以按原单的 reworkCount 算）
+            int reworkCount = o.getReworkCount() == null ? 0 : o.getReworkCount();
+            if (o.getReworkOf() == null && reworkCount >= 2) {
                 items.add(item("REPEAT_REWORK", "反复返修", o,
-                        "这张单已经返修 " + rejects + " 次，该看是不是根因没找对"));
+                        "这张原单已经返修 " + reworkCount + " 次，该看是不是根因没找对"));
             }
             // 4 学生申请撤销：进楼之后才有的，唯一需要人拍板的
             boolean asked = o.getEvents().stream().anyMatch(e -> e.event() == OrderEvent.CANCEL_REQUEST);

@@ -40,7 +40,10 @@ public interface WorkOrderMapper extends BaseMapper<WorkOrder> {
               sign_at       = #{o.signAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
               closed_at     = #{o.closedAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
               cancelled_at  = #{o.cancelledAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
-              status_at     = #{o.statusAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler}
+              status_at     = #{o.statusAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
+              rework_of     = #{o.reworkOf},
+              rework_index  = #{o.reworkIndex},
+              rework_count  = #{o.reworkCount}
             WHERE no = #{o.no} AND version = #{expectVersion}
             """)
     int updateCas(@Param("o") WorkOrder o, @Param("expectVersion") int expectVersion);

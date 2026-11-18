@@ -56,7 +56,8 @@ public class MetaController {
             statuses.add(Map.of("code", s.name(), "label", s.label(), "terminal", s.terminal()));
         }
         List<Map<String, Object>> events = new ArrayList<>();
-        for (OrderEvent e : OrderEvent.values()) {
+        // 只列 13 个可推的事件；级联的 ORIGIN_CLOSED 不是命令，不给前端画按钮
+        for (OrderEvent e : TransitionTable.EVENTS) {
             List<String> trigger = TransitionTable.triggerOf(e).stream().map(ActorType::name).toList();
             events.add(Map.of("code", e.name(), "label", e.label(), "trigger", trigger));
         }
