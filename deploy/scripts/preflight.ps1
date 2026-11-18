@@ -15,12 +15,17 @@ $values = @{}
 Get-Content $envPath | ForEach-Object {
     if ($_ -match '^([A-Z0-9_]+)=(.*)$') { $values[$matches[1]] = $matches[2] }
 }
-$required = @('DB_ROOT_PASSWORD','DB_USER','DB_PASSWORD','DB_NAME','APP_FILE_S3_ENDPOINT','APP_FILE_S3_BUCKET','AI_BASE_URL','AI_MODEL','AI_API_KEY','BOOTSTRAP_ADMIN_ACCOUNT','BOOTSTRAP_ADMIN_NAME','BOOTSTRAP_ADMIN_PASSWORD')
+$required = @('DB_ROOT_PASSWORD','DB_USER','DB_PASSWORD','DB_NAME','APP_FILE_S3_ENDPOINT','APP_FILE_S3_BUCKET','AI_BASE_URL','AI_MODEL','AI_API_KEY')
 foreach ($key in $required) {
     $value = $values[$key]
     if ([string]::IsNullOrWhiteSpace($value)) { Fail "$key is empty" }
     if ($value -match '^(replace-with-|sk-\.\.\.)') { Fail "$key still contains a placeholder" }
 }
+$bootstrap = @('BOOTSTRAP_ADMIN_ACCOUNT','BOOTSTRAP_ADMIN_NAME','BOOTSTRAP_ADMIN_PASSWORD') | ForEach-Object { [string]$values[$_] }
+if (($bootstrap | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -notin 0,3) {
+    Fail 'BOOTSTRAP_ADMIN_* must be all set for first start or all empty after initialization'
+}
+if ($bootstrap[2] -and $bootstrap[2].Length -lt 12) { Fail 'BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters' }
 if ($values['APP_FILE_S3_ENDPOINT'] -notmatch '^https://') { Fail 'APP_FILE_S3_ENDPOINT must use HTTPS' }
 if ($values['DB_USE_SSL'] -ne 'true') { Fail 'DB_USE_SSL must be true in production' }
 $mysql = Get-Command mysql -ErrorAction SilentlyContinue

@@ -18,7 +18,6 @@ required=(
   DB_ROOT_PASSWORD DB_USER DB_PASSWORD DB_NAME
   APP_FILE_S3_ENDPOINT APP_FILE_S3_BUCKET
   AI_BASE_URL AI_MODEL AI_API_KEY
-  BOOTSTRAP_ADMIN_ACCOUNT BOOTSTRAP_ADMIN_NAME BOOTSTRAP_ADMIN_PASSWORD
 )
 for key in "${required[@]}"; do
   value="$(grep -E "^$key=" "$ENV_FILE" | tail -n1 | cut -d= -f2- || true)"
@@ -27,6 +26,17 @@ for key in "${required[@]}"; do
     replace-with-*|sk-...|'') fail "$key still contains a placeholder" ;;
   esac
 done
+
+bootstrap_values=()
+for key in BOOTSTRAP_ADMIN_ACCOUNT BOOTSTRAP_ADMIN_NAME BOOTSTRAP_ADMIN_PASSWORD; do
+  bootstrap_values+=("$(grep -E "^$key=" "$ENV_FILE" | tail -n1 | cut -d= -f2- || true)")
+done
+bootstrap_set=0
+for value in "${bootstrap_values[@]}"; do [ -z "$value" ] || bootstrap_set=$((bootstrap_set + 1)); done
+[ "$bootstrap_set" -eq 0 ] || [ "$bootstrap_set" -eq 3 ] || fail "BOOTSTRAP_ADMIN_* must be all set for first start or all empty after initialization"
+if [ -n "${bootstrap_values[2]}" ] && [ "${#bootstrap_values[2]}" -lt 12 ]; then
+  fail "BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters"
+fi
 
 s3_endpoint="$(grep -E '^APP_FILE_S3_ENDPOINT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 case "$s3_endpoint" in https://*) ;; *) fail "APP_FILE_S3_ENDPOINT must use HTTPS" ;; esac
