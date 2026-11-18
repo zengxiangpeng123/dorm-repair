@@ -4,7 +4,7 @@ package com.zxp.dormrepair.statemachine;
  * 工单事件。状态事件之外还有日志型事件与级联事件。
  *
  * <p>CANCEL_REQUEST、REWORK_REQUEST、REWORK_REJECTED 只写时间线，不改变状态。
- * ORIGIN_CLOSED 是返修单验收通过后的级联副作用。这三类都不占 13 条状态转移。
+ * ORIGIN_CLOSED 是返修单验收通过后的级联副作用。这三类都不占 14 条状态转移。
  */
 public enum OrderEvent {
 
@@ -20,6 +20,7 @@ public enum OrderEvent {
     AUTO_ACCEPT("超时自动验收"),
     ARCHIVE("归档"),
     CANCEL("撤销报修"),
+    ADMIN_CANCEL("管理员批准撤销"),
     CANCEL_REQUEST("申请撤销"),
     REWORK_REQUEST("申请返修"),
     REWORK_REJECTED("驳回返修申请"),
@@ -40,7 +41,7 @@ public enum OrderEvent {
         return this != CANCEL_REQUEST && this != REWORK_REQUEST && this != REWORK_REJECTED;
     }
 
-    /** 是不是只由级联触发、不占 13 条转移名额、也不进矩阵的那种事件。 */
+    /** 是不是只由级联触发、不占 14 条转移名额、也不进矩阵的那种事件。 */
     public boolean cascadeOnly() {
         return this == ORIGIN_CLOSED;
     }

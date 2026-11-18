@@ -329,7 +329,28 @@ CREATE TABLE IF NOT EXISTS t_config (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置：预算线、验收小时、归档天数';
 
 -- ------------------------------------------------------------
--- 11 单号序号（按天递增，避免并发撞号）
+-- 11 关键写请求幂等（actor + method + path + key 唯一）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_idempotency_record (
+  id              VARCHAR(36)  NOT NULL,
+  actor_type      VARCHAR(12)  NOT NULL,
+  actor_id        VARCHAR(20)  NOT NULL,
+  method          VARCHAR(8)   NOT NULL,
+  path            VARCHAR(300) NOT NULL,
+  idempotency_key VARCHAR(100) NOT NULL,
+  request_hash    CHAR(64)     NOT NULL,
+  status          VARCHAR(12)  NOT NULL DEFAULT 'PROCESSING' COMMENT 'PROCESSING/COMPLETED',
+  response_status INT          NULL,
+  response_body   MEDIUMTEXT   NULL,
+  created_at      DATETIME     NOT NULL,
+  completed_at    DATETIME     NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_idempotency_actor_request (actor_type, actor_id, method, path, idempotency_key),
+  KEY idx_idempotency_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='关键写请求幂等记录';
+
+-- ------------------------------------------------------------
+-- 12 单号序号（按天递增，避免并发撞号）
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS t_seq (
   day      VARCHAR(8) NOT NULL COMMENT 'yyyyMMdd',

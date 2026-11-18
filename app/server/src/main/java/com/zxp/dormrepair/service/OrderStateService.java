@@ -82,7 +82,7 @@ public class OrderStateService {
     /**
      * 级联副作用：返修单验收通过时，原单从"返修中"关到"已关闭"。
      *
-     * <p>这条不在 13 条转移里（SYS-004 第 8 条的附带效果），所以不走 transit 的查表，
+     * <p>这条不在 14 条转移里（SYS-004 第 8 条的附带效果），所以不走 transit 的查表，
      * 改由 {@link StateMachine#nextCascade} 校验"只有返修中能被级联关闭"。
      * 事件记在学生头上（manual=1）—— 是他的验收动作导致原单关闭，不算系统自动化。
      */

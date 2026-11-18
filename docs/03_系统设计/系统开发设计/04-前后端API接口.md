@@ -28,7 +28,7 @@
 |---|---|
 | 角色 `actorType` | `STUDENT`、`WORKER`、`ADMIN`、`SYSTEM` |
 | 工单状态 `status` | `PENDING`、`ASSIGNED`、`REPAIRING`、`PARTS`、`VERIFYING`、`REWORKING`、`DONE`、`CLOSED`、`CANCELLED` |
-| 状态事件 `event` | `SUBMIT`、`ASSIGN`、`ARRIVE`、`NO_SHOW`、`FINISH`、`NEED_PARTS`、`PARTS_ARRIVED`、`ACCEPT`、`REJECT`、`AUTO_ACCEPT`、`ARCHIVE`、`CANCEL`、`CANCEL_REQUEST`、`ORIGIN_CLOSED` |
+| 状态事件 `event` | `SUBMIT`、`ASSIGN`、`ARRIVE`、`NO_SHOW`、`FINISH`、`NEED_PARTS`、`PARTS_ARRIVED`、`ACCEPT`、`REJECT`、`AUTO_ACCEPT`、`ARCHIVE`、`ADMIN_CANCEL`、`CANCEL_REQUEST`、`ORIGIN_CLOSED` |
 | 审计事件 | `REWORK_REQUEST`、`REWORK_REJECTED`；审查通过沿用 `REJECT` |
 | 故障类型 `category` | `给排水`、`电气`、`电器`、`门窗家具`、`网络` |
 | 紧急程度 `level` | `紧急`、`较急`、`普通` |
@@ -149,6 +149,20 @@
 
 列表统一为 `{ "items": [], "total": 0 }`；`GET /my/orders`、`GET /orders` 和事件列表均使用该结构。
 
+## 三、写接口幂等
+
+所有需要防重复的 `POST/PUT/PATCH/DELETE` 请求应携带：
+
+```http
+Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
+```
+
+- 唯一范围：当前身份 + HTTP 方法 + 路径 + key。
+- 相同 key、相同请求体：处理中返回 `409 IDEMPOTENCY_IN_PROGRESS`，完成后返回首次成功响应，不重复执行。
+- 相同 key、不同请求体：返回 `409 IDEMPOTENCY_KEY_REUSED`。
+- 只缓存成功响应；校验失败、权限失败和业务冲突允许修正后用同一 key 重试。
+- 上传接口不进入该缓存，文件去重另行处理。
+
 ## 四、请求 DTO
 
 ### 4.1 `SubmitRequest`
@@ -228,7 +242,7 @@
 | POST | `/orders/{no}/cancel-request` | 学生 | `version,reason` | `202`，`OrderView`，状态不变 |
 | POST | `/orders/{no}/auto-accept` | 系统 | 无 | `OrderView`，未到 T1 返回 422 |
 | POST | `/orders/{no}/archive` | 系统 | 无 | `OrderView`，未到 T2 返回 422 |
-| POST | `/orders/{no}/admin-cancel` | 管理员 | 无 | `501 NOT_IMPLEMENTED`，`changeRequest=CR-001` |
+| POST | `/orders/{no}/admin-cancel` | 管理员 | `{version,reason}` | `OrderView`；仅允许维修中且已有学生撤销申请的工单；事件为 `ADMIN_CANCEL` |
 
 ### 6.1 楼栋批量打卡响应
 
@@ -244,7 +258,7 @@
 
 `orders` 只处理当前师傅名下的 `ASSIGNED` 单；已在 `REPAIRING` 的进入 `skipped`。
 
-### 6.2 当前旧版驳回行为（重要）
+### 6.2 旧版驳回接口（已退场）
 
 当前 `/orders/{no}/reject` 成功后：
 1. 原单进入 `REWORKING`；

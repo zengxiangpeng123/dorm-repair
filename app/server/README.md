@@ -68,8 +68,8 @@ Copy-Item src\main\resources\db\data.sql  $tmp
 | GET | `/api/v1/orders/{no}/events` | 全链路事件 |
 | GET | `/api/v1/ai/health` | AI 在不在、延迟多少毫秒 |
 | GET | `/api/v1/meta` | 9 状态、13 事件、阈值、五类故障、四时段 |
-| GET | `/api/v1/state/matrix` | 10 × 13 = 130 种组合，合法 13 |
-| GET | `/api/v1/state/transitions` | 13 条合法转移清单 |
+| GET | `/api/v1/state/matrix` | 10 × 13 = 140 种组合，合法 14 |
+| GET | `/api/v1/state/transitions` | 14 条合法转移清单 |
 | GET | `/api/v1/admin/rework-reviews` | 管理员待审返修队列 |
 | POST | `/api/v1/demo/reset` | 清空 + 重灌 11 张演示单 |
 

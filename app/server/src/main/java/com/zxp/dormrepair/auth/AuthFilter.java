@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
@@ -22,6 +24,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * 只给测试脚本使用；该开关在生产配置启动时会被拒绝。
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE + 20)
 public class AuthFilter extends OncePerRequestFilter {
 
     public static final String ATTR = "dorm.actor";

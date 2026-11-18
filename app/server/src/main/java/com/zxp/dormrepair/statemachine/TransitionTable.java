@@ -11,7 +11,7 @@ import java.util.Set;
  * 转移表：全站唯一的一份状态机数据。
  *
  * <p>规矩 C-02：要改状态机，只改这个文件和 {@link StateMachine}，不许在 service 里写 if-else。
- * 这里的一行一行，就是 SYS-004 第五条那 13 条转移，一条不多、一条不少。
+ * 这里的一行一行就是合法状态转移；当前为 14 条（原 13 条 + 管理员批准维修中撤销）。
  */
 public final class TransitionTable {
 
@@ -34,7 +34,8 @@ public final class TransitionTable {
                 OrderEvent.NO_SHOW, OrderStatus.PENDING,
                 OrderEvent.CANCEL, OrderStatus.CANCELLED));                       // 3 / 4 / 13
         m.put(OrderStatus.REPAIRING, row(OrderEvent.FINISH, OrderStatus.VERIFYING,
-                OrderEvent.NEED_PARTS, OrderStatus.PARTS));                       // 5 / 6
+                OrderEvent.NEED_PARTS, OrderStatus.PARTS,
+                OrderEvent.ADMIN_CANCEL, OrderStatus.CANCELLED));                // 14
         m.put(OrderStatus.PARTS, row(OrderEvent.PARTS_ARRIVED, OrderStatus.PENDING)); // 7
         m.put(OrderStatus.VERIFYING, row(OrderEvent.ACCEPT, OrderStatus.DONE,
                 OrderEvent.REJECT, OrderStatus.REWORKING,
@@ -47,7 +48,7 @@ public final class TransitionTable {
         TRANSITIONS = Collections.unmodifiableMap(m);
     }
 
-    /** 每条事件允许谁推。CANCEL 只有学生，管理端批准撤销是另一条边（CR-001）。 */
+    /** 每条事件允许谁推。学生可主动撤销；管理员只能经撤销申请决定接口推 CANCEL。 */
     private static final Map<OrderEvent, Set<ActorType>> TRIGGER;
 
     static {
@@ -64,6 +65,7 @@ public final class TransitionTable {
         t.put(OrderEvent.AUTO_ACCEPT, EnumSet.of(ActorType.SYSTEM));
         t.put(OrderEvent.ARCHIVE, EnumSet.of(ActorType.SYSTEM));
         t.put(OrderEvent.CANCEL, EnumSet.of(ActorType.STUDENT));
+        t.put(OrderEvent.ADMIN_CANCEL, EnumSet.of(ActorType.ADMIN));
         t.put(OrderEvent.CANCEL_REQUEST, EnumSet.of(ActorType.STUDENT));
         t.put(OrderEvent.REWORK_REQUEST, EnumSet.of(ActorType.STUDENT));
         t.put(OrderEvent.REWORK_REJECTED, EnumSet.of(ActorType.ADMIN));
@@ -90,7 +92,7 @@ public final class TransitionTable {
         return TRIGGER.getOrDefault(event, EnumSet.noneOf(ActorType.class));
     }
 
-    /** 13 条合法转移，按状态顺序排，给 /state/transitions 用。 */
+    /** 14 条合法转移，按状态顺序排，给 /state/transitions 用。 */
     public static List<String[]> list() {
         List<String[]> out = new java.util.ArrayList<>();
         out.add(new String[]{"NEW", OrderEvent.SUBMIT.name(), OrderStatus.PENDING.name()});
@@ -108,12 +110,12 @@ public final class TransitionTable {
             OrderEvent.SUBMIT, OrderEvent.ASSIGN, OrderEvent.ARRIVE, OrderEvent.NO_SHOW,
             OrderEvent.FINISH, OrderEvent.NEED_PARTS, OrderEvent.PARTS_ARRIVED,
             OrderEvent.ACCEPT, OrderEvent.REJECT, OrderEvent.AUTO_ACCEPT,
-            OrderEvent.ARCHIVE, OrderEvent.CANCEL, OrderEvent.CANCEL_REQUEST);
+            OrderEvent.ARCHIVE, OrderEvent.CANCEL, OrderEvent.ADMIN_CANCEL, OrderEvent.CANCEL_REQUEST);
 
     public static final List<OrderEvent> AUDIT_EVENTS = List.of(
             OrderEvent.REWORK_REQUEST, OrderEvent.REWORK_REJECTED);
 
-    /** 级联副作用：不占 13 条转移名额，只在特定事件成功之后由服务层显式调用。 */
+    /** 级联副作用：不占合法转移名额，只在特定事件成功之后由服务层显式调用。 */
     private static final Map<String, Map<OrderStatus, OrderStatus>> CASCADE;
 
     static {

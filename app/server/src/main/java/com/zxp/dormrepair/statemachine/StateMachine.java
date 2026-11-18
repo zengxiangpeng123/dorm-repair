@@ -99,7 +99,7 @@ public final class StateMachine {
     /**
      * 级联副作用：返修单验收通过时，原单从"返修中"关到"已关闭"。
      *
-     * <p>它不占 13 条转移，也不许被当成命令调用 —— 只由 {@code OrderService.accept} 在验过
+     * <p>它不占 14 条转移，也不许被当成命令调用 —— 只由 {@code OrderService.accept} 在验过
      * "这是一张返修单" 之后显式调用一次。
      */
     public static OrderStatus nextCascade(OrderStatus from, OrderEvent cascade) {

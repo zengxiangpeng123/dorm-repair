@@ -31,6 +31,14 @@ public class BizException extends RuntimeException {
         return new BizException(HttpStatus.FORBIDDEN, "FORBIDDEN", message);
     }
 
+    public static BizException conflict(String code, String message) {
+        return new BizException(HttpStatus.CONFLICT, code, message);
+    }
+
+    public static BizException gone(String code, String message, String replacement) {
+        return new BizException(HttpStatus.GONE, code, message).with("replacement", replacement);
+    }
+
     public static BizException notOwner(String message) {
         return new BizException(HttpStatus.FORBIDDEN, "NOT_OWNER", message);
     }

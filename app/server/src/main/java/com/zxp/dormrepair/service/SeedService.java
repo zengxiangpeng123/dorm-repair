@@ -29,14 +29,17 @@ public class SeedService {
     private final ConfigService config;
     private final ExceptionRecordRepository exceptions;
     private final AiReviewTaskRepository aiTasks;
+    private final com.zxp.dormrepair.service.IdempotencyService idempotency;
 
     public SeedService(OrderRepository store, ReworkReviewRepository reviews, ConfigService config,
-                       ExceptionRecordRepository exceptions, AiReviewTaskRepository aiTasks) {
+                       ExceptionRecordRepository exceptions, AiReviewTaskRepository aiTasks,
+                       com.zxp.dormrepair.service.IdempotencyService idempotency) {
         this.store = store;
         this.reviews = reviews;
         this.config = config;
         this.exceptions = exceptions;
         this.aiTasks = aiTasks;
+        this.idempotency = idempotency;
     }
 
     /** 清空后重灌 6 张单（覆盖 6 个状态）。返回灌了几张。 */
@@ -44,6 +47,7 @@ public class SeedService {
         exceptions.clear();
         reviews.clear();
         aiTasks.clear();
+        idempotency.clear();
         store.clear();
         return seed();
     }

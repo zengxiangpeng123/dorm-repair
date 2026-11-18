@@ -82,7 +82,7 @@ class OrderFlowTest {
     }
 
     @Test
-    @DisplayName("返修：驳回生成 -R1、原单挂起、紧急度升档；返修单验收通过后原单级联关闭")
+    @DisplayName("旧 reject 已停用，必须走申请与管理员审查")
     void reworkAndCascade() throws Exception {
         String no = pending().get("no").asText();
         assign(no, 1);
@@ -95,8 +95,21 @@ class OrderFlowTest {
 
         Resp rejected = call("POST", "/orders/" + no + "/reject",
                 "{\"version\":4,\"reason\":\"水还在滴\"}", "student", "S001");
-        assertEquals(200, rejected.status, rejected.body);
-        JsonNode rw = rejected.data();
+        assertEquals(410, rejected.status, rejected.body);
+        assertEquals("LEGACY_REJECT_DISABLED", rejected.error().get("code").asText());
+        assertEquals("VERIFYING",
+                call("GET", "/orders/" + no, null, null, null).data().get("status").asText());
+
+        Resp requested = call("POST", "/orders/" + no + "/rework-request",
+                "{\"version\":4,\"reason\":\"水还在滴\"}", "student", "S001");
+        assertEquals(202, requested.status, requested.body);
+        JsonNode waiting = call("GET", "/orders/" + no, null, null, null).data();
+        Resp approved = call("POST", "/orders/" + no + "/rework-review",
+                "{\"version\":" + waiting.get("version").asInt()
+                        + ",\"decision\":\"APPROVE\",\"reason\":\"完工照显示接头未紧固\"}",
+                "admin", "A001");
+        assertEquals(200, approved.status, approved.body);
+        JsonNode rw = approved.data().get("reworkOrder");
         assertEquals(no + "-R1", rw.get("no").asText(), "返修单号是原单号加 -R1");
         assertEquals("PENDING", rw.get("status").asText(), "返修单回待派工重新排队");
         assertEquals(no, rw.get("reworkOf").asText());
@@ -221,6 +234,17 @@ class OrderFlowTest {
     }
 
     @Test
+    @DisplayName("管理员不能调用普通 cancel 绕过撤销申请")
+    void adminCannotUseStudentCancelEndpoint() throws Exception {
+        String no = pending().get("no").asText();
+        Resp denied = call("POST", "/orders/" + no + "/cancel",
+                "{\"version\":1,\"reason\":\"管理员直接撤销\"}", "admin", "A001");
+        assertEquals(403, denied.status, denied.body);
+        assertEquals("PENDING", call("GET", "/orders/" + no, null, null, null)
+                .data().get("status").asText());
+    }
+
+    @Test
     @DisplayName("身份不对给 403，不是 409")
     void forbidden() throws Exception {
         String no = pending().get("no").asText();
@@ -236,12 +260,12 @@ class OrderFlowTest {
     }
 
     @Test
-    @DisplayName("矩阵 130 种组合只有 13 条合法；不存在的单 404")
+    @DisplayName("矩阵 140 种组合有 14 条合法；不存在的单 404")
     void matrixAndNotFound() throws Exception {
         JsonNode m = call("GET", "/state/matrix", null, null, null).data();
         assertEquals(10, m.get("rowCount").asInt());
-        assertEquals(130, m.get("total").asInt());
-        assertEquals(13, m.get("legal").asInt());
+        assertEquals(140, m.get("total").asInt());
+        assertEquals(14, m.get("legal").asInt());
         assertEquals(404, call("GET", "/orders/BX99999999999", null, null, null).status);
     }
 
@@ -268,14 +292,94 @@ class OrderFlowTest {
         Resp byStudent = call("POST", "/orders/" + no + "/auto-accept", "{}", "student", "S001");
         assertEquals(403, byStudent.status, byStudent.body);
 
-        // 管理端作废：这条边要变更单 CR-001，先返回 501
-        Resp adminCancel = call("POST", "/orders/" + no + "/admin-cancel", "{}", "admin", "A001");
-        assertEquals(501, adminCancel.status, adminCancel.body);
-        assertEquals("CR-001", adminCancel.error().get("changeRequest").asText());
+        // 非维修中工单没有撤销申请，管理员不能直接关闭
+        Resp adminCancel = call("POST", "/orders/" + no + "/admin-cancel",
+                "{\"version\":4,\"reason\":\"学生已确认不需要维修\"}", "admin", "A001");
+        assertEquals(422, adminCancel.status, adminCancel.body);
+        assertEquals("ADMIN_CANCEL_ONLY_REPAIRING", adminCancel.error().get("reason").asText());
 
         // 推完之后状态一个字没动
         Resp after = call("GET", "/orders/" + no, null, null, null);
         assertEquals("VERIFYING", after.data().get("status").asText());
+    }
+
+    @Test
+    @DisplayName("管理员可批准维修中撤销申请，状态走 CANCEL 边并保留决定原因")
+    void adminCanApproveCancelRequest() throws Exception {
+        String no = pending().get("no").asText();
+        assign(no, 1);
+        call("POST", "/orders/" + no + "/arrive", "{\"version\":2}", "worker", "W0428");
+        Resp requested = call("POST", "/orders/" + no + "/cancel-request",
+                "{\"version\":3,\"reason\":\"师傅排队太久，我不修了\"}", "student", "S001");
+        assertEquals(202, requested.status, requested.body);
+        Resp approved = call("POST", "/orders/" + no + "/admin-cancel",
+                "{\"version\":4,\"reason\":\"确认学生不再维修，停止派工\"}", "admin", "A001");
+        assertEquals(200, approved.status, approved.body);
+        assertEquals("CANCELLED", approved.data().get("status").asText());
+        assertTrue(approved.data().get("events").toString().contains("管理员批准撤销"));
+        assertTrue(approved.data().get("events").toString().contains("ADMIN_CANCEL"));
+    }
+
+    @Test
+    @DisplayName("同一个 Idempotency-Key 重放首次建单结果，不重复生成工单")
+    void idempotentSubmitReplaysFirstResponse() throws Exception {
+        String body = """
+                {"building":"B7","floor":4,"room":"402","desc":"门锁卡住，钥匙转不动",
+                 "photosBefore":["demo://idem.jpg"]}
+                """;
+        Resp first = call("POST", "/orders", body, "student", "S001", "idem-submit-1");
+        Resp second = call("POST", "/orders", body, "student", "S001", "idem-submit-1");
+        assertEquals(201, first.status, first.body);
+        assertEquals(201, second.status, second.body);
+        assertEquals(first.data().get("no").asText(), second.data().get("no").asText());
+    }
+
+    @Test
+    @DisplayName("并发同 key 只允许一个请求执行")
+    void concurrentIdempotencyExecutesOnce() throws Exception {
+        String body = """
+                {"building":"B7","floor":4,"room":"402","desc":"柜门铰链松动，需要紧固",
+                 "photosBefore":["demo://concurrent.jpg"]}
+                """;
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var gate = new java.util.concurrent.CountDownLatch(1);
+            var a = pool.submit(() -> {
+                gate.await();
+                return call("POST", "/orders", body, "student", "S001", "idem-concurrent-1");
+            });
+            var b = pool.submit(() -> {
+                gate.await();
+                return call("POST", "/orders", body, "student", "S001", "idem-concurrent-1");
+            });
+            gate.countDown();
+            Resp first = a.get(20, java.util.concurrent.TimeUnit.SECONDS);
+            Resp second = b.get(20, java.util.concurrent.TimeUnit.SECONDS);
+            boolean oneSucceeded = (first.status == 201) != (second.status == 201);
+            boolean bothReplayedSameOrder = first.status == 201 && second.status == 201
+                    && first.data().get("no").asText().equals(second.data().get("no").asText());
+            assertTrue(oneSucceeded || bothReplayedSameOrder,
+                    first.body + " / " + second.body);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("同一 Idempotency-Key 内容变化返回 409")
+    void idempotencyRejectsChangedPayload() throws Exception {
+        String firstBody = """
+                {"building":"B7","floor":4,"room":"402","desc":"门锁卡住，钥匙转不动",
+                 "photosBefore":["demo://idem-a.jpg"]}
+                """;
+        String changedBody = """
+                {"building":"B7","floor":4,"room":"402","desc":"门锁卡住，钥匙断在里面",
+                 "photosBefore":["demo://idem-b.jpg"]}
+                """;
+        assertEquals(201, call("POST", "/orders", firstBody, "student", "S001", "idem-submit-2").status);
+        Resp changed = call("POST", "/orders", changedBody, "student", "S001", "idem-submit-2");
+        assertEquals(409, changed.status, changed.body);
+        assertEquals("IDEMPOTENCY_KEY_REUSED", changed.error().get("code").asText());
     }
 
     // ------------------------------------------------------------- 小工具
@@ -307,12 +411,19 @@ class OrderFlowTest {
 
     private Resp call(String method, String path, String body, String actorType, String actorId)
             throws Exception {
+        return call(method, path, body, actorType, actorId, null);
+    }
+
+    private Resp call(String method, String path, String body, String actorType, String actorId,
+                      String idempotencyKey)
+            throws Exception {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + path))
                 .timeout(Duration.ofSeconds(15));
         // 鉴权上线后每个请求都得带身份；没写身份的只读调用默认按学生 S001 发（本类没有匿名用例）
         String type = actorType == null ? "student" : actorType;
         String id = actorId == null ? (actorType == null ? "S001" : actorId) : actorId;
         b.header("X-Actor-Type", type);
+        if (idempotencyKey != null) b.header("Idempotency-Key", idempotencyKey);
         if (id != null) {
             b.header("X-Actor-Id", id);
             b.header("X-Actor-Name", type + "-" + id);

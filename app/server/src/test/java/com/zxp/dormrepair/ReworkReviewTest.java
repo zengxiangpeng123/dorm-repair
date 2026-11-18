@@ -169,14 +169,15 @@ class ReworkReviewTest {
     }
 
     @Test
-    @DisplayName("返修日志事件不进入 13 条转移矩阵，TRIGGER 正确")
+    @DisplayName("返修日志事件不进入 14 条转移矩阵，TRIGGER 正确")
     void auditEventsStayOutsideMatrix() {
         assertEquals(Set.of(ActorType.STUDENT), TransitionTable.triggerOf(OrderEvent.REWORK_REQUEST));
         assertEquals(Set.of(ActorType.ADMIN), TransitionTable.triggerOf(OrderEvent.REWORK_REJECTED));
         assertTrue(TransitionTable.triggerOf(OrderEvent.REJECT).contains(ActorType.ADMIN));
         assertEquals(false, OrderEvent.REWORK_REQUEST.changesStatus());
-        assertEquals(13, StateMachine.matrix().get("eventCount"));
-        assertEquals(130, StateMachine.matrix().get("total"));
+        assertEquals(14, StateMachine.matrix().get("eventCount"));
+        assertEquals(14, StateMachine.matrix().get("legal"));
+        assertEquals(140, StateMachine.matrix().get("total"));
     }
 
     @Test

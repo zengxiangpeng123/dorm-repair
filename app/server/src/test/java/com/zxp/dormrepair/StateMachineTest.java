@@ -19,11 +19,11 @@ import org.junit.jupiter.api.Test;
 /**
  * 白盒单测：状态机本身。 老师要求「至少一个模块的详细白盒单测」，这个模块就是它。
  *
- * <p>13 条合法边一条一条点名，117 条非法组合一条一条拒，谁改坏了这里立刻红。
+ * <p>14 条合法边一条一条点名，117 条非法组合一条一条拒，谁改坏了这里立刻红。
  */
 class StateMachineTest {
 
-    /** SYS-004 第五条那 13 条，写死在这里当对照，代码改了测试就红。 */
+    /** 当前 14 条合法转移，写死在这里当对照，代码改了测试就红。 */
     private static final List<String[]> LEGAL = List.of(
             new String[]{"NEW", "SUBMIT", "PENDING"},
             new String[]{"PENDING", "ASSIGN", "ASSIGNED"},
@@ -37,10 +37,11 @@ class StateMachineTest {
             new String[]{"VERIFYING", "AUTO_ACCEPT", "DONE"},
             new String[]{"DONE", "ARCHIVE", "CLOSED"},
             new String[]{"PENDING", "CANCEL", "CANCELLED"},
-            new String[]{"ASSIGNED", "CANCEL", "CANCELLED"});
+            new String[]{"ASSIGNED", "CANCEL", "CANCELLED"},
+            new String[]{"REPAIRING", "ADMIN_CANCEL", "CANCELLED"});
 
     @Test
-    @DisplayName("13 条合法转移，一条不多一条不少")
+    @DisplayName("14 条合法转移，一条不多一条不少")
     void legalTransitions() {
         int count = 0;
         for (String[] t : LEGAL) {
@@ -51,13 +52,13 @@ class StateMachineTest {
             assertEquals(expected, actual, t[0] + " --" + t[1] + "-->");
             count++;
         }
-        assertEquals(13, count);
+        assertEquals(14, count);
     }
 
     @Test
-    @DisplayName("转移表里正好 13 条，多一条就说明有人顺手加边")
+    @DisplayName("转移表正好 14 条，管理员撤销审批复用 CANCEL 边")
     void tableSizeIsThirteen() {
-        assertEquals(13, TransitionTable.list().size());
+        assertEquals(14, TransitionTable.list().size());
     }
 
     @Test
@@ -83,23 +84,24 @@ class StateMachineTest {
             }
         }
         // 9 状态 × 12 个会改状态的事件 = 108 组合，其中 12 条合法（NEW 那条不算在内）
-        assertEquals(9 * 12 - 12, illegal);
+        assertEquals(9 * 13 - 13, illegal);
     }
 
     @Test
-    @DisplayName("120/130 矩阵：10 行（含 NEW）× 13 事件，合法 13")
+    @DisplayName("矩阵：10 行（含 NEW）× 13 事件，合法 14")
     void matrix() {
         Map<String, Object> m = StateMachine.matrix();
         assertEquals(10, m.get("rowCount"));
-        assertEquals(13, m.get("eventCount"));
-        assertEquals(130, m.get("total"));
-        assertEquals(13, m.get("legal"));
+        assertEquals(14, m.get("eventCount"));
+        assertEquals(140, m.get("total"));
+        assertEquals(14, m.get("legal"));
     }
 
     @Test
-    @DisplayName("谁能推哪条事件：CANCEL 只有学生，PARTS_ARRIVED 没有师傅")
+    @DisplayName("谁能推哪条事件：CANCEL 允许学生与管理员，PARTS_ARRIVED 没有师傅")
     void triggers() {
         assertEquals(List.of(ActorType.STUDENT), List.copyOf(TransitionTable.triggerOf(OrderEvent.CANCEL)));
+        assertEquals(List.of(ActorType.ADMIN), List.copyOf(TransitionTable.triggerOf(OrderEvent.ADMIN_CANCEL)));
         assertTrue(TransitionTable.triggerOf(OrderEvent.PARTS_ARRIVED).contains(ActorType.ADMIN));
         assertTrue(!TransitionTable.triggerOf(OrderEvent.PARTS_ARRIVED).contains(ActorType.WORKER));
         assertTrue(!TransitionTable.triggerOf(OrderEvent.ASSIGN).contains(ActorType.STUDENT));
@@ -125,7 +127,7 @@ class StateMachineTest {
 
     /** 反向检查：LEGAL 里出现的每条边，转移表都要有；表里有的，LEGAL 也要有。 */
     @Test
-    @DisplayName("测试里的 13 条与代码里的 13 条完全对齐")
+    @DisplayName("测试里的 14 条与代码里的 14 条完全对齐")
     void legalListMatchesTable() {
         List<String> fromTable = new ArrayList<>();
         for (String[] t : TransitionTable.list()) {

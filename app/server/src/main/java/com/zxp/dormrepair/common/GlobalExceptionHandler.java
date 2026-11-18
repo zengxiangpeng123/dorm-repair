@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -44,6 +46,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> onNoHandler(NoHandlerFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponses.error("NOT_FOUND", "没有这个接口：" + e.getRequestURL()));
+    }
+
+    /**
+     * 只读接口的响应发生异常时，保留真实错误，不让幂等响应序列化失败覆盖业务原因。
+     */
+    @ExceptionHandler(HttpMessageNotWritableException.class)
+    public ResponseEntity<Map<String, Object>> onNotWritable(HttpMessageNotWritableException e) {
+        log.error("响应序列化失败", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponses.error("RESPONSE_SERIALIZATION_FAILED", "服务端响应无法序列化"));
     }
 
     @ExceptionHandler(Exception.class)

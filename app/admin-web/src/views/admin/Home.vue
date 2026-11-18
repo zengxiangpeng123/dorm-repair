@@ -96,14 +96,32 @@ async function partsArrived (item) {
   }
 }
 
-async function tryCancel (item) {
-  busy.value = item.no
+const cancelSel = ref(null)
+const cancelReason = ref('')
+
+function openCancel (item) {
+  cancelSel.value = item
+  cancelReason.value = ''
+}
+
+async function submitCancel () {
+  if (!cancelSel.value || cancelReason.value.trim().length < 2) return
+  busy.value = 'cancel-' + cancelSel.value.no
   err.value = ''
   try {
-    await adminApi.adminCancel(item.no, { version: item.version })
+    const no = cancelSel.value.no
+    await adminApi.adminCancel(no, {
+      version: cancelSel.value.version,
+      reason: cancelReason.value.trim()
+    })
+    cancelSel.value = null
+    keeper.value = `${no} 已批准撤销`
+    window.clearTimeout(keeperTimer)
+    keeperTimer = window.setTimeout(() => { keeper.value = '' }, 4000)
+    await load()
   } catch (e) {
-    // 这里就是要 501：这条边还没批变更单 CR-001
     err.value = describeError(e)
+    if (e.status === 409) await load()
   } finally {
     busy.value = ''
   }
@@ -317,7 +335,7 @@ onMounted(load)
                 <div class="why">{{ it.detail }}</div>
                 <div class="acts">
                   <template v-if="it.kind === 'CANCEL_REQUEST'">
-                    <button class="dbtn sm" disabled>批准撤销（501）</button>
+                    <button class="dbtn sm primary" :disabled="busy === 'cancel-' + it.no" @click="openCancel(it)">批准撤销</button>
                     <button class="dbtn sm ghost" @click="keep(it)">先不动</button>
                   </template>
                   <template v-else>
@@ -393,7 +411,7 @@ onMounted(load)
                 <div class="rule-row"><span class="n">③</span><div><b>返修审查</b><div class="why">每次返修都先由管理员核对，确认质量问题后才生成返修单。</div></div></div>
                 <div class="rule-row"><span class="n">④</span><div><b>学生申请撤销</b><div class="why">师傅已进楼才有的情况，唯一能改状态的入口。</div></div></div>
               </div>
-              <div class="panel-foot">9 个状态、13 条转移。</div>
+              <div class="panel-foot">9 个状态、14 条转移。</div>
             </section>
 
             <section class="panel">
@@ -413,16 +431,24 @@ onMounted(load)
           </div>
         </div>
 
-        <div class="foot-note warn">
-          <span class="tag">唯一例外</span>
-          批准「学生申请撤销」要动工单状态，接口现在返回 501，等变更单 CR-001 批了才开。
-          <button class="link" @click="tryCancel({ no: (ex?.items || []).find((x) => x.kind === 'CANCEL_REQUEST')?.no, version: (ex?.items || []).find((x) => x.kind === 'CANCEL_REQUEST')?.version })">
-            点一下试试（会拿到 501）
-          </button>
+        <div class="foot-note info">
+          <span class="tag">撤销决定</span>
+          只有存在学生撤销申请的维修中工单才可由管理员批准；决定会写清原因并关闭工单。
         </div>
         <div class="foot-note info">
           <span class="tag">不做</span>
           管理端只处理返修审查和例外，不接管正常工单推进；返修审查是保证学生误报不误伤师傅的前置门禁。
+        </div>
+      </div>
+
+      <div v-if="cancelSel" class="rv-mask" @click.self="cancelSel = null">
+        <div class="rv-sheet">
+          <div class="sheet-hd"><b>批准撤销申请</b><button @click="cancelSel = null">取消</button></div>
+          <div class="why">工单 <span class="num">{{ cancelSel.no }}</span> · {{ cancelSel.location }}</div>
+          <label class="lb">管理员决定原因</label>
+          <textarea v-model="cancelReason" rows="3" class="in ta" placeholder="说明为什么批准撤销，以及后续处理方式" />
+          <p class="note" data-tone="warn">批准后工单进入已取消；该决定会写入事件时间线。</p>
+          <button class="dbtn primary review-submit" :disabled="cancelReason.trim().length < 2 || !!busy" @click="submitCancel">{{ busy ? '处理中…' : '确认撤销' }}</button>
         </div>
       </div>
 

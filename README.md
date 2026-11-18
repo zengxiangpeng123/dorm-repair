@@ -83,7 +83,7 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 
 | 要证明的事 | 一条命令 | 期望 |
 |---|---|---|
-| 9 状态 13 转移，117 种非法组合全拒，矩阵 10×13=130 | `cd app\server; mvn -q test` | `Tests run: 38, Failures: 0` |
+| 9 状态 14 转移，117 种非法组合全拒，矩阵 10×14=140 | `cd app\server; mvn -q test` | `Tests run: 38, Failures: 0` |
 | 一条链真跑通（打真服务，不是 mock） | `pwsh -NoProfile -File app\server\tests\m1-chain.ps1` | `13 通过 / 0 失败` |
 | 重启之后数据还在（真 MySQL） | `pwsh -NoProfile -File app\server\tests\m2-mysql.ps1` | `16 通过 / 0 失败` |
 | AI 接上了；**杀掉 AI 之后建单仍成功**走兜底 | `pwsh -NoProfile -File app\server\tests\m3-ai.ps1` | `20 通过 / 0 失败` |
@@ -95,7 +95,7 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 
 看接口而不是跑脚本：
 
-- `GET /api/v1/state/matrix` —— 130 种组合哪些合法
+- `GET /api/v1/state/matrix` —— 140 种组合哪些合法
 - `GET /api/v1/ai/health` —— AI 在不在、多少毫秒
 - `POST /api/v1/orders` + `POST /api/v1/orders/{no}/finish` —— 故意用错状态，看是不是 409 且 `allowed` 列出来
 
@@ -116,7 +116,7 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 │  └─ 99_存档\                   上一版原件 + 旧 Node 实现 zip（只读）
 ├─ prototype\                    ★ 原型（离线可跑，假数据，只当视觉与交互标准）
 │  ├─ index.html                 三端入口（桌面页）
-│  ├─ lab.html                   状态机自检台：130 种组合自己点
+│  ├─ lab.html                   状态机自检台：140 种组合自己点
 │  ├─ student\ worker\ admin\    11 页
 │  └─ reference\stitch-12屏\     原始 AI 生成稿（只读，别改）
 ├─ app\                          ★ 正式项目
@@ -190,6 +190,6 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 
 ## 三处与 SYS-004 的差异（都写在代码注释里）
 
-- **G-01** 返修单验收通过时原单 `返修中 → 已关闭`，13 条转移里没有这条边 → 按**级联副作用**处理（事件 `ORIGIN_CLOSED`，不占名额）。M1 还没实现（返修单生成 `-R1` 也还欠着）。
+- **G-01** 返修单验收通过时原单 `返修中 → 已关闭`，14 条转移里没有这条边 → 按**级联副作用**处理（事件 `ORIGIN_CLOSED`，不占名额）。M1 还没实现（返修单生成 `-R1` 也还欠着）。
 - **G-02** 师傅进楼后学生申请撤销、管理员批准作废，需要 `维修中 → 已取消`，而这条在禁止清单里 → 需**变更单 #001**；未批准前 `POST /orders/{no}/admin-cancel` 一律 `501`（`changeRequest: CR-001`）。
 - **G-03** 零人工完成率有两套口径：宽松（这张单没有人类"推进状态"的事件）/ 严格（全部事件 `manual=0`，结构性恒 0）。待评审定稿。

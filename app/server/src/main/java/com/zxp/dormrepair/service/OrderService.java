@@ -266,7 +266,7 @@ public class OrderService {
                     o.setSignAt(at);
                     o.setArchiveDueAt(plusDays(at, config.archiveDays()));
                 });
-        // SYS-004 第 8 条：验收的是返修单，原单同时关闭（级联，不占 13 条转移）
+        // SYS-004 第 8 条：验收的是返修单，原单同时关闭（级联，不占 14 条转移）
         String base = done.getReworkOf();
         if (base != null) {
             // 第一次返修只有原单；R2 以后，上一张返修单也停在 REWORKING。
@@ -277,7 +277,7 @@ public class OrderService {
                     .toList();
             for (WorkOrder parent : waitingParents) {
                 state.cascadeClose(parent.getNo(), actor,
-                        "返修单 " + no + " 验收通过，前序工单关闭（级联，不占 13 条转移）");
+                        "返修单 " + no + " 验收通过，前序工单关闭（级联，不占 14 条转移）");
             }
         }
         return OrderView.of(store.get(no));
@@ -468,6 +468,30 @@ public class OrderService {
         String reason = isBlank(req.reason()) ? "学生申请撤销" : req.reason();
         return OrderView.of(state.logOnly(no, OrderEvent.CANCEL_REQUEST, actor,
                 "申请撤销：" + reason, req.version()));
+    }
+
+    /** 管理员处理维修中的撤销申请。仍走唯一 CANCEL 边，不新增状态；原因必须留痕。 */
+    @Transactional
+    public OrderView adminCancel(String no, TransitRequest req, Actor admin) {
+        WorkOrder cur = store.require(no);
+        if (cur.getStatus() != OrderStatus.REPAIRING) {
+            throw BizException.precondition("只有维修中的工单可以处理撤销申请",
+                    "ADMIN_CANCEL_ONLY_REPAIRING");
+        }
+        boolean requested = cur.getEvents().stream()
+                .anyMatch(e -> e.event() == OrderEvent.CANCEL_REQUEST);
+        if (!requested) {
+            throw BizException.precondition("这张工单没有学生撤销申请", "CANCEL_REQUEST_NOT_FOUND");
+        }
+        if (req == null || req.version() == null) {
+            throw BizException.precondition("撤销决定必须带 version", "VERSION_REQUIRED");
+        }
+        String reason = isBlank(req.reason()) ? "" : req.reason().trim();
+        if (reason.length() < 2) {
+            throw BizException.precondition("请写清管理员撤销原因，至少 2 个字", "CANCEL_REASON_REQUIRED");
+        }
+        return OrderView.of(state.transit(no, OrderEvent.ADMIN_CANCEL, admin,
+                "管理员批准撤销：" + reason, req.version(), o -> o.setCancelledAt(TimeUtil.now())));
     }
 
     // ---------------------------------------------------------------- 查询

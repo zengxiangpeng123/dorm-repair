@@ -117,13 +117,6 @@ public class OrderController {
         return ApiResponses.ok(orders.accept(no, orEmpty(req), actor(http)));
     }
 
-    @PostMapping("/orders/{no}/reject")
-    public Map<String, Object> reject(@PathVariable String no,
-                                      @RequestBody(required = false) TransitRequest req,
-                                      HttpServletRequest http) {
-        return ApiResponses.ok(orders.reject(no, orEmpty(req), actor(http)));
-    }
-
     /** 目标路径：学生申请返修，只记录，不改变状态。 */
     @PostMapping("/orders/{no}/rework-request")
     public ResponseEntity<Map<String, Object>> reworkRequest(@PathVariable String no,
@@ -133,6 +126,16 @@ public class OrderController {
                 com.zxp.dormrepair.statemachine.ActorType.STUDENT);
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(ApiResponses.ok(orders.requestRework(no, req, student)));
+    }
+
+    /** 旧验收驳回接口：已废弃。它会在没有管理员审查的情况下直接生成返修单。 */
+    @PostMapping("/orders/{no}/reject")
+    public Map<String, Object> reject(@PathVariable String no,
+                                      @RequestBody(required = false) TransitRequest req,
+                                      HttpServletRequest http) {
+        throw BizException.gone("LEGACY_REJECT_DISABLED",
+                "旧验收驳回已停用，请学生调用 /rework-request，管理员调用 /rework-review",
+                "POST /api/v1/orders/{no}/rework-request + POST /api/v1/orders/{no}/rework-review");
     }
 
     /** 目标路径：管理员审查返修申请。 */
@@ -182,17 +185,14 @@ public class OrderController {
         return ApiResponses.ok(orders.detail(no));
     }
 
-    /**
-     * 管理员作废（师傅已进楼、学生申请撤销）。这条边是 13 条转移里没有的第 14 条，属变更单 CR-001；
-     * 没批准之前一律 501，管理端界面据此把按钮画成不可点。
-     */
+    /** 管理员处理维修中撤销申请：走既有 CANCEL 状态边，并记录管理员决定原因。 */
     @PostMapping("/orders/{no}/admin-cancel")
-    public Map<String, Object> adminCancel(@PathVariable String no, HttpServletRequest http) {
-        com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+    public Map<String, Object> adminCancel(@PathVariable String no,
+                                           @RequestBody(required = false) TransitRequest req,
+                                           HttpServletRequest http) {
+        Actor admin = com.zxp.dormrepair.common.ActorResolver.require(actor(http),
                 com.zxp.dormrepair.statemachine.ActorType.ADMIN);
-        orders.detail(no);
-        throw BizException.notImplemented("师傅已进楼，作废或补偿师傅要管理员定；这条边还没批准",
-                "CR-001");
+        return ApiResponses.ok(orders.adminCancel(no, orEmpty(req), admin));
     }
 
     @GetMapping("/orders")    public Map<String, Object> list(@RequestParam(required = false) String status,

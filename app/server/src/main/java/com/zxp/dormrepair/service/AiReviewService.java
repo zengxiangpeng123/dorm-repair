@@ -54,7 +54,7 @@ public class AiReviewService {
      * 把一单丢给模型复核。立刻返回，不阻塞调用方。
      *
      * <p>只改 category / level / aiBasis / levelSource 四个字段，**不碰状态、不写事件**——
-     * 状态机还是只有 Java 那 13 条边，AI 说错话顶多定级不准。
+     * 状态机还是只有 Java 那 14 条边，AI 说错话顶多定级不准。
      */
     public void review(String no, String desc) {
         WorkOrder snapshot = store.get(no);
