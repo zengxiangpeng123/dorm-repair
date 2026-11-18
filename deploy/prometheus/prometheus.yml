@@ -5,6 +5,7 @@ rule_files:
 alerting:
   alertmanagers:
     - static_configs:
+        # Alertmanager is optional for local startup. Production must set a real receiver.
         - targets: []
 scrape_configs:
   - job_name: dorm-server

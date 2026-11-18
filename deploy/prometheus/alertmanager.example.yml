@@ -1,0 +1,11 @@
+route:
+  receiver: default
+  group_by: [alertname, severity]
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 4h
+receivers:
+  - name: default
+    # Configure one or more real receivers before production rollout.
+    # webhook_configs:
+    #   - url: https://alert.example.com/dorm-repair

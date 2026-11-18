@@ -12,6 +12,14 @@ public interface FileStorage {
 
     void delete(String objectKey);
 
+    /** 供就绪探针确认存储后端当前可访问；失败必须抛异常。 */
+    default void checkHealth() {
+    }
+
+    default String type() {
+        return getClass().getSimpleName();
+    }
+
     record StoredObject(InputStream stream, long contentLength, String contentType) {
     }
 }

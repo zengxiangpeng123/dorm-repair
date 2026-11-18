@@ -62,6 +62,18 @@ public class LocalFileStorage implements FileStorage {
         }
     }
 
+    @Override
+    public void checkHealth() {
+        try {
+            Files.createDirectories(root);
+            if (!Files.isWritable(root)) {
+                throw new IllegalStateException("本地文件目录不可写");
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("本地文件目录不可用", e);
+        }
+    }
+
     private Path resolve(String objectKey) {
         Path target = root.resolve(objectKey).normalize();
         if (!target.startsWith(root)) {
