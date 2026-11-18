@@ -45,3 +45,7 @@ app/ai/.env.local
 app/web/dist2/
 app/web/dist3/
 app/web/.tmp/
+
+# Acceptance runtime evidence (contains environment-specific test data)
+app/tests/acceptance/*-report.json
+app/tests/acceptance/report.json
