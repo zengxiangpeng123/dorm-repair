@@ -41,7 +41,25 @@ public record OrderView(
         String cancelledAt,
         String statusAt,
         List<String> allowed,
-        List<OrderEventLog> events) {
+        List<OrderEventLog> events,
+        CancelRequest cancelRequest) {
+
+    /** 学生申请撤销只留记录、不改状态；这里把最近一次申请翻出来给界面用。 */
+    public record CancelRequest(String at, String by, String reason) {
+    }
+
+    private static CancelRequest cancelRequestOf(WorkOrder o) {
+        if (o.getEvents() == null) {
+            return null;
+        }
+        CancelRequest hit = null;
+        for (OrderEventLog e : o.getEvents()) {
+            if (e.event() == com.zxp.dormrepair.statemachine.OrderEvent.CANCEL_REQUEST) {
+                hit = new CancelRequest(e.at(), e.actorName(), e.note());
+            }
+        }
+        return hit;
+    }
 
     public static OrderView of(WorkOrder o) {
         return new OrderView(
@@ -76,6 +94,7 @@ public record OrderView(
                 o.getCancelledAt(),
                 o.getStatusAt(),
                 StateMachine.allowedEvents(o.getStatus()),
-                o.getEvents());
+                o.getEvents(),
+                cancelRequestOf(o));
     }
 }

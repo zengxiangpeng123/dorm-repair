@@ -1,0 +1,425 @@
+/* 设计令牌 —— 和 prototype 的师傅端 v2 是同一套语汇：
+   工装深蓝 + 反光背心橙，底是浅灰蓝，数字全部等宽。 */
+:root {
+  --navy: #12294b;
+  --navy-2: #1b3a63;
+  --orange: #ff5a1f;
+  --bg: #eff2f5;
+  --card: #ffffff;
+  --ink: #0b1524;
+  --ink-2: #46536a;
+  --ink-3: #7b8798;
+  --line: #e3e8ee;
+  --ok: #067647;
+  --warn: #b54708;
+  --danger: #b42318;
+  --violet: #5925dc;
+
+  --r-card: 14px;
+  --r-btn: 12px;
+  --sh-sm: 0 1px 2px rgba(11, 21, 36, 0.06), 0 1px 3px rgba(11, 21, 36, 0.04);
+  --sh-md: 0 4px 14px rgba(11, 21, 36, 0.08);
+  --sh-lg: 0 8px 30px rgba(11, 21, 36, 0.16);
+  --nav-h: 60px;
+
+  /* Element Plus 主色跟着走，别让它自己那套蓝混进来 */
+  --el-color-primary: #1b4ed8;
+  --el-border-radius-base: 10px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 手机页壳：430 宽居中 */
+.stage {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100%;
+  background: var(--bg);
+  position: relative;
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 620px) {
+  .stage {
+    margin: 18px auto;
+    min-height: calc(100% - 36px);
+    border-radius: 22px;
+    box-shadow: var(--sh-md);
+    overflow: hidden;
+  }
+}
+
+.num { font-variant-numeric: tabular-nums; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-sm);
+  padding: 14px;
+}
+.card + .card { margin-top: 10px; }
+
+.card-hd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.card-hd h3 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: .01em; }
+.card-hd .hint { font-size: 12px; color: var(--ink-3); }
+
+.muted { color: var(--ink-3); }
+.small { font-size: 12px; }
+.tiny { font-size: 11px; }
+.row { display: flex; align-items: center; gap: 8px; }
+.between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.stack > * + * { margin-top: 8px; }
+
+/* 状态胶囊：九个状态九种色，跟原型一致 */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pill::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+.pill.plain::before { display: none; }
+.pill[data-st="PENDING"]    { color: #475467; background: #f2f4f7; border-color: #e4e7ec; }
+.pill[data-st="ASSIGNED"]   { color: #1b4ed8; background: #eff4ff; border-color: #d1e0ff; }
+.pill[data-st="REPAIRING"]  { color: #b54708; background: #fffaeb; border-color: #fedf89; }
+.pill[data-st="PARTS"]      { color: #93370d; background: #fef6ee; border-color: #f9dbaf; }
+.pill[data-st="VERIFYING"]  { color: #5925dc; background: #f4f3ff; border-color: #d9d6fe; }
+.pill[data-st="REWORKING"]  { color: #b42318; background: #fef3f2; border-color: #fecdca; }
+.pill[data-st="DONE"]       { color: #067647; background: #ecfdf3; border-color: #abefc6; }
+.pill[data-st="CLOSED"]     { color: #475467; background: #f9fafb; border-color: #eaecf0; }
+.pill[data-st="CANCELLED"]  { color: #667085; background: #f2f4f7; border-color: #e4e7ec; }
+
+.pill.lv[data-lv="紧急"] { color: #b42318; background: #fef3f2; border-color: #fecdca; }
+.pill.lv[data-lv="较急"] { color: #b54708; background: #fffaeb; border-color: #fedf89; }
+.pill.lv[data-lv="普通"] { color: #475467; background: #f2f4f7; border-color: #e4e7ec; }
+
+/* 门牌：师傅端唯一的记忆点，颜色编码状态（装饰即信息） */
+.plate {
+  width: 58px;
+  height: 58px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.1;
+  flex: 0 0 auto;
+  box-shadow: var(--sh-sm);
+}
+.plate .r { font-size: 17px; letter-spacing: .02em; }
+.plate .f { font-size: 10px; opacity: .78; margin-top: 3px; font-weight: 600; }
+.plate.lg { width: 70px; height: 70px; }
+.plate.lg .r { font-size: 21px; }
+.plate[data-st="PENDING"]   { background: #667085; }
+.plate[data-st="ASSIGNED"]  { background: var(--navy); }
+.plate[data-st="REPAIRING"] { background: var(--orange); }
+.plate[data-st="PARTS"]     { background: #b45309; }
+.plate[data-st="VERIFYING"] { background: var(--violet); }
+.plate[data-st="REWORKING"] { background: var(--danger); }
+.plate[data-st="DONE"]      { background: var(--ok); }
+.plate[data-st="CLOSED"]    { background: #98a2b3; }
+.plate[data-st="CANCELLED"] { background: #98a2b3; }
+
+/* 时间线 */
+.tl { position: relative; padding-left: 18px; }
+.tl::before { content: ''; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 1px; background: var(--line); }
+.tl .ev { position: relative; padding: 0 0 12px 0; }
+.tl .ev:last-child { padding-bottom: 0; }
+.tl .ev::before {
+  content: ''; position: absolute; left: -17px; top: 5px;
+  width: 7px; height: 7px; border-radius: 999px; background: #fff; border: 1.5px solid var(--line);
+}
+.tl .ev[data-s="done"]::before { background: var(--ink-3); border-color: var(--ink-3); }
+.tl .ev[data-s="now"]::before { background: var(--orange); border-color: var(--orange); }
+.tl .ev .t { font-size: 11px; color: var(--ink-3); }
+.tl .ev .d { font-size: 13px; }
+
+/* 底部浮起动作条 */
+.dock {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(410px, calc(100% - 20px));
+  bottom: calc(var(--nav-h) + 10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, .96);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: var(--sh-lg);
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  z-index: 30;
+}
+.dock .el-button { flex: 1; height: 44px; font-weight: 650; }
+
+/* 粘底导航 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(430px, 100%);
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  z-index: 40;
+}
+.bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--ink-3);
+  text-decoration: none;
+}
+.bottom-nav a.on { color: var(--navy); font-weight: 650; }
+.bottom-nav a svg { width: 20px; height: 20px; }
+
+/* 顶部深色工牌头（师傅端）*/
+.worktop {
+  background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: #fff;
+  padding: 16px 16px 18px;
+  border-radius: 0 0 18px 18px;
+}
+.worktop .who { display: flex; align-items: center; justify-content: space-between; }
+.worktop .name { font-size: 16px; font-weight: 700; letter-spacing: .01em; }
+.worktop .team { font-size: 12px; color: #b9c7dc; margin-top: 2px; }
+.worktop .tally { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 14px; }
+.worktop .tally .n { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.worktop .tally .k { font-size: 11px; color: #b9c7dc; margin-top: 2px; }
+
+/* 桌面页外壳（管理端）*/
+.desk { display: grid; grid-template-columns: 218px minmax(0, 1fr); min-height: 100%; background: #f4f6f9; }
+.desk-side { background: #0c1a2b; color: #fff; padding: 18px 12px; }
+.desk-side .brand { display: flex; gap: 9px; align-items: center; padding: 0 8px 16px; }
+.desk-side .brand .logo {
+  width: 30px; height: 30px; border-radius: 9px; background: var(--orange);
+  display: grid; place-items: center; font-weight: 800; font-size: 14px;
+}
+.desk-side nav a {
+  display: block; padding: 9px 10px; border-radius: 9px; color: #9db0c7;
+  text-decoration: none; font-size: 13px; position: relative;
+}
+.desk-side nav a.on { color: #fff; background: rgba(37, 99, 235, .2); }
+.desk-side nav a.on::before {
+  content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: #4f8cff;
+}
+.desk-main { min-width: 0; }
+.desk-top {
+  background: #fff; border-bottom: 1px solid var(--line); padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10;
+}
+.desk-wrap { padding: 18px 24px 40px; max-width: 1480px; }
+.panel { background: #fff; border-radius: 12px; box-shadow: var(--sh-sm); overflow: hidden; }
+.panel > header {
+  display: flex; align-items: center; gap: 8px; padding: 11px 16px; border-bottom: 1px solid #eef2f7;
+  font-size: 13px; font-weight: 650;
+}
+.panel > header .spacer { flex: 1; }
+.panel > header .hint { font-size: 11.5px; color: var(--ink-3); font-weight: 400; }
+.panel-foot { padding: 9px 16px; background: #fafbfd; font-size: 11.5px; color: var(--ink-3); border-top: 1px solid #f1f4f9; }
+.strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.9fr); background: #fff; border-radius: 12px; box-shadow: var(--sh-sm); padding: 14px 4px; }
+.strip > div { padding: 0 18px; }
+.strip > div + div { border-left: 1px solid #eef2f7; }
+.strip .num { font-size: 26px; font-weight: 700; line-height: 1.15; }
+.strip .k { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+@media (max-width: 1100px) {
+  .desk { grid-template-columns: 1fr; }
+  .desk-side { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding: 10px; }
+  .desk-side .brand { padding: 0 10px 0 0; }
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.empty { text-align: center; color: var(--ink-3); font-size: 13px; padding: 26px 10px; }
+.section-title { font-size: 13px; font-weight: 650; margin: 16px 4px 8px; color: var(--ink-2); }
+
+/* ============ 通用零件（手机页与管理端共用；页面里不要再自己写一套） ============ */
+.body { padding: 12px 16px 24px; }
+.body.has-dock { padding-bottom: 132px; }
+
+/* 票据行：左侧一条状态色轨，列表里反复出现 */
+.ticket {
+  display: flex; gap: 11px; align-items: flex-start;
+  background: var(--card); border-radius: 12px; padding: 12px 13px;
+  box-shadow: var(--sh-sm); position: relative; overflow: hidden; cursor: pointer;
+}
+.ticket + .ticket { margin-top: 8px; }
+.ticket::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ink-3); }
+.ticket[data-st="PENDING"]::before   { background: #98a2b3; }
+.ticket[data-st="ASSIGNED"]::before  { background: var(--navy); }
+.ticket[data-st="REPAIRING"]::before { background: var(--orange); }
+.ticket[data-st="PARTS"]::before     { background: #b45309; }
+.ticket[data-st="VERIFYING"]::before { background: var(--violet); }
+.ticket[data-st="REWORKING"]::before { background: var(--danger); }
+.ticket[data-st="DONE"]::before      { background: var(--ok); }
+.ticket .tx { min-width: 0; flex: 1; }
+
+/* 键值行：左边固定宽度的标签，右边值。别用表格 */
+.kv { display: flex; gap: 8px; font-size: 13px; line-height: 1.6; }
+.kv + .kv { margin-top: 5px; }
+.kv .k { flex: 0 0 66px; color: var(--ink-3); font-size: 12.5px; }
+.kv .v { flex: 1; min-width: 0; color: var(--ink); }
+.kv .v.hot { color: var(--danger); font-weight: 650; }
+
+/* 提示条 */
+.note {
+  border-radius: 10px; padding: 10px 12px; font-size: 12.5px; line-height: 1.6;
+  background: #f4f6f9; color: var(--ink-2); border: 1px solid var(--line);
+}
+.note[data-tone="warn"]  { background: #fffaeb; border-color: #fedf89; color: #93370d; }
+.note[data-tone="bad"]   { background: #fef3f2; border-color: #fecdca; color: #912018; }
+.note[data-tone="ok"]    { background: #ecfdf3; border-color: #abefc6; color: #05603a; }
+.note[data-tone="info"]  { background: #eff4ff; border-color: #d1e0ff; color: #1a3fa8; }
+
+/* 倒计时卡 */
+.timerbox {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 11px 13px; border-radius: 11px; background: #fff; border: 1px solid var(--line);
+}
+.timerbox + .timerbox { margin-top: 8px; }
+.timerbox .lb { font-size: 12.5px; color: var(--ink-2); }
+.timerbox .val { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.timerbox[data-tone="warn"] .val { color: var(--warn); }
+.timerbox[data-tone="bad"] .val { color: var(--danger); }
+.timerbox .sub { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+/* 拍照/上传格 */
+.uploader {
+  width: 100%; border: 1px dashed #c7d0dd; border-radius: 12px; background: #fafbfd;
+  padding: 18px 12px; text-align: center; color: var(--ink-3); font-size: 12.5px; cursor: pointer;
+}
+.uploader:active { background: #f2f5fa; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.thumb {
+  width: 74px; height: 74px; border-radius: 10px; border: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 10.5px; color: var(--ink-3); background: #f7f9fc;
+}
+.thumb[data-tone="ok"] { border-color: #abefc6; background: #ecfdf3; color: #05603a; }
+.thumb[data-tone="bad"] { border-color: #fecdca; background: #fef3f2; color: #912018; }
+
+/* 多选胶囊 */
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip {
+  font-size: 12.5px; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink-2); cursor: pointer;
+}
+.chip.on { border-color: var(--navy); background: #eff4ff; color: #1a3fa8; font-weight: 650; }
+
+/* 分片选择（时段） */
+.seg { display: flex; gap: 4px; background: #f2f4f7; border-radius: 11px; padding: 4px; }
+.seg button {
+  flex: 1; border: 0; background: transparent; border-radius: 8px; padding: 8px 4px;
+  font-size: 12.5px; color: var(--ink-2); cursor: pointer;
+}
+.seg button.on { background: #fff; color: var(--navy); font-weight: 650; box-shadow: var(--sh-sm); }
+
+/* 金额三格 */
+.money { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.money > div { background: #f7f9fc; border-radius: 10px; padding: 9px 10px; }
+.money .n { font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.money .n.hot { color: var(--orange); }
+.money .k { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+/* 桌面页密集表 */
+.dt { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.dt th {
+  text-align: left; font-size: 11px; font-weight: 600; color: #64748b;
+  background: #fafbfd; padding: 8px 12px; border-bottom: 1px solid #eef2f7; white-space: nowrap;
+}
+.dt td { padding: 9px 12px; border-bottom: 1px solid #f3f6fa; }
+.dt tr:hover td { background: #fafbfd; }
+.dt .r { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* 截图模式：?shot=1 时用。粘底元素改回文档流，才能出现在整页长图里 */
+/* 已完成的工序收条（师傅端 ① 已到门） */
+.card.done-strip { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+.done-strip .tick {
+  width: 22px; height: 22px; border-radius: 999px; flex: 0 0 auto;
+  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  background: #e6f4ec; color: var(--ok);
+}
+.done-strip b { display: block; font-size: 13px; }
+.done-strip .tiny { display: block; margin-top: 2px; }
+body.shot .stage { min-height: 0; }
+body.shot .body.has-dock { padding-bottom: 16px; }
+body.shot .bottom-nav {
+  position: static; left: auto; transform: none; width: 100%; backdrop-filter: none;
+}
+body.shot .dock {
+  position: static; left: auto; transform: none; width: auto; margin: 10px; backdrop-filter: none;
+}
+
+/* ============ 桌面侧栏与按钮（管理端、自检台共用，别在页面里各写一套） ============ */
+.desk-side nav { display: flex; flex-direction: column; gap: 2px; }
+.desk-side nav a,
+.desk-side nav button {
+  display: block; width: 100%; text-align: left; padding: 9px 10px;
+  border: 0; border-radius: 9px; background: transparent; color: #9db0c7;
+  font-size: 13px; font-family: inherit; cursor: pointer; position: relative;
+}
+.desk-side nav a:hover,
+.desk-side nav button:hover { background: rgba(255, 255, 255, .06); color: #dfe8f3; }
+.desk-side nav .on { color: #fff; background: rgba(37, 99, 235, .2); }
+.desk-side nav .on::before {
+  content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+  width: 2px; border-radius: 2px; background: #4f8cff;
+}
+.desk-side .brand { display: flex; gap: 9px; align-items: flex-start; padding: 0 8px 16px; }
+.desk-side .brand .mk,
+.desk-side .brand .logo {
+  width: 30px; height: 30px; flex: none; border-radius: 9px;
+  background: #2563eb; color: #fff; display: grid; place-items: center;
+  font-size: 15px; font-weight: 700;
+}
+.desk-side .brand b,
+.desk-side .brand .bt { display: block; font-size: 13px; font-weight: 700; line-height: 1.3; }
+.desk-side .brand i,
+.desk-side .brand .bs {
+  display: block; font-style: normal; font-size: 10.5px; color: #8fa3bd; margin-top: 2px; line-height: 1.5;
+}
+.desk-side .side-foot {
+  margin-top: 18px; padding: 12px 8px 0; border-top: 1px solid rgba(255, 255, 255, .08);
+  font-size: 10.5px; color: #6f8299; line-height: 1.75;
+}
+.dbtn {
+  height: 32px; padding: 0 13px; border-radius: 8px; border: 1px solid var(--line);
+  background: #fff; font-size: 12.5px; color: var(--ink); font-weight: 600;
+  font-family: inherit; cursor: pointer;
+}
+.dbtn:hover { border-color: #c7d0dd; }
+.dbtn.primary { background: #1b4ed8; border-color: #1b4ed8; color: #fff; }
+.dbtn.sm { height: 26px; padding: 0 10px; font-size: 11.5px; }
+.dbtn.ghost { color: var(--ink-2); }
+.dbtn:disabled { opacity: .55; cursor: not-allowed; }
+.desk-top .sp { flex: 1; }

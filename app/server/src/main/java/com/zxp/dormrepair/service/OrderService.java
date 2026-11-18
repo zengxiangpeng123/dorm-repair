@@ -97,6 +97,37 @@ public class OrderService {
                 req.version(), o -> o.setArriveAt(TimeUtil.now())));
     }
 
+    /**
+     * 楼栋级"进楼打卡"：师傅在楼门口按一次，背后生成 N 条单级 ARRIVE。
+     *
+     * <p>逐单独立事务 —— 一单失败不影响其他单（对应 C-12）。已经在修的进 skipped，
+     * 不是本楼或不是 ASSIGNED 的既不记 ok 也不报 failed，免得界面上出现"打卡失败"的假警报。
+     */
+    public java.util.Map<String, Object> arriveBuilding(String buildingId, Actor actor) {
+        java.util.List<String> ok = new java.util.ArrayList<>();
+        java.util.List<String> skipped = new java.util.ArrayList<>();
+        java.util.List<String> failed = new java.util.ArrayList<>();
+        for (WorkOrder o : store.all()) {
+            if (!buildingId.equals(o.getBuilding())) continue;
+            if (o.getStatus() == OrderStatus.REPAIRING) { skipped.add(o.getNo()); continue; }
+            if (o.getStatus() != OrderStatus.ASSIGNED) continue;
+            if (!actor.id().equals(o.getWorkerId())) continue;
+            try {
+                arrive(o.getNo(), new TransitRequest(null, null, null, null, null, null, null, null, null, null), actor);
+                ok.add(o.getNo());
+            } catch (RuntimeException e) {
+                failed.add(o.getNo());
+            }
+        }
+        java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("buildingId", buildingId);
+        m.put("arrivedAt", TimeUtil.now());
+        m.put("ok", ok);
+        m.put("skipped", skipped);
+        m.put("failed", failed);
+        return m;
+    }
+
     public OrderView noShow(String no, TransitRequest req, Actor actor) {
         WorkOrder cur = store.require(no);
         if (!actor.id().equals(cur.getWorkerId())) {

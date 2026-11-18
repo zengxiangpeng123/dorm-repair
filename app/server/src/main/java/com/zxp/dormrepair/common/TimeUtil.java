@@ -1,5 +1,6 @@
 package com.zxp.dormrepair.common;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -30,6 +31,21 @@ public final class TimeUtil {
     }
 
     /** 现在往前推 n 分钟的时间串。演示数据的"两小时前"就是这么来的。 */
+/** 毫秒时间戳。算倒计时都用它，别在业务里到处 LocalDateTime.toEpochSecond 绕。 */
+    public static long nowMs() {
+        return System.currentTimeMillis();
+    }
+
+    /** 字符串时间 → 时间戳；解析不了给 null（宁可少算一颗表，也别把接口打 500） */
+    public static Long epochMs(String s) {
+        LocalDateTime t = parse(s);
+        return t == null ? null : t.atZone(ZONE).toInstant().toEpochMilli();
+    }
+
+    public static String fmt(long ms) {
+        return fmt(LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZONE));
+    }
+
     public static String agoMinutes(int minutes) {
         return LocalDateTime.now(ZONE).minusMinutes(minutes).format(FMT);
     }

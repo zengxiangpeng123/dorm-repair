@@ -29,3 +29,8 @@ app/web/screens/*.tmp.png
 __pycache__/
 .pytest_cache/
 *.pyc
+
+# Vite 构建残留与本地临时目录（本机安全策略不让清空 dist/，只能改出别目录兜着）
+app/web/dist2/
+app/web/dist3/
+app/web/.tmp/

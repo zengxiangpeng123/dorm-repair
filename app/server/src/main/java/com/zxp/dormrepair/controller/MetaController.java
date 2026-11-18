@@ -1,12 +1,15 @@
 package com.zxp.dormrepair.controller;
 
 import com.zxp.dormrepair.common.ApiResponses;
+import com.zxp.dormrepair.common.TimeUtil;
 import com.zxp.dormrepair.statemachine.ActorType;
 import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.statemachine.StateMachine;
 import com.zxp.dormrepair.statemachine.TransitionTable;
 import com.zxp.dormrepair.service.AiClient;
+import com.zxp.dormrepair.service.ConfigService;
+import com.zxp.dormrepair.service.TimerService;
 import com.zxp.dormrepair.service.SeedService;
 import com.zxp.dormrepair.store.OrderRepository;
 import java.util.ArrayList;
@@ -15,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,11 +32,16 @@ public class MetaController {
     private final OrderRepository store;
     private final SeedService seeder;
     private final AiClient ai;
+    private final ConfigService config;
+    private final TimerService timers;
 
-    public MetaController(OrderRepository store, SeedService seeder, AiClient ai) {
+    public MetaController(OrderRepository store, SeedService seeder, AiClient ai,
+                          ConfigService config, TimerService timers) {
         this.store = store;
         this.seeder = seeder;
         this.ai = ai;
+        this.config = config;
+        this.timers = timers;
     }
 
     @GetMapping("/health")
@@ -59,9 +68,29 @@ public class MetaController {
         m.put("levels", List.of("紧急", "较急", "普通"));
         m.put("windows", List.of("全天（08:00-22:00）", "上午 08:00-12:00",
                 "下午 14:00-18:00", "晚上 18:00-22:00"));
-        m.put("budgetLine", 200);
-        m.put("verifyHours", 168);
-        m.put("archiveDays", 7);
+        // 三个阈值从 t_config 读，读不到有默认值 —— 别再写死第二份
+        m.put("budgetLine", config.budgetLine());
+        m.put("verifyHours", config.verifyHours());
+        m.put("archiveDays", config.archiveDays());
+        // 界面要用的静态字典。放这里是为了页面里一个中文常量都不用自己抄第二遍（C-14）
+        m.put("brand", "宿舍维修系统");
+        m.put("version", "V5.0");
+        m.put("buildings", List.of(
+                Map.of("id", "B7", "name", "东区7号楼", "floors", List.of(5, 4, 3, 2)),
+                Map.of("id", "B8", "name", "东区8号楼", "floors", List.of(3, 2, 1))));
+        m.put("noShowReasons", List.of(
+                Map.of("code", "KNOCK_NO_ANSWER", "label", "敲门没人应"),
+                Map.of("code", "CALL_UNREACHABLE", "label", "打电话没人接"),
+                Map.of("code", "STUDENT_NOT_IN", "label", "学生不在宿舍"),
+                Map.of("code", "DOOR_LOCKED", "label", "门锁着进不去")));
+        m.put("finishTags", List.of("更换软管", "重新打胶", "紧固螺丝", "疏通管道",
+                "更换阀芯", "更换面板模块", "调节校正", "清洁现场"));
+        m.put("cancelReasons", List.of("不需要修了", "重复报修", "自己已经修好", "信息填错"));
+        m.put("exceptionKinds", List.of(
+                Map.of("code", "MISMATCH", "label", "数据对不上"),
+                Map.of("code", "OVER_BUDGET", "label", "超预算采购"),
+                Map.of("code", "REPEAT_REWORK", "label", "同一单反复返修"),
+                Map.of("code", "CANCEL_REQUEST", "label", "学生申请撤销")));
         return ApiResponses.ok(m);
     }
 
@@ -89,6 +118,19 @@ public class MetaController {
     @GetMapping("/ai/health")
     public Map<String, Object> aiHealth() {
         return ApiResponses.ok(ai.health());
+    }
+
+    /**
+     * 演示用：把时钟往前推若干小时，立刻跑一遍定时任务。
+     *
+     * <p>不真等 168 小时，也不改系统时钟 —— 只是拿"未来的时刻"去和 finishAt / signAt 比。
+     */
+    @PostMapping("/demo/advance")
+    public Map<String, Object> advance(@RequestParam(defaultValue = "168") int hours) {
+        long target = TimeUtil.nowMs() + hours * 3600_000L;
+        Map<String, Object> r = timers.sweep(TimeUtil.fmt(target));
+        r.put("advancedHours", hours);
+        return ApiResponses.ok(r);
     }
 
     /** 演示用：清空再重灌一套演示数据（内存库和 MySQL 同一个动作）。 */

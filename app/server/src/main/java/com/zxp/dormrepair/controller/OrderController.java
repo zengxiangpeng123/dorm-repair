@@ -56,6 +56,14 @@ public class OrderController {
         return ApiResponses.ok(orders.arrive(no, orEmpty(req), actor(http)));
     }
 
+    /**
+     * 楼栋级进楼打卡：界面上一次点击，背后每条 ASSIGNED 的单各生成一条 ARRIVE。
+     * 已经在修的进 skipped，不让师傅为了"打个卡"被迫多按几次。
+     */
+    @PostMapping("/buildings/{id}/arrive")
+    public Map<String, Object> arriveBuilding(@PathVariable String id, HttpServletRequest http) {
+        return ApiResponses.ok(orders.arriveBuilding(id, actor(http)));
+    }
     @PostMapping("/orders/{no}/no-show")
     public Map<String, Object> noShow(@PathVariable String no,
                                       @RequestBody(required = false) TransitRequest req,

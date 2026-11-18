@@ -59,6 +59,9 @@ public class SeedService {
         add(o3, OrderEvent.SUBMIT, "STUDENT", "S001", "张同学", 1, 240, "提交报修：水龙头关不严，一直滴");
         add(o3, OrderEvent.ASSIGN, "SYSTEM", "system", "系统自动派工", 0, 180, "派给 李建国（水电班）");
         add(o3, OrderEvent.ARRIVE, "WORKER", "W0428", "李建国", 1, 40, "到门打卡");
+        // 进楼之后学生才说要撤：这条只留记录，是管理端「学生申请撤销」那类例外
+        add(o3, OrderEvent.CANCEL_REQUEST, "STUDENT", "S001", "张同学", 1, 12,
+                "申请撤销：说是房东催着搬，其实是不想再等");
         o3.setArriveAt(TimeUtil.agoMinutes(40));
 
         // 4 待配件：预算内 38 元
@@ -86,7 +89,7 @@ public class SeedService {
         add(o5, OrderEvent.FINISH, "WORKER", "W0428", "李建国", 1, 60, "完工提交：清洗滤网，加氟");
         o5.setArriveAt(TimeUtil.agoMinutes(1440));
         o5.setFinishAt(TimeUtil.agoMinutes(60));
-        o5.setPhotosAfter(new ArrayList<>(List.of("demo://after/402.jpg")));
+        // 故意留空：状态已推到待验收却没有完工照 —— 管理端「数据对不上」的例子
 
         // 6 已完成：T2 从签字那刻起算 7 天
         WorkOrder o6 = base(6, OrderStatus.DONE, "B8", 2, "205", "S003", "王同学",
@@ -103,8 +106,22 @@ public class SeedService {
         o6.setSignAt(TimeUtil.agoMinutes(2640));
         o6.setPhotosAfter(new ArrayList<>(List.of("demo://after/205.jpg")));
 
+        // 7 待配件：超预算 480 元，管理端「超预算采购」的例子
+        WorkOrder o7 = base(7, OrderStatus.PARTS, "B7", 3, "305", "S002", "李同学",
+                "热水器不出热水，怀疑加热管烧了", "晚上 18:00-22:00", "电器", "较急",
+                "命中「热水器/不出热水」，归电器；洗不了澡，抬一档到较急",
+                "W0428", "李建国", 1500);
+        add(o7, OrderEvent.SUBMIT, "STUDENT", "S002", "李同学", 1, 1500, "提交报修：热水器不出热水");
+        add(o7, OrderEvent.ASSIGN, "SYSTEM", "system", "系统自动派工", 0, 1440, "派给 李建国（水电班）");
+        add(o7, OrderEvent.ARRIVE, "WORKER", "W0428", "李建国", 1, 1380, "到门打卡");
+        add(o7, OrderEvent.NEED_PARTS, "WORKER", "W0428", "李建国", 1, 1320, "缺件：加热管 ¥480，超预算");
+        o7.setArriveAt(TimeUtil.agoMinutes(1380));
+        o7.setPartsName("加热管");
+        o7.setPartsAmount(new BigDecimal("480.00"));
+        o7.setPartsEta(TimeUtil.dateAfterDays(3));
+
         int n = 0;
-        for (WorkOrder o : List.of(o1, o2, o3, o4, o5, o6)) {
+        for (WorkOrder o : List.of(o1, o2, o3, o4, o5, o6, o7)) {
             o.setVersion(Math.max(1, o.getEvents().size()));
             o.setStatusAt(o.getEvents().isEmpty() ? o.getCreatedAt()
                     : o.getEvents().get(o.getEvents().size() - 1).at());

@@ -12,19 +12,20 @@
 | M1 | Spring Boot 4 骨架 + 状态机内核 + 一条链 | ✅ 14 项测试 + 13 项脚本验收 |
 | M2 | MySQL 8 + MyBatis-Plus，10 张表，重启数据还在 | ✅ 16 项脚本验收 |
 | M3 | Python AI 定级服务，800ms 兜底，AI 挂了照样能建单 | ✅ 20 项脚本验收 + 7 项规则单测 |
-| M4 | Vue3 + Element Plus 页面（学生 4 / 师傅 4 / 管理 1 …） | ⬜ 下一步 |
+| M4 | Vue3 + Element Plus 前端 11 页（学生 4 / 师傅 4 / 管理 1 / 自检台 / 入口） | ✅ 全部接真接口，11 张截图在 `app\screens\vue\` |
 | M5 | 管理端补充、测试报告、CG01–CG14 交付文档 | ⬜ |
 
-**界面现在看哪儿**：`prototype\index.html`（双击就能开，11 页，零依赖假数据）。
-它按 V5.0 口径做的，视觉已定稿；M4 的 Vue 页照它的信息结构写，接真接口。
+**界面现在看哪儿**：
+- 正式前端（Vue，接真接口）：`http://localhost:5173/` —— 需要先起后端 8080；三端入口在 `/`，学生 `/student`、师傅 `/worker`、管理端 `/admin`、状态机自检台 `/lab`。
+- 原型（零依赖假数据，双击就开）：`prototype\index.html` —— 视觉定稿的依据，留着当"改过不止一版"的证据。
 
-`app\screens\` 里那 11 张图是上一版原生页面（已退役存档）的截图，只作视觉参照。
+`app\screens\vue\` 是 Vue 版的 11 张截图（1440 桌面宽 / 860 手机宽），`app\screens\` 里那 11 张是已退役的原生页面，只作视觉参照。
 
 ---
 
 ## 怎么跑起来
 
-三个进程：AI（Python 8000）→ 后端（Java 8080）→ 前端（M4 才有，Vue 5173）。
+三个进程：AI（Python 8000）→ 后端（Java 8080）→ 前端（Vue 5173，`/api` 代理到 8080）。
 
 **Windows：双击 `start.bat`**，它会开两个窗口（AI + 后端）并打开 `/api/v1/health`。
 
@@ -63,6 +64,17 @@ Copy-Item app\server\src\main\resources\db\data.sql  $tmp
 重置演示数据：`POST /api/v1/demo/reset` → 清表 + 重灌 6 张样本单。
 
 ---
+
+### 前端（Vue）怎么起
+
+```powershell
+cd app\web
+npm install          # 首次；用 --registry=https://registry.npmmirror.com 更快
+npm run dev          # http://localhost:5173，/api 代理到 8080
+```
+
+构建 `npm run build`。本机两个坑（已写进 package.json）：`%TEMP%` 里 esbuild 临时文件删不掉会让 vite 崩（0xC0000409）→ 构建前把 `$env:TEMP` 指到 `app\web\.tmp`；`dist/` 被安全策略锁着删不掉 → build 带 `--emptyOutDir=false`。
+
 
 ## 怎么证明它是对的
 
@@ -104,7 +116,7 @@ Copy-Item app\server\src\main\resources\db\data.sql  $tmp
 ├─ app\                          ★ 正式项目
 │  ├─ server\                    Spring Boot 4 + MyBatis-Plus + MySQL
 │  ├─ ai\                        Python + FastAPI 定级服务
-│  └─ screens\                   上一版界面截图（只作参照）
+│  └─ screens\                   上一版界面截图（只作参照）；vue\ 是现在这版
 └─ ..\rules\                     AI 开发规则 7 篇（技术栈 / 目录 / 口径 / 代码 / 测试 / 协作）
 ```
 
@@ -161,7 +173,7 @@ Copy-Item app\server\src\main\resources\db\data.sql  $tmp
 - 真模型：AI 是规则 + 置信度，不联网不训练（接口形状按模型留，换实现只改 `rules.classify()`）；
 - 真实上传：照片是 `demo://` 占位串，没接对象存储；
 - 多楼栋组织树：样本只有 B7/B8 两栋；
-- 界面：M4 才做，现在能看的是原型。
+- 界面：Vue 11 页已接真接口（学生/师傅 430 宽手机页，管理端与自检台 1440 桌面页）。
 
 ---
 
