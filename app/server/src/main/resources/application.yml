@@ -1,0 +1,16 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: dorm-repair-server
+  jackson:
+    default-property-inclusion: non_null
+
+logging:
+  level:
+    root: INFO
+    com.zxp.dormrepair: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss} %-5level %logger{24} - %msg%n"

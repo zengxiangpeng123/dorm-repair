@@ -1,7 +1,15 @@
-# 依赖（本项目零第三方依赖，这行是给 app 留的）
+# 依赖（原型零依赖；正式项目由 Maven / npm 管）
 node_modules/
+app/web/node_modules/
 
-# 演示数据库：每次启动按种子重建，不入库
+# 构建产物
+target/
+app/server/target/
+dist/
+__pycache__/
+.venv/
+
+# 演示数据库（M1 用内存；M2 起 MySQL，连接串走环境变量）
 app/server/data/*.db
 app/server/data/*.db-journal
 app/server/data/*.db-wal
@@ -13,3 +21,6 @@ app/server/data/*.db-shm
 .DS_Store
 Thumbs.db
 app/web/screens/*.tmp.png
+
+# 旧版 Node 实现的存档包很大，但它是交付物的一部分，故意入库
+!docs/99_存档/*.zip
