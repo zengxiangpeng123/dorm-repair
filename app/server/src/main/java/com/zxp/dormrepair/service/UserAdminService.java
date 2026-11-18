@@ -68,6 +68,34 @@ public class UserAdminService {
         return account.view();
     }
 
+    public Map<String, Object> setActive(String id, boolean active, String actorId) {
+        UserAccount account = users.find(id)
+                .orElseThrow(() -> BizException.notFound("账号不存在：" + id));
+        if (!active) {
+            if (account.id().equals(actorId)) {
+                throw BizException.conflict("CANNOT_DISABLE_SELF", "不能停用当前登录的管理员账号");
+            }
+        }
+        boolean changed = account.active() != active;
+        if (changed) {
+            if (!active && account.role() == ActorType.ADMIN) {
+                if (!users.disableAdminIfNotLast(id)) {
+                    throw BizException.conflict("LAST_ACTIVE_ADMIN", "不能停用最后一个启用的管理员");
+                }
+            } else {
+                users.setActive(id, active);
+            }
+        }
+        int revokedSessions = active ? 0 : tokens.revokeAccount(id);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", id);
+        result.put("active", active);
+        result.put("changed", changed);
+        result.put("revokedSessions", revokedSessions);
+        return result;
+    }
+
+
     public Map<String, Object> resetPassword(String id, String password) {
         if (password == null || password.length() < 8) {
             throw BizException.badRequest("口令至少 8 位");

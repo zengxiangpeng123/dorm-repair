@@ -418,6 +418,20 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 |---|---|---|---|
 | GET | `/api/v1/admin/users` | ADMIN | 列出人员账号，不返回口令哈希 |
 | POST | `/api/v1/admin/users` | ADMIN | 创建 STUDENT / WORKER / ADMIN；师傅必须提供服务楼栋 |
-| POST | `/api/v1/admin/users/{id}/password` | ADMIN | 重置口令，只保存 PBKDF2 哈希 |
+| POST | `/api/v1/admin/users/{id}/password` | ADMIN | 重置口令，只保存 PBKDF2 哈希；撤销该账号全部活动会话 |
+| POST | `/api/v1/admin/users/{id}/active` | ADMIN | 启用或停用账号；停用立即撤销会话 |
 
-创建师傅时写入 `t_worker` 与 `t_worker_building`，第一个服务楼栋作为主责楼栋；所有写操作仅管理员可用。
+`POST /admin/users/{id}/active` 请求体为 `{"active": true|false}`，`active` 必须是布尔值。响应 `data`：
+
+```json
+{"id":"W9001","active":false,"changed":true,"revokedSessions":2}
+```
+
+停用账号时撤销该账号全部活动会话；恢复账号不签发新令牌，需重新登录。禁止管理员停用自己，也禁止停用最后一个启用管理员，两种情况返回 `409`：
+
+| `error.code` | 含义 |
+|---|---|
+| `CANNOT_DISABLE_SELF` | 管理员尝试停用当前登录账号 |
+| `LAST_ACTIVE_ADMIN` | 目标为最后一个启用管理员 |
+
+创建师傅时写入 `t_worker` 与 `t_worker_building`，第一个服务楼栋作为主责楼栋；所有写操作仅管理员可用。`GET /admin/users` 的 `items[]` 包含 `id,role,name,team?,building?,room?,phone?,active`，绝不返回口令或口令哈希。

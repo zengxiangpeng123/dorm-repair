@@ -65,6 +65,20 @@ async function submitReset () {
   } catch (e) { err.value = describeError(e) } finally { busy.value = '' }
 }
 
+async function toggleActive (u) {
+  const next = u.active === false
+  if (!next && !window.confirm(`确定停用 ${u.id}（${u.name}）吗？该账号现有登录会话会立即失效。`)) return
+  busy.value = `active:${u.id}`
+  err.value = ''
+  try {
+    const result = await userApi.setActive(u.id, next)
+    ok.value = next
+      ? `${u.id} 已恢复启用`
+      : `${u.id} 已停用，撤销 ${result.revokedSessions || 0} 个会话`
+    await load()
+  } catch (e) { err.value = describeError(e) } finally { busy.value = '' }
+}
+
 onMounted(load)
 </script>
 
@@ -91,8 +105,13 @@ onMounted(load)
             <td>{{ u.name }}</td>
             <td>{{ u.team || u.building || '—' }}<span v-if="u.room"> / {{ u.room }}</span></td>
             <td>{{ u.phone || '—' }}</td>
-            <td>{{ u.active === false ? '停用' : '启用' }}</td>
-            <td><button class="text-btn" @click="openReset(u)">重置口令</button></td>
+            <td><span :class="['status', u.active === false ? 'off' : 'on']">{{ u.active === false ? '停用' : '启用' }}</span></td>
+            <td class="ops">
+              <button class="text-btn" @click="openReset(u)">重置口令</button>
+              <button class="text-btn" :class="{ danger: u.active !== false }" :disabled="busy === `active:${u.id}`" @click="toggleActive(u)">
+                {{ u.active === false ? '恢复启用' : '停用' }}
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -139,6 +158,12 @@ th { color: #667085; font-weight: 600; background: #f8fafc; } .mono { font-famil
 .role { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #eff4ff; color: #1b4ed8; font-size: 11px; font-weight: 650; }
 .primary-btn { border: 0; border-radius: 9px; background: #1b4ed8; color: #fff; padding: 10px 16px; cursor: pointer; font-weight: 650; }
 .text-btn { border: 0; background: transparent; color: #1b4ed8; cursor: pointer; padding: 5px; }
+.text-btn:disabled { color: #98a2b3; cursor: wait; }
+.text-btn.danger { color: #b42318; }
+.ops { white-space: nowrap; }
+.status { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 650; }
+.status.on { background: #ecfdf3; color: #067647; }
+.status.off { background: #fef3f2; color: #b42318; }
 .err { color: #b42318; background: #fef3f2; padding: 10px 12px; border-radius: 8px; } .ok { color: #067647; background: #ecfdf3; padding: 10px 12px; border-radius: 8px; }
 .empty { padding: 22px; text-align: center; color: #667085; }
 .mask { position: fixed; inset: 0; background: #0b152466; display: grid; place-items: center; z-index: 20; }

@@ -37,6 +37,17 @@ public class UserAdminController {
         return ApiResponses.ok(service.create(req));
     }
 
+    @PostMapping("/{id}/active")
+    public Map<String, Object> setActive(@PathVariable String id,
+                                         @RequestBody Map<String, Object> body,
+                                         HttpServletRequest http) {
+        var actor = ActorResolver.require(ActorResolver.resolve(http), ActorType.ADMIN);
+        if (body == null || !(body.get("active") instanceof Boolean active)) {
+            throw com.zxp.dormrepair.common.BizException.badRequest("active 必须是布尔值");
+        }
+        return ApiResponses.ok(service.setActive(id, active, actor.id()));
+    }
+
     @PostMapping("/{id}/password")
     public Map<String, Object> resetPassword(@PathVariable String id,
                                               @RequestBody Map<String, String> body,

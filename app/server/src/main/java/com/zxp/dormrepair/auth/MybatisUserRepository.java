@@ -121,6 +121,32 @@ public class MybatisUserRepository implements UserRepository {
         }
     }
 
+    @Override
+    public void setActive(String id, boolean active) {
+        Optional<UserAccount> existing = find(id);
+        if (existing.isEmpty()) {
+            throw new IllegalArgumentException("账号不存在：" + id);
+        }
+        int changed = switch (existing.get().role()) {
+            case STUDENT -> mapper.setStudentActive(id, active);
+            case WORKER -> mapper.setWorkerActive(id, active);
+            case ADMIN -> mapper.setAdminActive(id, active);
+            default -> throw new IllegalArgumentException("不支持的人员角色：" + existing.get().role());
+        };
+        if (changed != 1) {
+            throw new IllegalArgumentException("账号不存在：" + id);
+        }
+    }
+
+    @Override
+    public boolean disableAdminIfNotLast(String id) {
+        Optional<UserAccount> existing = find(id);
+        if (existing.isEmpty() || existing.get().role() != ActorType.ADMIN) {
+            return false;
+        }
+        return mapper.disableAdminIfNotLast(id) == 1;
+    }
+
     private static UserAccount toAccount(UserRow r) {
         return new UserAccount(r.getId(), ActorType.of(r.getRole()), r.getName(), r.getTeam(),
                 r.getBuildingId(), r.getRoom(), r.getPhone(),

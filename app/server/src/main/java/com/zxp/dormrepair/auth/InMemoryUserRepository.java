@@ -86,9 +86,23 @@ public class InMemoryUserRepository implements UserRepository {
                 u.building(), u.room(), u.phone(), u.active(), passwordHash));
     }
 
-    /** 测试和运维停用账号；生产由人员表 active 字段控制。 */
+    @Override
     public void setActive(String id, boolean active) {
         users.computeIfPresent(id, (k, u) -> new UserAccount(u.id(), u.role(), u.name(), u.team(),
                 u.building(), u.room(), u.phone(), active, u.password()));
+    }
+
+    @Override
+    public synchronized boolean disableAdminIfNotLast(String id) {
+        long activeAdmins = users.values().stream()
+                .filter(u -> u.role() == ActorType.ADMIN && u.active())
+                .count();
+        UserAccount target = users.get(id);
+        if (target == null || target.role() != ActorType.ADMIN
+                || !target.active() || activeAdmins <= 1) {
+            return false;
+        }
+        setActive(id, false);
+        return true;
     }
 }

@@ -89,4 +89,27 @@ public interface UserMapper extends BaseMapper<UserRow> {
 
     @Update("UPDATE t_admin SET password_hash = #{hash} WHERE id = #{id}")
     int setAdminPassword(@Param("id") String id, @Param("hash") String hash);
+
+    @Update("UPDATE t_student SET active = #{active} WHERE id = #{id}")
+    int setStudentActive(@Param("id") String id, @Param("active") boolean active);
+
+    @Update("UPDATE t_worker SET active = #{active} WHERE id = #{id}")
+    int setWorkerActive(@Param("id") String id, @Param("active") boolean active);
+
+    @Update("UPDATE t_admin SET active = #{active} WHERE id = #{id}")
+    int setAdminActive(@Param("id") String id, @Param("active") boolean active);
+
+    /** 条件更新把“至少还有一个其他启用管理员”放进同一语句，避免并发双停用。 */
+    @Update("""
+            UPDATE t_admin
+            SET active = 0
+            WHERE id = #{id}
+              AND active = 1
+              AND EXISTS (
+                SELECT 1 FROM (
+                  SELECT id FROM t_admin WHERE active = 1 AND id <> #{id} LIMIT 1
+                ) AS another_active_admin
+              )
+            """)
+    int disableAdminIfNotLast(@Param("id") String id);
 }

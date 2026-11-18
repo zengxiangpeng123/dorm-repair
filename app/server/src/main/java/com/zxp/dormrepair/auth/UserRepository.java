@@ -27,4 +27,13 @@ public interface UserRepository {
     void insertWorkerWithBuildings(UserAccount user, java.util.List<String> buildings);
 
     void setPassword(String id, String passwordHash);
+
+    /** 停用或恢复账号；实现必须按角色写入对应人员表。 */
+    void setActive(String id, boolean active);
+
+    /**
+     * 原子停用管理员：仅当系统中仍有其他启用管理员时才更新。
+     * 返回 false 表示目标已是最后一个启用管理员，调用方必须拒绝本次停用。
+     */
+    boolean disableAdminIfNotLast(String id);
 }
