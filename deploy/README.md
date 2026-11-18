@@ -48,8 +48,9 @@ curl -k https://localhost/actuator/health/readiness
 `.env.production` is used for Compose interpolation and is explicitly injected into the
 AI/server containers. Do not reuse `app/ai/.env.local` in production.
 
-Three frontends are served at `/student/`, `/worker/`, and `/admin/`; the API is
-proxied under `/api/`. The Prometheus endpoint is intentionally not exposed by Nginx.
+Three frontends are served at `/student/`, `/worker/`, and `/admin/`; each Vite build
+uses the same subpath as its `base`, and Nginx falls back to that app's own
+`index.html` for deep links. The API is proxied under `/api/`. The Prometheus endpoint is intentionally not exposed by Nginx.
 
 ## Database TLS
 
