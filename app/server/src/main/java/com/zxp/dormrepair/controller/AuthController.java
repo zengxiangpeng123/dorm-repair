@@ -30,9 +30,10 @@ public class AuthController {
 
     /** 账号 + 口令换令牌。成功返回 token、过期时间、这个人是谁。 */
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody LoginRequest req) {
+    public Map<String, Object> login(@RequestBody LoginRequest req, HttpServletRequest http) {
+        String source = http == null ? "unknown" : http.getRemoteAddr();
         return ApiResponses.ok(auth.login(req == null ? null : req.account(),
-                req == null ? null : req.password()));
+                req == null ? null : req.password(), source));
     }
 
     /** 登出：令牌立刻作废，再用就是 401。 */

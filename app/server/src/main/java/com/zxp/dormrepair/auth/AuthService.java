@@ -18,13 +18,16 @@ public class AuthService {
 
     private final UserRepository users;
     private final TokenStore tokens;
+    private final LoginThrottle throttle;
     private final long ttlMillis;
 
     public AuthService(UserRepository users,
                        TokenStore tokens,
+                       LoginThrottle throttle,
                        @Value("${app.auth.ttl-hours:8}") double ttlHours) {
         this.users = users;
         this.tokens = tokens;
+        this.throttle = throttle;
         this.ttlMillis = (long) (ttlHours * 3600_000L);
     }
 
@@ -33,20 +36,30 @@ public class AuthService {
      * 不告诉调用方"是账号错了还是密码错了"。
      */
     public Map<String, Object> login(String account, String password) {
+        return login(account, password, "unknown");
+    }
+
+    public Map<String, Object> login(String account, String password, String source) {
         if (account == null || account.isBlank() || password == null || password.isEmpty()) {
             throw BizException.badRequest("账号和口令都要填");
         }
-        Optional<UserAccount> found = users.find(account.trim());
+        String normalized = account.trim();
+        throttle.check(normalized, source);
+        Optional<UserAccount> found = users.find(normalized);
         if (found.isEmpty()) {
+            throttle.failure(normalized, source);
             throw BizException.unauthorized("账号或口令不对");
         }
         UserAccount u = found.get();
         if (!PasswordHasher.verify(password, u.password())) {
+            throttle.failure(normalized, source);
             throw BizException.unauthorized("账号或口令不对");
         }
         if (!u.active()) {
+            throttle.failure(normalized, source);
             throw BizException.forbidden("这个账号已停用，找后勤管理员");
         }
+        throttle.success(normalized, source);
         TokenStore.Session s = tokens.issue(u.toActor(), u.id(), ttlMillis);
         return body(s, u);
     }

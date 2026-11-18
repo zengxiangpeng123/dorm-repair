@@ -57,6 +57,14 @@ Uploaded files that remain unbound to an order for 24 hours are deleted by the s
 cleanup job. Adjust `APP_FILE_CLEANUP_RETENTION_HOURS` and `APP_FILE_CLEANUP_BATCH_SIZE`
 for the deployment policy.
 
+## Authentication operations
+
+Login failures are limited per account and client address. Defaults are five failures in a
+15-minute window; successful login clears the counter. Expired and revoked sessions are
+purged every 60 minutes. Configure with `APP_AUTH_LOGIN_MAX_FAILURES`,
+`APP_AUTH_LOGIN_BLOCK_MINUTES`, `APP_AUTH_SESSION_CLEANUP_MINUTES`, and
+`APP_AUTH_TTL_HOURS`.
+
 ## Operations
 
 - Liveness/readiness: `/actuator/health/liveness`, `/actuator/health/readiness`

@@ -102,6 +102,18 @@ class AuthTest {
     }
 
     @Test
+    @DisplayName("连续失败登录会被限流，成功登录会清零")
+    void loginFailuresAreRateLimited() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            Resp r = send("POST", "/auth/login", "{\"account\":\"S001\",\"password\":\"nope\"}", null);
+            assertEquals(401, r.status, r.body);
+        }
+        Resp blocked = send("POST", "/auth/login", "{\"account\":\"S001\",\"password\":\"dorm@2026\"}", null);
+        assertEquals(429, blocked.status, blocked.body);
+        assertEquals("LOGIN_RATE_LIMITED", blocked.data().get("code").asText());
+    }
+
+    @Test
     @DisplayName("空账号空口令是 400，跟「填错了」分开")
     void emptyCredentialsAre400() throws Exception {
         assertEquals(400, send("POST", "/auth/login", "{\"account\":\"\",\"password\":\"\"}", null).status);

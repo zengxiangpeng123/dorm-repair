@@ -16,6 +16,8 @@ app:
     local-root: ./target/test-uploads
   auth:
     allow-header: true
+    login-max-failures: 5
+    login-block-minutes: 15
     ttl-hours: 1
 
 spring:
