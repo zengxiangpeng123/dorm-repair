@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  * 后台的 AI 复核。
@@ -37,6 +38,8 @@ public class AiReviewService {
     private final OrderRepository store;
     private final AiReviewTaskRepository tasks;
     private final ExecutorService pool;
+    @org.springframework.beans.factory.annotation.Value("${app.ai.review-claim-timeout-minutes:30}")
+    private long reviewClaimTimeoutMinutes = 30;
 
     public AiReviewService(AiClient ai, OrderRepository store, AiReviewTaskRepository tasks) {
         this.ai = ai;
@@ -124,6 +127,16 @@ public class AiReviewService {
                 log.warn("AI 复核 {} 出错，保留规则定级：{}", no, e.toString());
             }
         }
+    }
+
+    /** 定期收口进程崩溃后遗留的复核任务；不重放模型，保留规则定级。 */
+    @Scheduled(fixedDelay = 600000L, initialDelay = 60000L)
+    public void failStaleTasks() {
+        String staleBefore = TimeUtil.fmt(TimeUtil.nowMs()
+                - Math.max(1, reviewClaimTimeoutMinutes) * 60_000L);
+        int failed = tasks.failStale(staleBefore, "AI_REVIEW_ABANDONED",
+                "AI 复核任务超时未完成，进程可能已中断；已保留规则定级");
+        if (failed > 0) log.warn("已将 {} 个中断的 AI 复核任务标记为 FAILED", failed);
     }
 
     private static String sha256(String text) {

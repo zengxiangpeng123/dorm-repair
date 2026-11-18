@@ -37,4 +37,12 @@ public interface AiReviewTaskMapper extends BaseMapper<AiReviewTaskRow> {
             "WHERE id=#{id} AND status IN ('PENDING','RUNNING','SUCCEEDED','FALLBACK')")
     int markSuperseded(@Param("id") String id, @Param("reason") String reason,
                        @Param("completedAt") String completedAt);
+
+    @Update("UPDATE t_ai_review_task SET status='FAILED', error_code=#{errorCode}, " +
+            "error_message=#{errorMessage}, completed_at=#{completedAt} " +
+            "WHERE status IN ('PENDING','RUNNING') AND requested_at < #{staleBefore}")
+    int failStale(@Param("staleBefore") String staleBefore,
+                  @Param("errorCode") String errorCode,
+                  @Param("errorMessage") String errorMessage,
+                  @Param("completedAt") String completedAt);
 }

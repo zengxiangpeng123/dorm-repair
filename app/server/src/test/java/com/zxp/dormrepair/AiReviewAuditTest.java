@@ -2,6 +2,7 @@ package com.zxp.dormrepair;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -17,13 +18,18 @@ import com.zxp.dormrepair.statemachine.ActorType;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.store.AiReviewTaskRepository;
 import com.zxp.dormrepair.store.OrderRepository;
+import com.zxp.dormrepair.file.FileService;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.mock.web.MockMultipartFile;
 
 @SpringBootTest(properties = "app.order.auto-assign=false")
 class AiReviewAuditTest {
@@ -32,6 +38,7 @@ class AiReviewAuditTest {
     @Autowired AiReviewService reviews;
     @Autowired OrderRepository store;
     @Autowired AiReviewTaskRepository tasks;
+    @Autowired FileService fileService;
     @MockitoBean AiClient ai;
 
     private Actor student;
@@ -41,6 +48,39 @@ class AiReviewAuditTest {
         tasks.clear();
         store.clear();
         student = new Actor(ActorType.STUDENT, "S001", "张同学");
+    }
+
+    @Test
+    @DisplayName("中断的 AI 复核任务会被标记失败，不覆盖规则定级")
+    void staleTaskIsFailedWithoutTouchingOrder() {
+        when(ai.classifyFast(org.mockito.ArgumentMatchers.anyString())).thenReturn(
+                new AiClient.Verdict("门窗家具", "普通", 0.8, "规则定级", false, "AI",
+                        "test-model", 1, null, null, 1L));
+        String photoId;
+        try {
+            BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", bytes);
+            photoId = fileService.upload(new MockMultipartFile("file", "stale.png", "image/png",
+                    bytes.toByteArray()), student, "BEFORE").id();
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+        var order = orders.submit(new SubmitRequest("B7", 4, "402", "门把手松动",
+                "全天", null, List.of(photoId), null, null, null, null), student);
+        var repository = new com.zxp.dormrepair.store.InMemoryAiReviewTaskRepository();
+        var task = repository.create("BX-STALE", 1, "hash", "model", "provider");
+        var orderBefore = store.get(order.no());
+        assertNotNull(orderBefore);
+
+        int changed = repository.failStale("2099-01-01 00:00:00",
+                "AI_REVIEW_ABANDONED", "超时未完成");
+
+        assertEquals(1, changed);
+        var failed = repository.find(task.id()).orElseThrow();
+        assertEquals(com.zxp.dormrepair.domain.AiReviewTaskStatus.FAILED, failed.status());
+        assertEquals("AI_REVIEW_ABANDONED", failed.errorCode());
+        assertEquals(orderBefore.getLevel(), store.get(order.no()).getLevel());
     }
 
     @Test

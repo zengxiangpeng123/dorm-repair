@@ -90,6 +90,11 @@ public class MybatisAiReviewTaskRepository implements AiReviewTaskRepository {
     }
 
     @Override
+    public int failStale(String staleBefore, String errorCode, String errorMessage) {
+        return mapper.failStale(staleBefore, errorCode, errorMessage, TimeUtil.now());
+    }
+
+    @Override
     public void clear() {
         mapper.wipe();
     }

@@ -17,5 +17,7 @@ public interface AiReviewTaskRepository {
                     long latencyMs);
     void markApplied(String id, String appliedAt);
     void markSuperseded(String id, String reason);
+    /** 把进程中断后超过租约的 PENDING/RUNNING 任务标记为失败。 */
+    int failStale(String staleBefore, String errorCode, String errorMessage);
     void clear();
 }

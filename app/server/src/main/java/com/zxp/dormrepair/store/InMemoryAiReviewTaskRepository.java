@@ -78,6 +78,25 @@ public class InMemoryAiReviewTaskRepository implements AiReviewTaskRepository {
     }
 
     @Override
+    public int failStale(String staleBefore, String errorCode, String errorMessage) {
+        long cutoff = TimeUtil.epochMs(staleBefore);
+        int[] changed = {0};
+        tasks.replaceAll((id, t) -> {
+            Long requested = TimeUtil.epochMs(t.requestedAt());
+            if ((t.status() == AiReviewTaskStatus.PENDING || t.status() == AiReviewTaskStatus.RUNNING)
+                    && requested != null && requested < cutoff) {
+                changed[0]++;
+                return new AiReviewTask(t.id(), t.orderNo(), t.orderVersion(), t.inputHash(), t.model(),
+                        t.provider(), AiReviewTaskStatus.FAILED, t.attempts(), t.requestedAt(), TimeUtil.now(),
+                        errorCode, errorMessage, t.category(), t.level(), t.confidence(), t.basis(),
+                        t.source(), t.latencyMs(), t.applied(), t.appliedAt());
+            }
+            return t;
+        });
+        return changed[0];
+    }
+
+    @Override
     public void clear() {
         tasks.clear();
     }
