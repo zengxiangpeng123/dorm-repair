@@ -41,6 +41,12 @@ AI/server containers. Do not reuse `app/ai/.env.local` in production.
 Three frontends are served at `/student/`, `/worker/`, and `/admin/`; the API is
 proxied under `/api/`. The Prometheus endpoint is intentionally not exposed by Nginx.
 
+## Database TLS
+
+Production database TLS is controlled by `DB_USE_SSL` and
+`DB_ALLOW_PUBLIC_KEY_RETRIEVAL`. Use `DB_USE_SSL=true`; only disable certificate
+verification for an explicitly trusted private network and document the exception.
+
 ## S3 credentials
 
 Production supports either workload IAM credentials or explicit static credentials:
@@ -49,6 +55,7 @@ Production supports either workload IAM credentials or explicit static credentia
   `APP_FILE_S3_SECRET_KEY`, and `APP_FILE_S3_SESSION_TOKEN` empty.
 - Static credentials: set Access Key and Secret Key together; Session Token is optional.
 - Set `APP_FILE_S3_PATH_STYLE=true` for MinIO and providers that require path-style URLs.
+- Production startup rejects an S3 endpoint that is not HTTPS.
 
 The readiness endpoint includes the `fileStorage` health contributor and performs a
 bucket access check. A running process with an unavailable bucket is not ready.

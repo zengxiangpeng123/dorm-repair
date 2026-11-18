@@ -10,9 +10,14 @@ import org.junit.jupiter.api.Test;
 class ProductionSafetyValidatorTest {
 
     private static ProductionSafetyValidator validator(String access, String secret, String session, String aiBaseUrl) {
+        return validator(access, secret, session, aiBaseUrl, "https://s3.example.com");
+    }
+
+    private static ProductionSafetyValidator validator(String access, String secret, String session,
+                                                        String aiBaseUrl, String s3Endpoint) {
         return new ProductionSafetyValidator(
                 false, false, "jdbc:mysql://db/app", "app", "strong-password",
-                "s3", "dorm-files", access, secret, session, false,
+                "s3", "dorm-files", s3Endpoint, access, secret, session, false,
                 aiBaseUrl, "model-x");
     }
 
@@ -20,22 +25,29 @@ class ProductionSafetyValidatorTest {
     @DisplayName("生产禁止演示模式、身份头、默认口令和本机 AI")
     void rejectsUnsafeProductionConfiguration() {
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                true, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", "", "", "", false, "https://ai.example.com", "model-x"));
+                true, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, true, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, true, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app", "root", "123456", "s3", "dorm-files", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, false, "jdbc:mysql://db/app", "root", "123456", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "", "", "", "s3", "dorm-files", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, false, "", "", "", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app", "app", "strong-password", "local", "", "", "", "", false,
+                false, false, "jdbc:mysql://db/app", "app", "strong-password", "local", "", "", "", "", "", false,
                 "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", "", "", "", true,
+                false, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", true,
                 "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", "", "", "", false,
+                false, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
                 "http://127.0.0.1:8001", "model-x"));
+    }
+
+    @Test
+    @DisplayName("生产 S3 endpoint 必须使用 HTTPS")
+    void rejectsInsecureS3Endpoint() {
+        assertThrows(IllegalStateException.class, () ->
+                validator("", "", "", "https://ai.example.com", "http://s3.example.com"));
     }
 
     @Test

@@ -20,6 +20,7 @@ public class ProductionSafetyValidator {
             @Value("${spring.datasource.password:}") String password,
             @Value("${app.file.storage:local}") String fileStorage,
             @Value("${app.file.s3.bucket:}") String fileBucket,
+            @Value("${app.file.s3.endpoint:}") String fileEndpoint,
             @Value("${app.file.s3.access-key:}") String s3AccessKey,
             @Value("${app.file.s3.secret-key:}") String s3SecretKey,
             @Value("${app.file.s3.session-token:}") String s3SessionToken,
@@ -40,6 +41,10 @@ public class ProductionSafetyValidator {
         }
         if (!"s3".equalsIgnoreCase(fileStorage) || fileBucket.isBlank()) {
             throw new IllegalStateException("生产环境必须使用私有 S3 对象存储并配置 bucket");
+        }
+        if (fileEndpoint != null && !fileEndpoint.isBlank()
+                && !fileEndpoint.regionMatches(true, 0, "https://", 0, 8)) {
+            throw new IllegalStateException("生产环境 S3 endpoint 必须使用 HTTPS");
         }
         boolean hasAccess = s3AccessKey != null && !s3AccessKey.isBlank();
         boolean hasSecret = s3SecretKey != null && !s3SecretKey.isBlank();
