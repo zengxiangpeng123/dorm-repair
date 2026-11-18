@@ -17,7 +17,8 @@ public interface FileStorage {
     }
 
     default String type() {
-        return getClass().getSimpleName();
+        String name = getClass().getSimpleName();
+        return name == null || name.isBlank() ? "unknown" : name;
     }
 
     record StoredObject(InputStream stream, long contentLength, String contentType) {
