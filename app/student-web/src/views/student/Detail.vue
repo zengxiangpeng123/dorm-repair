@@ -138,8 +138,8 @@ onUnmounted(() => clearInterval(timer))
     <div v-else-if="o.reworkCount > 0" class="card rework-strip">
       <span class="tag">已返修 {{ o.reworkCount }} 次</span>
       <div class="tx">
-        <b>这单被打回过</b>
-        <span class="tiny muted">每次打回都生成一张 -R 的新单在原位置重排队；同一单返修到 2 次会进管理端「反复返修」清单。</span>
+        <b>这单有过返修</b>
+        <span class="tiny muted">每次返修申请经管理员审查通过后，才生成一张 -R 的新单在原位置重排队；同一单返修到 2 次会进管理端「反复返修」清单。</span>
       </div>
     </div>
 
