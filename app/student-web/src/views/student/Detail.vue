@@ -18,6 +18,7 @@ const meta = ref(null)
 const events = ref([])
 const loading = ref(true)
 const err = ref('')
+const ok = ref('')
 const busy = ref('')
 const nowTick = ref(Date.now())
 const sheet = ref(null) // 'accept' | 'reject' | 'cancel' | 'cancelRequest'
@@ -56,7 +57,7 @@ async function fire (path, body, tag) {
     form.value = { signerName: '', reason: '' }
     await load()
     if (tag === 'cancelRequest') {
-      window.alert('撤销申请已提交，等待管理员审查。')
+      ok.value = '撤销申请已提交，等待管理员审查。'
     }
   } catch (e) {
     err.value = describeError(e)
@@ -247,6 +248,7 @@ onUnmounted(() => clearInterval(timer))
       </div>
     </div>
 
+    <p v-if="ok" class="ok">{{ ok }}</p>
     <p v-if="err" class="err">{{ err }}</p>
 
     <div v-if="o.cancelRequestAt || o.status === 'REPAIRING'" class="note" data-tone="warn">
@@ -357,6 +359,7 @@ onUnmounted(() => clearInterval(timer))
 .dbtn.ghost { color: var(--ink-2); }
 .readonly { flex: 1; text-align: center; font-size: 13px; color: var(--ink-3); padding: 13px 0; }
 .err { color: var(--danger); font-size: 12.5px; margin: 8px 0 0; }
+.ok { color: var(--ok, #067647); background: #ecfdf3; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin: 8px 0 0; }
 .mask {
   position: fixed; inset: 0; background: rgba(11, 21, 36, .42);
   display: flex; align-items: flex-end; justify-content: center; z-index: 50;
