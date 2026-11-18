@@ -4,6 +4,7 @@ import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.common.TimeUtil;
 import com.zxp.dormrepair.domain.OrderEventLog;
 import com.zxp.dormrepair.domain.WorkOrder;
+import com.zxp.dormrepair.statemachine.OrderStatus;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,6 +26,10 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(name = "app.store", havingValue = "memory", matchIfMissing = true)
 public class OrderStore implements OrderRepository {
+
+    private static final java.util.Set<OrderStatus> ACTIVE = java.util.Set.of(
+            OrderStatus.PENDING, OrderStatus.ASSIGNED, OrderStatus.REPAIRING,
+            OrderStatus.PARTS, OrderStatus.VERIFYING, OrderStatus.REWORKING);
 
     private final Map<String, WorkOrder> byNo = new ConcurrentHashMap<>();
     private final AtomicLong eventSeq = new AtomicLong();
@@ -95,6 +100,15 @@ public class OrderStore implements OrderRepository {
         return o.getStatus().name().equalsIgnoreCase(status);
     }
 
+    @Override
+    public List<WorkOrder> findWorkerBoard(String workerId, String doneSince) {
+        return all().stream()
+                .filter(o -> workerId.equals(o.getWorkerId()))
+                .filter(o -> ACTIVE.contains(o.getStatus())
+                        || ((o.getStatus() == OrderStatus.DONE || o.getStatus() == OrderStatus.CLOSED)
+                            && o.getSignAt() != null && o.getSignAt().compareTo(doneSince) >= 0))
+                .toList();
+    }
     @Override
     public List<WorkOrder> findTimerCandidates() {
         return all().stream()

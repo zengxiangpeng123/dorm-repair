@@ -87,9 +87,8 @@ public class QueryService {
 
     /** 师傅今日待办：按楼栋分组，楼层从高到低（跑楼是自上而下，不是自下而上）。 */
     public Map<String, Object> workerTodo(Actor actor) {
-        List<WorkOrder> mine = store.all().stream()
-                .filter(o -> actor.id().equals(o.getWorkerId()))
-                .toList();
+        String doneSince = TimeUtil.fmt(TimeUtil.nowMs() - 24 * 3600_000L);
+        List<WorkOrder> mine = store.findWorkerBoard(actor.id(), doneSince);
 
         Map<String, List<WorkOrder>> byBuilding = new TreeMap<>();
         for (WorkOrder o : mine) byBuilding.computeIfAbsent(o.getBuilding(), k -> new ArrayList<>()).add(o);

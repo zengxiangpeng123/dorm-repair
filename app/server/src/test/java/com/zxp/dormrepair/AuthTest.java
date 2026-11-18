@@ -224,6 +224,18 @@ class AuthTest {
         }
     }
     @Test
+    @DisplayName("师傅工作台只包含本人范围和近期完成单")
+    void workerTodoIsScopedAndRecent() throws Exception {
+        String worker = login("W0428");
+        Resp todo = send("GET", "/worker/todo", null, worker);
+        assertEquals(200, todo.status, todo.body);
+        for (var building : todo.data().get("buildings")) {
+            for (var order : building.get("orders")) {
+                assertEquals("W0428", order.get("workerId").asText());
+            }
+        }
+    }
+    @Test
     @DisplayName("登出之后同一个令牌立刻作废")
     void logoutInvalidatesToken() throws Exception {
         String token = login("S002");

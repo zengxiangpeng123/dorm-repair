@@ -28,6 +28,8 @@ public interface OrderRepository {
     Page pageForActor(com.zxp.dormrepair.statemachine.ActorType actorType, String actorId,
                      String status, int page, int pageSize);
 
+    /** 师傅工作台：只取该师傅的在办工单和指定时间后的已完成工单。 */
+    List<WorkOrder> findWorkerBoard(String workerId, String doneSince);
     /** 定时器专用：只返回仍可能到期的待验收与已完成工单。 */
     List<WorkOrder> findTimerCandidates();
 

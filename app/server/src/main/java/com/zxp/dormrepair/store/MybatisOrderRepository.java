@@ -121,6 +121,18 @@ public class MybatisOrderRepository implements OrderRepository {
     }
 
     @Override
+    public List<WorkOrder> findWorkerBoard(String workerId, String doneSince) {
+        List<WorkOrder> list = orders.selectList(Wrappers.<WorkOrder>query()
+                .eq("worker_id", workerId)
+                .and(q -> q.in("status", "PENDING", "ASSIGNED", "REPAIRING", "PARTS", "VERIFYING", "REWORKING")
+                        .or(done -> done.in("status", "DONE", "CLOSED")
+                                .ge("sign_at", doneSince)))
+                .orderByAsc("created_at"));
+        list.forEach(this::fill);
+        return list;
+    }
+
+    @Override
     public List<WorkOrder> findTimerCandidates() {
         List<WorkOrder> list = orders.selectList(Wrappers.<WorkOrder>query()
                 .in("status", "VERIFYING", "DONE")
