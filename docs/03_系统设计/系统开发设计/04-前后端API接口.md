@@ -218,7 +218,7 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 | GET | `/auth/me` | Header Token | `user,expiresAt` |
 | POST | `/auth/system-token` | 管理员（仅演示模式） | `token,expiresAt,user,actor,ttlSeconds` |
 | POST | `/files` | 已登录角色 | multipart `file,purpose=BEFORE/AFTER` | `id,url,mime,byteSize,sha256` |
-| GET | `/files/{id}` | 上传者 / 本单学生 / 本单师傅 / 管理员 | 无 | 图片字节，带安全响应头 |
+| GET | `/files/{id}` | 上传者 / 本单学生 / 本单师傅 / 管理员 | 无 | 图片字节；带 `X-Content-Type-Options: nosniff`、`Cache-Control: private, no-store, max-age=0`、`Pragma: no-cache` |
 
 `user` 字段：`id`、`role`、`name`，可选 `team`、`building`、`room`。`login` 的 `user` 不包含密码。
 

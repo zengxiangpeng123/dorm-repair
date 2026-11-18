@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.http.ResponseEntity;
 
 class FileServiceTest {
 
@@ -42,6 +44,21 @@ class FileServiceTest {
         assertFalse(f.objectKey().contains("room"));
         assertEquals(64, f.sha256().length());
         assertTrue(files.download(f.id()).object().contentLength() > 0);
+    }
+
+    @Test
+    @DisplayName("受权照片响应禁止浏览器和中间代理缓存")
+    void privatePhotoResponseIsNotCacheable() throws Exception {
+        FileRecord f = files.upload(png("private.png"), student, "BEFORE");
+        var request = new MockHttpServletRequest();
+        request.setAttribute(com.zxp.dormrepair.auth.AuthFilter.ATTR, student);
+        var orders = org.mockito.Mockito.mock(com.zxp.dormrepair.service.OrderService.class);
+        var controller = new com.zxp.dormrepair.controller.FileController(files, orders);
+
+        ResponseEntity<byte[]> response = controller.download(f.id(), request);
+
+        assertEquals("private, no-store, max-age=0", response.getHeaders().getCacheControl());
+        assertEquals("no-cache", response.getHeaders().getFirst("Pragma"));
     }
 
     @Test

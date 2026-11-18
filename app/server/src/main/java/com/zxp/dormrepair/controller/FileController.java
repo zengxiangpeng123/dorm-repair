@@ -93,6 +93,8 @@ public class FileController {
                     .contentType(MediaType.parseMediaType(f.mime()))
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"photo\"")
                     .header("X-Content-Type-Options", "nosniff")
+                    .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0")
+                    .header("Pragma", "no-cache")
                     .body(bytes);
         }
     }
