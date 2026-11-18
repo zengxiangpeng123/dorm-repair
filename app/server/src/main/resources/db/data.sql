@@ -8,27 +8,44 @@ USE dorm_repair;
 DELETE FROM t_work_order_event;
 DELETE FROM t_work_order_photo;
 DELETE FROM t_work_order;
+DELETE FROM t_rework_review;
 DELETE FROM t_part_request;
 DELETE FROM t_exception_record;
-DELETE FROM t_user;
+DELETE FROM t_student;
+DELETE FROM t_worker;
+DELETE FROM t_admin;
+DELETE FROM t_worker_building;
+DELETE FROM t_building_floor;
 DELETE FROM t_building;
 DELETE FROM t_part;
 DELETE FROM t_config;
 DELETE FROM t_seq;
 
--- 楼栋
-INSERT INTO t_building (id, name, floors) VALUES
-  ('B7', '东区7号楼', '2,3,4,5'),
-  ('B8', '东区8号楼', '1,2,3');
+-- 楼栋与楼层
+INSERT INTO t_building (id, name) VALUES
+  ('B7', '东区7号楼'),
+  ('B8', '东区8号楼');
 
--- 人员：3 个学生、2 个师傅、1 个管理员
-INSERT INTO t_user (id, role, name, team, building_id, room, phone) VALUES
-  ('S001', 'STUDENT', '张同学', NULL, 'B7', '402', '13800000001'),
-  ('S002', 'STUDENT', '李同学', NULL, 'B7', '508', '13800000002'),
-  ('S003', 'STUDENT', '王同学', NULL, 'B8', '205', '13800000003'),
-  ('W0428', 'WORKER', '李建国', '水电班', 'B7', NULL, '13900000001'),
-  ('W0512', 'WORKER', '王海涛', '综合班', 'B8', NULL, '13900000002'),
-  ('A001', 'ADMIN', '王主任', NULL, NULL, NULL, '13700000001');
+INSERT INTO t_building_floor (building_id, floor) VALUES
+  ('B7', 2), ('B7', 3), ('B7', 4), ('B7', 5),
+  ('B8', 1), ('B8', 2), ('B8', 3);
+
+-- 人员：学生、师傅、管理员分表
+INSERT INTO t_student (id, name, phone, building_id, room) VALUES
+  ('S001', '张同学', '13800000001', 'B7', '402'),
+  ('S002', '李同学', '13800000002', 'B7', '508'),
+  ('S003', '王同学', '13800000003', 'B8', '205');
+
+INSERT INTO t_worker (id, name, phone, team) VALUES
+  ('W0428', '李建国', '13900000001', '水电班'),
+  ('W0512', '王海涛', '13900000002', '综合班');
+
+INSERT INTO t_admin (id, name, phone, department) VALUES
+  ('A001', '王主任', '13700000001', '后勤维修部');
+
+INSERT INTO t_worker_building (worker_id, building_id, is_primary) VALUES
+  ('W0428', 'B7', 1),
+  ('W0512', 'B8', 1);
 
 -- 配置：三个阈值，代码里不许写死
 INSERT INTO t_config (k, v, note) VALUES

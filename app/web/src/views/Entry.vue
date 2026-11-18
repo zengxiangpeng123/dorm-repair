@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ordersApi } from '../api/orders'
 import { describeError } from '../api/request'
+import { userOf } from '../api/session'
 
 const router = useRouter()
 const stats = ref({ orders: '—', zero: '—', exceptions: '—' })
@@ -24,7 +25,14 @@ const ENDS = [
   }
 ]
 
+const currentUser = userOf()
+
+function enter (to) {
+  router.push(currentUser ? to : { path: '/login', query: { redirect: to } })
+}
+
 async function load () {
+  if (currentUser?.role !== 'ADMIN') return
   try {
     const [dash, ex] = await Promise.all([ordersApi.dashboard(), ordersApi.exceptions()])
     stats.value = {
@@ -63,7 +71,7 @@ async function reset () {
   }
 }
 
-onMounted(load)
+onMounted(() => { if (currentUser?.role === 'ADMIN') load() })
 </script>
 
 <template>
@@ -75,7 +83,8 @@ onMounted(load)
         <div class="s">示范大学 · 后勤维修部 · V5.0</div>
       </div>
       <div class="sp" />
-      <button class="link" @click="router.push('/admin')">进管理端 ›</button>
+      <button class="link" @click="enter('/admin')">进管理端 ›</button>
+      <button class="link" @click="router.push('/login')">{{ currentUser ? '切换账号' : '登录' }} ›</button>
     </header>
 
     <section class="hero">
@@ -106,7 +115,7 @@ onMounted(load)
         <ul>
           <li v-for="p in e.points" :key="p">{{ p }}</li>
         </ul>
-        <button class="go" @click="router.push(e.to)">进入 ›</button>
+        <button class="go" @click="enter(e.to)">进入 ›</button>
       </article>
     </div>
 

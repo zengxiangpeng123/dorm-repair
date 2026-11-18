@@ -60,11 +60,13 @@ public final class TransitionTable {
         t.put(OrderEvent.NEED_PARTS, EnumSet.of(ActorType.WORKER));
         t.put(OrderEvent.PARTS_ARRIVED, EnumSet.of(ActorType.SYSTEM, ActorType.ADMIN));
         t.put(OrderEvent.ACCEPT, EnumSet.of(ActorType.STUDENT));
-        t.put(OrderEvent.REJECT, EnumSet.of(ActorType.STUDENT));
+        t.put(OrderEvent.REJECT, EnumSet.of(ActorType.STUDENT, ActorType.ADMIN));
         t.put(OrderEvent.AUTO_ACCEPT, EnumSet.of(ActorType.SYSTEM));
         t.put(OrderEvent.ARCHIVE, EnumSet.of(ActorType.SYSTEM));
         t.put(OrderEvent.CANCEL, EnumSet.of(ActorType.STUDENT));
         t.put(OrderEvent.CANCEL_REQUEST, EnumSet.of(ActorType.STUDENT));
+        t.put(OrderEvent.REWORK_REQUEST, EnumSet.of(ActorType.STUDENT));
+        t.put(OrderEvent.REWORK_REJECTED, EnumSet.of(ActorType.ADMIN));
         TRIGGER = Collections.unmodifiableMap(t);
     }
 
@@ -99,15 +101,17 @@ public final class TransitionTable {
     }
 
     /**
-     * 矩阵与事件清单只认这 13 个（CANCEL_REQUEST 也在内，它不改状态但要能申请）。
-     *
-     * <p>级联事件 ORIGIN_CLOSED 不在这里：它不是人能推的命令，是返修单验收通过时的附带效果。
+     * 矩阵与状态事件清单只认这 13 个（CANCEL_REQUEST 也在内，它不改状态但要能申请）。
+     * 返修审查的日志事件单独放 AUDIT_EVENTS，不要混入矩阵。
      */
     public static final List<OrderEvent> EVENTS = List.of(
             OrderEvent.SUBMIT, OrderEvent.ASSIGN, OrderEvent.ARRIVE, OrderEvent.NO_SHOW,
             OrderEvent.FINISH, OrderEvent.NEED_PARTS, OrderEvent.PARTS_ARRIVED,
             OrderEvent.ACCEPT, OrderEvent.REJECT, OrderEvent.AUTO_ACCEPT,
             OrderEvent.ARCHIVE, OrderEvent.CANCEL, OrderEvent.CANCEL_REQUEST);
+
+    public static final List<OrderEvent> AUDIT_EVENTS = List.of(
+            OrderEvent.REWORK_REQUEST, OrderEvent.REWORK_REJECTED);
 
     /** 级联副作用：不占 13 条转移名额，只在特定事件成功之后由服务层显式调用。 */
     private static final Map<String, Map<OrderStatus, OrderStatus>> CASCADE;

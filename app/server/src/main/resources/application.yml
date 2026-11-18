@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8082
   shutdown: graceful
 
 spring:
@@ -19,9 +19,24 @@ spring:
       connection-timeout: 3000
       pool-name: dorm-pool
 
-# memory = 内存（单元测试用，默认） / mysql = 正式库
+# memory = 内存（单元测试用） / mysql = 正式库（默认）
 app:
   store: ${APP_STORE:mysql}
+  # 演示相关接口（/demo/reset、/demo/advance、/auth/system-token）只在演示模式注册
+  demo: ${APP_DEMO:true}
+  auth:
+    # 令牌有效期（小时）。重启服务令牌就全失效，这是有意的：会话只放内存
+    ttl-hours: ${APP_AUTH_TTL_HOURS:8}
+    # 允许用 X-Actor-* 请求头冒充身份。只给接口测试脚本用，正式运行必须 false
+    allow-header: ${APP_AUTH_ALLOW_HEADER:false}
+  ai:
+    # Python 定级服务，两条路两个超时，别合并成一个：
+    base-url: ${AI_SERVICE_URL:http://127.0.0.1:8001}
+    # 学生点提交那一步：只跑规则，毫秒级。1.5 秒还拿不到就兜底，绝不让提交卡住
+    timeout-ms: ${AI_TIMEOUT_MS:1500}
+    # 后台复核：真模型单次实测 2~19 秒（同一模型两次能差 10 倍），所以给 30 秒，
+    # 而且跑在独立线程池里，不挂在学生的请求上
+    review-timeout-ms: ${AI_REVIEW_TIMEOUT_MS:30000}
 
 mybatis-plus:
   configuration:

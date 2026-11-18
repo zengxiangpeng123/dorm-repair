@@ -1,5 +1,8 @@
 $ErrorActionPreference = 'Stop'
-$base = 'http://localhost:8080/api/v1'
+# 前置：服务要先起来，并且开着测试开关（鉴权上线后脚本用 X-Actor-* 头冒充身份）
+#   $env:APP_AUTH_ALLOW_HEADER = 'true'; $env:DB_NAME = 'dorm_repair_test'; java -jar target\dorm-repair-server-1.0.0.jar
+# 想验证"真令牌"这条路，跑 m5-auth.ps1（不需要这个开关）。
+$base = 'http://localhost:8082/api/v1'
 
 function Call($method, $path, $body, $actorType, $actorId) {
     $headers = @{}
@@ -88,7 +91,7 @@ $r = Call POST "/orders/$no2/cancel" @{ version = $w3; reason='不需要了' } '
 Show '9 进楼后撤销 (应 409)' $r 409 $null
 Write-Host ("      from=" + $r.Body.error.from + " reason=" + $r.Body.error.reason) -ForegroundColor DarkGray
 
-$r = Call GET '/state/matrix' $null $null $null
+$r = Call GET '/state/matrix' $null 'system' 'system'
 $m = $r.Body.data
 Show ("10 矩阵 rows=$($m.rowCount) events=$($m.eventCount) total=$($m.total) legal=$($m.legal)") $r 200 $null
 if ($m.legal -ne 13) { Write-Host '      legal 不等于 13' -ForegroundColor Red; $script:results += $false }
@@ -96,7 +99,7 @@ if ($m.legal -ne 13) { Write-Host '      legal 不等于 13' -ForegroundColor Re
 $r = Call POST "/orders/$no2/assign" @{ version = $w3 } 'student' 'S001'
 Show '11 学生派工 (应 403)' $r 403 $null
 
-$r = Call GET '/orders/BX99999999999' $null $null $null
+$r = Call GET '/orders/BX99999999999' $null 'student' 'S001'
 Show '12 不存在的单 (应 404)' $r 404 $null
 
 Write-Host ''

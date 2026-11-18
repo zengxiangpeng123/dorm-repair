@@ -9,6 +9,7 @@ import com.zxp.dormrepair.statemachine.StateMachine;
 import com.zxp.dormrepair.statemachine.TransitionTable;
 import com.zxp.dormrepair.service.AiClient;
 import com.zxp.dormrepair.service.ConfigService;
+import com.zxp.dormrepair.service.BuildingCatalogService;
 import com.zxp.dormrepair.service.TimerService;
 import com.zxp.dormrepair.service.SeedService;
 import com.zxp.dormrepair.store.OrderRepository;
@@ -34,14 +35,17 @@ public class MetaController {
     private final AiClient ai;
     private final ConfigService config;
     private final TimerService timers;
+    private final BuildingCatalogService buildingCatalog;
 
     public MetaController(OrderRepository store, SeedService seeder, AiClient ai,
-                          ConfigService config, TimerService timers) {
+                          ConfigService config, TimerService timers,
+                          BuildingCatalogService buildingCatalog) {
         this.store = store;
         this.seeder = seeder;
         this.ai = ai;
         this.config = config;
         this.timers = timers;
+        this.buildingCatalog = buildingCatalog;
     }
 
     @GetMapping("/health")
@@ -61,9 +65,16 @@ public class MetaController {
             List<String> trigger = TransitionTable.triggerOf(e).stream().map(ActorType::name).toList();
             events.add(Map.of("code", e.name(), "label", e.label(), "trigger", trigger));
         }
+        List<Map<String, Object>> auditEvents = new ArrayList<>();
+        for (OrderEvent e : TransitionTable.AUDIT_EVENTS) {
+            List<String> trigger = TransitionTable.triggerOf(e).stream().map(ActorType::name).toList();
+            auditEvents.add(Map.of("code", e.name(), "label", e.label(), "trigger", trigger,
+                    "changesStatus", false));
+        }
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("statuses", statuses);
         m.put("events", events);
+        m.put("auditEvents", auditEvents);
         m.put("transitions", TransitionTable.list().size());
         m.put("categories", List.of("给排水", "电气", "电器", "门窗家具", "网络"));
         m.put("levels", List.of("紧急", "较急", "普通"));
@@ -76,9 +87,7 @@ public class MetaController {
         // 界面要用的静态字典。放这里是为了页面里一个中文常量都不用自己抄第二遍（C-14）
         m.put("brand", "宿舍维修系统");
         m.put("version", "V5.0");
-        m.put("buildings", List.of(
-                Map.of("id", "B7", "name", "东区7号楼", "floors", List.of(5, 4, 3, 2)),
-                Map.of("id", "B8", "name", "东区8号楼", "floors", List.of(3, 2, 1))));
+        m.put("buildings", buildingCatalog.all());
         m.put("noShowReasons", List.of(
                 Map.of("code", "KNOCK_NO_ANSWER", "label", "敲门没人应"),
                 Map.of("code", "CALL_UNREACHABLE", "label", "打电话没人接"),
@@ -127,7 +136,12 @@ public class MetaController {
      * <p>不真等 168 小时，也不改系统时钟 —— 只是拿"未来的时刻"去和 finishAt / signAt 比。
      */
     @PostMapping("/demo/advance")
-    public Map<String, Object> advance(@RequestParam(defaultValue = "168") int hours) {
+    public Map<String, Object> advance(@RequestParam(defaultValue = "168") int hours,
+                                       jakarta.servlet.http.HttpServletRequest http) {
+        com.zxp.dormrepair.common.ActorResolver.require(
+                com.zxp.dormrepair.common.ActorResolver.resolve(http),
+                com.zxp.dormrepair.statemachine.ActorType.ADMIN,
+                com.zxp.dormrepair.statemachine.ActorType.SYSTEM);
         long target = TimeUtil.nowMs() + hours * 3600_000L;
         Map<String, Object> r = timers.sweep(TimeUtil.fmt(target));
         r.put("advancedHours", hours);
@@ -136,7 +150,11 @@ public class MetaController {
 
     /** 演示用：清空再重灌一套演示数据（内存库和 MySQL 同一个动作）。 */
     @PostMapping("/demo/reset")
-    public Map<String, Object> reset() {
+    public Map<String, Object> reset(jakarta.servlet.http.HttpServletRequest http) {
+        com.zxp.dormrepair.common.ActorResolver.require(
+                com.zxp.dormrepair.common.ActorResolver.resolve(http),
+                com.zxp.dormrepair.statemachine.ActorType.ADMIN,
+                com.zxp.dormrepair.statemachine.ActorType.SYSTEM);
         int before = store.size();
         int after = seeder.reset();
         Map<String, Object> m = new LinkedHashMap<>();

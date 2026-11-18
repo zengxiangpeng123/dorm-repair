@@ -85,7 +85,7 @@ class AiFallbackTest {
     @Test
     @DisplayName("AiClient.fallback 是纯函数：不联网也能验")
     void fallbackUnit() {
-        AiClient c = new AiClient("http://127.0.0.1:9", 200);
+        AiClient c = new AiClient("http://127.0.0.1:9", 200, 200);
         AiClient.Verdict water = c.fallback("洗手台下面漏水，柜子里全是水", "单测");
         assertEquals("紧急", water.level());
         assertTrue(water.fallback());

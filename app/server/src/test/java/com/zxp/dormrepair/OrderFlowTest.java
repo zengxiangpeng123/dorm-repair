@@ -308,11 +308,12 @@ class OrderFlowTest {
             throws Exception {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + path))
                 .timeout(Duration.ofSeconds(15));
-        if (actorType != null) {
-            b.header("X-Actor-Type", actorType);
-        }
-        if (actorId != null) {
-            b.header("X-Actor-Id", actorId);
+        // 鉴权上线后每个请求都得带身份；没写身份的只读调用默认按学生 S001 发（本类没有匿名用例）
+        String type = actorType == null ? "student" : actorType;
+        String id = actorId == null ? (actorType == null ? "S001" : actorId) : actorId;
+        b.header("X-Actor-Type", type);
+        if (id != null) {
+            b.header("X-Actor-Id", id);
         }
         if (body == null) {
             b.method(method, HttpRequest.BodyPublishers.noBody());

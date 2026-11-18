@@ -1,6 +1,6 @@
 # app/server —— 正式项目后端（Spring Boot 4）
 
-M1 已完成：状态机内核 + 一条链 + 13 条命令骨架。M2 已完成：MySQL 8 + MyBatis-Plus 仓储，重启数据还在。M3 已完成：调 Python 定级服务，800ms 超时兜底，AI 挂了照样能建单。M3.5 已完成：驳回生成 -R{N} 返修单、原单级联关闭。M4 配 Vue 前端（11 页，已接真接口）。
+当前已完成：状态机内核、15 表 MySQL 仓储、三角色 Bearer 鉴权、按楼栋派工、T1/T2、返修审查、Vue 12 页和端到端验收。AI 快速定级超时 1500ms，AI 挂了照样能建单。
 
 ## 怎么跑
 
@@ -10,7 +10,7 @@ mvn -q -DskipTests package
 java -jar target/dorm-repair-server-1.0.0.jar
 ```
 
-- 端口 **8080**（`server.port`，改它别改代码）
+- 端口 **8082**（`server.port`，改它别改代码）
 - 默认连本机 MySQL：`dorm_repair` 库，`root/123456`，可用环境变量改：`DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`
 - **`APP_STORE=mysql`（默认）走数据库，`APP_STORE=memory` 走内存**（内存只用来跑单测和临时演示，重启就没了）
 - 环境：JDK 17、Maven、Spring Boot 4.0.9、Spring Framework 7.0.10、MyBatis-Plus 3.5.18.1、MySQL 8.0.41
@@ -18,13 +18,15 @@ java -jar target/dorm-repair-server-1.0.0.jar
 ## 怎么证明它对
 
 ```bash
-mvn -q test                                    # 18 项：7 白盒状态机 + 7 黑盒接口 + 4 AI 兜底
-pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：打真服务，跑一条链 + 该拒的都拒
-pwsh -NoProfile -File tests/m2-mysql.ps1       # 16 项：打真库，含"杀进程重启后数据还在"
-pwsh -NoProfile -File tests/m3-ai.ps1          # 20 项：AI 接上了 + 杀掉 AI 仍能建单
+mvn -q test                                    # 34 项：状态机、API、鉴权、返修审查、AI 兜底
+pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：主链、非法边、乐观锁和权限
+pwsh -NoProfile -File tests/m2-mysql.ps1       # 16 项：真库落盘与重启
+pwsh -NoProfile -File tests/m3-ai.ps1          # 20 项：AI 接上与断线兜底
+pwsh -NoProfile -File tests/m4-rework.ps1      # 26 项：兼容返修 + 新审查链 R1/R2
+pwsh -NoProfile -File tests/m5-auth.ps1        # 36 项：真 Bearer Token 和角色权限
 ```
 
-期望：`Tests run: 18, Failures: 0`、`13 通过 / 0 失败`、`16 通过 / 0 失败`、`20 通过 / 0 失败`。
+期望：`Tests run: 34, Failures: 0`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
 
 ## 数据库（M2）
 
@@ -40,9 +42,9 @@ Copy-Item src\main\resources\db\data.sql  $tmp
 
 **坑：`source` 打不开中文路径**（`Failed to open file ... error: 42`），所以先复制到 `%TEMP%` 这种纯英文路径再 source。
 
-10 张表：`t_user` / `t_building` / `t_work_order` / `t_work_order_event` / `t_work_order_photo` / `t_part` / `t_part_request` / `t_exception_record` / `t_config` / `t_seq`（业务表 8 张，不用外键、不用 JSON 列、时间统一 DATETIME）。
+15 张表：`t_student` / `t_worker` / `t_admin` / `t_worker_building` / `t_building` / `t_building_floor` / `t_work_order` / `t_work_order_event` / `t_work_order_photo` / `t_part` / `t_part_request` / `t_rework_review` / `t_exception_record` / `t_config` / `t_seq`。兼容视图为 `v_user_account`。
 
-想推倒重来就 `POST /api/v1/demo/reset`：清表 + 重灌 6 张单，返回 `{"deleted":N,"seeded":6,"orders":6}`。
+想推倒重来就 `POST /api/v1/demo/reset`：清表 + 重灌 11 张单，返回 `{"deleted":N,"seeded":11,"orders":11}`。
 
 ## 接口（M1 已经有）
 
@@ -56,7 +58,9 @@ Copy-Item src\main\resources\db\data.sql  $tmp
 | POST | `/api/v1/orders/{no}/need-parts` | 登记缺件（名称 + 金额 + 到货日） |
 | POST | `/api/v1/orders/{no}/parts-arrived` | 配件到货，回队列，定级不降 |
 | POST | `/api/v1/orders/{no}/accept` | 验收通过，签字人必填 |
-| POST | `/api/v1/orders/{no}/reject` | 验收不通过，原因≥2 字 |
+| POST | `/api/v1/orders/{no}/rework-request` | 学生申请返修，202，状态不变 |
+| POST | `/api/v1/orders/{no}/rework-review` | 管理员批准/驳回返修审查 |
+| POST | `/api/v1/orders/{no}/reject` | 兼容旧路径：学生直接生成返修单 |
 | POST | `/api/v1/orders/{no}/cancel` | 撤销：待派工、已派工未打卡可以，进楼后 409 |
 | POST | `/api/v1/orders/{no}/cancel-request` | 申请撤销，只留记录不改状态，返回 202 |
 | GET | `/api/v1/orders?status=ACTIVE\|DONE\|ALL\|<状态>` | 列表 |
@@ -66,9 +70,10 @@ Copy-Item src\main\resources\db\data.sql  $tmp
 | GET | `/api/v1/meta` | 9 状态、13 事件、阈值、五类故障、四时段 |
 | GET | `/api/v1/state/matrix` | 10 × 13 = 130 种组合，合法 13 |
 | GET | `/api/v1/state/transitions` | 13 条合法转移清单 |
-| POST | `/api/v1/demo/reset` | 清空 + 重灌 6 张演示单 |
+| GET | `/api/v1/admin/rework-reviews` | 管理员待审返修队列 |
+| POST | `/api/v1/demo/reset` | 清空 + 重灌 11 张演示单 |
 
-身份暂时走三个请求头（M4 换 token）：`X-Actor-Type: student|worker|admin|system`、`X-Actor-Id`、`X-Actor-Name`。请求头只能放 ASCII，姓名等中文留给登录后由服务端补。
+正式身份使用 `Authorization: Bearer <token>`。仅测试脚本可临时开启 `X-Actor-Type` / `X-Actor-Id`，生产必须关闭。
 
 ## 错误码怎么分
 
@@ -84,19 +89,20 @@ Copy-Item src\main\resources\db\data.sql  $tmp
 src/main/java/com/zxp/dormrepair/
 ├── statemachine/   OrderStatus / OrderEvent / ActorType / TransitionTable / StateMachine
 ├── domain/         WorkOrder / OrderEventLog / Actor
-├── store/          OrderRepository（接口）/ OrderStore（内存）/ MybatisOrderRepository（MySQL）
-│                   mapper/ 三个 Mapper + SeqMapper；entity/ 事件行与照片行；DateTimeStringTypeHandler
-├── service/        OrderStateService（唯一改状态的地方）/ OrderService（12 条命令）
-├── controller/     OrderController / MetaController
-├── dto/            SubmitRequest / TransitRequest / OrderView
+├── auth/           登录、PBKDF2、TokenStore、AuthFilter、三角色用户仓库
+├── store/          OrderRepository / ReworkReviewRepository / ExceptionRecordRepository；内存与 MySQL 双实现
+├── service/        OrderStateService（唯一改状态）/ OrderService / TimerService / QueryService / AiReviewService
+├── controller/     AuthController / OrderController / QueryController / MetaController
+├── dto/            命令 DTO、返修 DTO、OrderView
 └── common/         BizException / ApiResponses / GlobalExceptionHandler / TimeUtil
 ```
 
 铁律：**只有 `OrderStateService.transit()` 能改 `status`**；转移表只在 `TransitionTable`；别在 service 里写 `if (status == ...)`。
 
-## 还没做（按里程碑往下排）
+## 当前完成状态
 
-- 已完成：`-R1` 返修单生成与原单级联关闭、两颗计时器的定时扫描（30 秒一轮）与手动端点、`REPAIRING→CANCELLED` 的 501
-- M4：Vue3 + Element Plus 11 页
+- 三角色分表、Bearer 登录、按楼栋派工、返修审查 R1/R2、反复返修例外、T1/T2 和 12 页 Vue UI 已验收。
+- 旧 `/reject` 只保留兼容；新 UI 使用 `/rework-request` 与 `/rework-review`。
+- 后续增强：对象存储、持久化会话、幂等键与并发压测。
 - M5：管理端 + 自检台 + 测试报告与 CG01–CG14 文档
 - 一直欠着：登录鉴权（现在身份走请求头，SYS-003 说的 Bearer token 还没做）；`REPAIRING→CANCELLED` 要等变更单 CR-001 批准

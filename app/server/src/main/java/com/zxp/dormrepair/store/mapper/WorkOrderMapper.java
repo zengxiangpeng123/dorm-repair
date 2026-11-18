@@ -41,6 +41,8 @@ public interface WorkOrderMapper extends BaseMapper<WorkOrder> {
               closed_at     = #{o.closedAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
               cancelled_at  = #{o.cancelledAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
               status_at     = #{o.statusAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
+              verify_due_at = #{o.verifyDueAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
+              archive_due_at = #{o.archiveDueAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
               rework_of     = #{o.reworkOf},
               rework_index  = #{o.reworkIndex},
               rework_count  = #{o.reworkCount}

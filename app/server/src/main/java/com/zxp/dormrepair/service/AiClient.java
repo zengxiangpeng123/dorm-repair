@@ -14,11 +14,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 /**
- * 调 Python 定级服务，超时或报错就自己按保守档兜底。
+ * 调 Python 定级服务。
  *
- * <p>三件不许变的事：① 800ms 超时，等不到就用兜底，绝不让学生的提交流程卡住；
- * ② 兜底也要给类型和紧急程度，且标 levelSource=FALLBACK，让人事后看得见这次是猜的；
- * ③ AI 只回答"是哪类、多急、凭什么"，不碰工单状态。
+ * <p>两条路，超时完全不一样，别合并：
+ * <ul>
+ *   <li>{@link #classifyFast} —— 学生点提交那一步。只跑规则，毫秒级，1.5 秒还拿不到就兜底，
+ *       绝不让学生的提交流程卡住。</li>
+ *   <li>{@link #classify} —— 后台复核。真模型，单次实测 2~19 秒（同一个模型，快慢差 10 倍），
+ *       所以给 30 秒，而且必须在另一个线程里跑，不能挂在学生的请求上。</li>
+ * </ul>
+ *
+ * <p>三件不许变的事：① 拿不到就兜底，兜底也标 levelSource=FALLBACK，让人事后看得见这次是猜的；
+ * ② 兜底也要给类型和紧急程度；③ AI 只回答"是哪类、多急、凭什么"，不碰工单状态。
  */
 @Service
 public class AiClient {
@@ -29,18 +36,27 @@ public class AiClient {
     static final String FALLBACK_LEVEL = "较急";
     static final String FALLBACK_CATEGORY = "给排水";
 
-    private final RestClient http;
+    private final RestClient fast;
+    private final RestClient slow;
     private final String baseUrl;
-    private final int timeoutMs;
+    private final int fastMs;
+    private final int slowMs;
 
-    public AiClient(@Value("${app.ai.base-url:http://127.0.0.1:8000}") String baseUrl,
-                    @Value("${app.ai.timeout-ms:800}") int timeoutMs) {
+    public AiClient(@Value("${app.ai.base-url:http://127.0.0.1:8001}") String baseUrl,
+                    @Value("${app.ai.timeout-ms:1500}") int fastMs,
+                    @Value("${app.ai.review-timeout-ms:30000}") int slowMs) {
         this.baseUrl = baseUrl;
-        this.timeoutMs = timeoutMs;
+        this.fastMs = fastMs;
+        this.slowMs = slowMs;
+        this.fast = build(baseUrl, fastMs);
+        this.slow = build(baseUrl, slowMs);
+    }
+
+    private static RestClient build(String baseUrl, int timeoutMs) {
         SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
-        f.setConnectTimeout(Duration.ofMillis(timeoutMs));
+        f.setConnectTimeout(Duration.ofMillis(Math.min(timeoutMs, 3000)));
         f.setReadTimeout(Duration.ofMillis(timeoutMs));
-        this.http = RestClient.builder().baseUrl(baseUrl).requestFactory(f).build();
+        return RestClient.builder().baseUrl(baseUrl).requestFactory(f).build();
     }
 
     /** 判断结果。fallback=true 表示没连上 AI，内容是兜底的。 */
@@ -48,25 +64,37 @@ public class AiClient {
                           boolean fallback, String source) {
     }
 
-    @SuppressWarnings("unchecked")
+    /** 提交那一步用：只跑规则，不等模型。 */
+    public Verdict classifyFast(String desc) {
+        return call(fast, desc, true, "规则");
+    }
+
+    /** 后台复核用：真模型，慢。必须在异步线程里调用。 */
     public Verdict classify(String desc) {
+        return call(slow, desc, false, "模型");
+    }
+
+    @SuppressWarnings("unchecked")
+    private Verdict call(RestClient client, String desc, boolean onlyRules, String who) {
         long t0 = System.currentTimeMillis();
         try {
-            Map<String, Object> body = http.post()
+            Map<String, Object> body = client.post()
                     .uri("/classify")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("desc", desc == null ? "" : desc))
+                    .body(Map.of("desc", desc == null ? "" : desc, "fast", onlyRules))
                     .retrieve()
                     .body(Map.class);
             long ms = System.currentTimeMillis() - t0;
             if (body == null) {
-                return fallback(desc, "AI 返回空内容");
+                return fallback(desc, who + "返回空内容");
             }
             String category = str(body.get("category"), FALLBACK_CATEGORY);
             String level = str(body.get("level"), FALLBACK_LEVEL);
             double confidence = body.get("confidence") instanceof Number n ? n.doubleValue() : 0.0;
-            String basis = str(body.get("basis"), "AI 未给依据");
-            log.debug("AI 定级 {}ms -> {} {} {}", ms, category, level, confidence);
+            String basis = str(body.get("basis"), who + "未给依据");
+            // source 只用于日志：llm=真模型 / rule-gate=安全闸拦下没调模型 / rule-fast=调用方要求先给快的
+            String remote = str(body.get("source"), "AI");
+            log.debug("AI 定级 {}ms -> {} {} {} [{}]", ms, category, level, confidence, remote);
             return new Verdict(category, level, confidence, basis, false, "AI");
         } catch (Exception e) {
             long ms = System.currentTimeMillis() - t0;
@@ -111,10 +139,11 @@ public class AiClient {
         long t0 = System.currentTimeMillis();
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("baseUrl", baseUrl);
-        m.put("timeoutMs", timeoutMs);
+        m.put("timeoutMs", fastMs);
+        m.put("reviewTimeoutMs", slowMs);
         try {
             @SuppressWarnings("rawtypes")
-            Map body = http.get().uri("/health").retrieve().body(Map.class);
+            Map body = fast.get().uri("/health").retrieve().body(Map.class);
             m.put("up", true);
             m.put("latencyMs", System.currentTimeMillis() - t0);
             m.put("remote", body);

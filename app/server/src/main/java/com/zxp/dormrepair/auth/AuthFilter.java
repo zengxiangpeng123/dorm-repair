@@ -32,14 +32,11 @@ public class AuthFilter extends OncePerRequestFilter {
 
     private final TokenStore tokens;
     private final boolean allowHeader;
-    private final boolean demo;
 
     public AuthFilter(TokenStore tokens,
-                      @Value("${app.auth.allow-header:false}") boolean allowHeader,
-                      @Value("${app.demo:false}") boolean demo) {
+                      @Value("${app.auth.allow-header:false}") boolean allowHeader) {
         this.tokens = tokens;
         this.allowHeader = allowHeader;
-        this.demo = demo;
     }
 
     @Override
@@ -48,11 +45,7 @@ public class AuthFilter extends OncePerRequestFilter {
         if (!path.startsWith("/api/v1/")) {
             return true;
         }
-        if (PUBLIC.contains(path)) {
-            return true;
-        }
-        // 自检台要拿 system 令牌，只有演示模式开放
-        return demo && "/api/v1/demo/system-token".equals(path);
+        return PUBLIC.contains(path);
     }
 
     @Override

@@ -1,10 +1,10 @@
 package com.zxp.dormrepair.statemachine;
 
 /**
- * 工单事件。前 12 个是状态机里的合法事件，CANCEL_REQUEST 不改状态、只记录一条申请。
+ * 工单事件。状态事件之外还有日志型事件与级联事件。
  *
- * <p>最后一个是级联事件：返修单验收通过时，原单从"返修中"直接关闭（SYS-004 第 8 条的附带效果）。
- * 它不在 13 条转移里，也不算进 130 种组合的矩阵，所以 {@link #cascadeOnly()} 单独标出来。
+ * <p>CANCEL_REQUEST、REWORK_REQUEST、REWORK_REJECTED 只写时间线，不改变状态。
+ * ORIGIN_CLOSED 是返修单验收通过后的级联副作用。这三类都不占 13 条状态转移。
  */
 public enum OrderEvent {
 
@@ -21,6 +21,8 @@ public enum OrderEvent {
     ARCHIVE("归档"),
     CANCEL("撤销报修"),
     CANCEL_REQUEST("申请撤销"),
+    REWORK_REQUEST("申请返修"),
+    REWORK_REJECTED("驳回返修申请"),
     ORIGIN_CLOSED("原单关闭（级联）");
 
     private final String label;
@@ -33,13 +35,18 @@ public enum OrderEvent {
         return label;
     }
 
-    /** 会不会改状态。CANCEL_REQUEST 只留一条申请记录，由管理端决定。 */
+    /** 会不会改状态。申请类事件只留记录。 */
     public boolean changesStatus() {
-        return this != CANCEL_REQUEST;
+        return this != CANCEL_REQUEST && this != REWORK_REQUEST && this != REWORK_REJECTED;
     }
 
     /** 是不是只由级联触发、不占 13 条转移名额、也不进矩阵的那种事件。 */
     public boolean cascadeOnly() {
         return this == ORIGIN_CLOSED;
+    }
+
+    /** 日志型事件：不参与转移矩阵，但需要身份与时间线。 */
+    public boolean auditOnly() {
+        return this == CANCEL_REQUEST || this == REWORK_REQUEST || this == REWORK_REJECTED;
     }
 }

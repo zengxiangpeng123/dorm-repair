@@ -14,6 +14,8 @@ public interface UserRepository {
 
     long count();
 
+    Optional<UserAccount> findWorkerForBuilding(String buildingId);
+
     void insert(UserAccount user);
 
     void setPassword(String id, String passwordHash);

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { actorOf, roleOfPath } from './session'
+import { actorOf, roleOfPath, tokenOf } from './session'
 
 /**
  * 唯一的接口出口。页面里不许自己写 fetch / axios。
@@ -11,10 +11,15 @@ import { actorOf, roleOfPath } from './session'
 const http = axios.create({ baseURL: '/api/v1', timeout: 12000 })
 
 http.interceptors.request.use((cfg) => {
-  const role = cfg.role || roleOfPath(window.location.pathname)
-  const actor = actorOf(role)
-  cfg.headers['X-Actor-Type'] = actor.type
-  cfg.headers['X-Actor-Id'] = actor.id
+  const token = tokenOf()
+  if (token) {
+    cfg.headers.Authorization = `Bearer ${token}`
+  } else {
+    const role = cfg.role || roleOfPath(window.location.pathname)
+    const actor = actorOf(role)
+    cfg.headers['X-Actor-Type'] = actor.type
+    cfg.headers['X-Actor-Id'] = actor.id
+  }
   return cfg
 })
 

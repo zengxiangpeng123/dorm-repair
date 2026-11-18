@@ -8,7 +8,7 @@
 
 ```powershell
 # 用已经建好的 venv（别用系统那个 3.14）
-D:\develop\python-envs\dorm-ai\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8000
+D:\develop\python-envs\dorm-ai\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8001
 ```
 
 或双击 `start-ai.bat`。
@@ -55,7 +55,7 @@ D:\develop\uv\uv.exe pip install --python 'D:\develop\python-envs\dorm-ai\Script
 D:\develop\python-envs\dorm-ai\Scripts\python.exe -m pytest -q
 ```
 
-期望 `7 passed`。这 7 条锁的是：安全类定紧急、浸水风险算安全类、普通故障不误升、影响使用抬一档、判不出来保守、空描述不炸、五类都可达。
+期望 `22 passed`。覆盖规则定级、分类器、LLM JSON 解析与断线兜底。
 
 端到端（含"杀掉 AI 后建单仍成功"）在 `../server/tests/m3-ai.ps1`，20 项。
 
@@ -63,9 +63,11 @@ D:\develop\python-envs\dorm-ai\Scripts\python.exe -m pytest -q
 
 ```
 app/ai/
-├── app.py             FastAPI 两个接口
+├── app.py             FastAPI 接口
 ├── rules.py           规则本体 + Verdict
-├── test_rules.py      7 条规则单测
+├── classifier.py      快速分类入口
+├── llm.py             可选模型复核与 JSON 解析
+├── test_*.py          22 条 pytest
 ├── requirements.txt   钉版本
 └── start-ai.bat       双击起服务
 ```

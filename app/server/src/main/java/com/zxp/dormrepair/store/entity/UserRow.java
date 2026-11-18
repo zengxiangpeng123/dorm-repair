@@ -8,11 +8,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 人员表 t_user。{@code created_at} 交给数据库默认值，这里不映射。
+ * 人员兼容视图 v_user_account；实际写入分角色表。{@code created_at} 交给数据库默认值，这里不映射。
  */
 @Getter
 @Setter
-@TableName("t_user")
+@TableName("v_user_account")
 public class UserRow {
 
     @TableId(value = "id", type = IdType.INPUT)

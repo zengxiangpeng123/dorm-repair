@@ -53,13 +53,24 @@ public class OrderStateService {
         return store.get(no);
     }
 
-    /** 只留记录、不动状态的那种事件（学生申请撤销）。 */
-    public WorkOrder logOnly(String no, OrderEvent event, Actor actor, String note, Integer expectVersion) {        WorkOrder cur = store.require(no);
+    /** 只留记录、不动状态的那种事件（申请撤销/申请返修/驳回返修）。 */
+    public WorkOrder logOnly(String no, OrderEvent event, Actor actor, String note, Integer expectVersion) {
+        return logOnly(no, event, actor, note, expectVersion, null);
+    }
+
+    public WorkOrder logOnly(String no, OrderEvent event, Actor actor, String note,
+                             Integer expectVersion, java.util.function.Consumer<WorkOrder> patch) {
+        WorkOrder cur = store.require(no);
         StateMachine.assertCanTrigger(event, actor.type());
         String at = TimeUtil.now();
-        boolean ok = store.update(no, expectVersion, o -> o.getEvents().add(new OrderEventLog(
-                store.nextEventSeq(), at, event, actor.type().name(),
-                actor.id(), actor.name(), actor.type().manual(), note)));
+        boolean ok = store.update(no, expectVersion, o -> {
+            if (patch != null) {
+                patch.accept(o);
+            }
+            o.getEvents().add(new OrderEventLog(
+                    store.nextEventSeq(), at, event, actor.type().name(),
+                    actor.id(), actor.name(), actor.type().manual(), note));
+        });
         if (!ok) {
             WorkOrder latest = store.require(no);
             throw BizException.versionConflict(expectVersion, latest.getVersion(),

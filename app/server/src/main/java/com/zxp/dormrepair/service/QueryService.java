@@ -2,12 +2,16 @@ package com.zxp.dormrepair.service;
 
 import com.zxp.dormrepair.common.TimeUtil;
 import com.zxp.dormrepair.domain.Actor;
+import com.zxp.dormrepair.domain.ExceptionRecord;
 import com.zxp.dormrepair.domain.OrderEventLog;
+import com.zxp.dormrepair.domain.ReworkReview;
 import com.zxp.dormrepair.domain.WorkOrder;
 import com.zxp.dormrepair.dto.OrderView;
 import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
+import com.zxp.dormrepair.store.ExceptionRecordRepository;
 import com.zxp.dormrepair.store.OrderRepository;
+import com.zxp.dormrepair.store.ReworkReviewRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -40,10 +44,16 @@ public class QueryService {
 
     private final OrderRepository store;
     private final ConfigService config;
+    private final ReworkReviewRepository reviews;
+    private final ExceptionRecordRepository exceptionRecords;
 
-    public QueryService(OrderRepository store, ConfigService config) {
+    public QueryService(OrderRepository store, ConfigService config,
+                        ReworkReviewRepository reviews,
+                        ExceptionRecordRepository exceptionRecords) {
         this.store = store;
         this.config = config;
+        this.reviews = reviews;
+        this.exceptionRecords = exceptionRecords;
     }
 
     // ------------------------------------------------------------ 我的工单
@@ -143,6 +153,35 @@ public class QueryService {
 
     // ------------------------------------------------------------ 管理端
 
+    /** 待管理员处理的返修申请。 */
+    public Map<String, Object> reworkReviews() {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (ReworkReview r : reviews.pending()) {
+            WorkOrder o = store.get(r.orderNo());
+            if (o == null) {
+                continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", r.id());
+            m.put("no", r.orderNo());
+            m.put("attemptNo", r.attemptNo());
+            m.put("status", r.status());
+            m.put("requestedBy", r.requestedBy());
+            m.put("requestedAt", r.requestedAt());
+            m.put("reason", r.requestReason());
+            m.put("reworkCount", o.getReworkCount() == null ? 0 : o.getReworkCount());
+            m.put("building", o.getBuilding());
+            m.put("floor", o.getFloor());
+            m.put("room", o.getRoom());
+            m.put("location", o.location());
+            m.put("workerName", o.getWorkerName());
+            m.put("version", o.getVersion());
+            m.put("order", OrderView.of(o, r));
+            items.add(m);
+        }
+        return Map.of("items", items, "total", items.size());
+    }
+
     /** 四类例外。前三类不动状态，第四类（学生申请撤销）才是唯一由人决定的入口。 */
     public Map<String, Object> exceptions() {
         int budget = config.budgetLine();
@@ -164,17 +203,19 @@ public class QueryService {
                                 + "，超过预算线 " + budget + " 元"
                                 + (arrived ? "（配件已到、单已回队列，这条留到归档）" : "")));
             }
-            // 3 反复返修：同一张原单被打回 ≥2 次（返修链上的每张单各自只有 1 次驳回，所以按原单的 reworkCount 算）
-            int reworkCount = o.getReworkCount() == null ? 0 : o.getReworkCount();
-            if (o.getReworkOf() == null && reworkCount >= 2) {
-                items.add(item("REPEAT_REWORK", "反复返修", o,
-                        "这张原单已经返修 " + reworkCount + " 次，该看是不是根因没找对"));
-            }
-            // 4 学生申请撤销：进楼之后才有的，唯一需要人拍板的
+            // 3 学生申请撤销：进楼之后才有的，唯一需要人拍板的
             boolean asked = o.getEvents().stream().anyMatch(e -> e.event() == OrderEvent.CANCEL_REQUEST);
             if (asked && o.getStatus() == OrderStatus.REPAIRING) {
                 items.add(item("CANCEL_REQUEST", "学生申请撤销", o,
                         "师傅已经进楼，学生想撤。作废或补偿师傅，得你定（走变更单 CR-001 前接口返回 501）"));
+            }
+        }
+        // 3 反复返修：第 2 次批准时写入持久记录，不再由查询现场推算，保证事务内可追溯。
+        for (ExceptionRecord r : exceptionRecords.openByKind("REPEAT_REWORK")) {
+            WorkOrder o = store.get(r.orderNo());
+            if (o != null) {
+                items.add(item("REPEAT_REWORK", "反复返修", o,
+                        r.detail() == null ? "同一原单已发生多次返修" : r.detail()));
             }
         }
         items.sort(Comparator.comparing((Map<String, Object> m) -> String.valueOf(m.get("kind")))

@@ -5,6 +5,8 @@ import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.domain.Actor;
 import com.zxp.dormrepair.domain.OrderEventLog;
 import com.zxp.dormrepair.dto.OrderView;
+import com.zxp.dormrepair.dto.ReworkRequestCreate;
+import com.zxp.dormrepair.dto.ReworkReviewRequest;
 import com.zxp.dormrepair.dto.SubmitRequest;
 import com.zxp.dormrepair.dto.TransitRequest;
 import com.zxp.dormrepair.service.OrderService;
@@ -43,7 +45,9 @@ public class OrderController {
 
     @PostMapping("/orders")
     public ResponseEntity<Map<String, Object>> submit(@RequestBody SubmitRequest req, HttpServletRequest http) {
-        OrderView view = orders.submit(req, actor(http));
+        Actor me = com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                com.zxp.dormrepair.statemachine.ActorType.STUDENT);
+        OrderView view = orders.submit(req, me);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponses.ok(view));
     }
 
@@ -51,7 +55,10 @@ public class OrderController {
     public Map<String, Object> assign(@PathVariable String no,
                                       @RequestBody(required = false) TransitRequest req,
                                       HttpServletRequest http) {
-        return ApiResponses.ok(orders.assign(no, orEmpty(req), actor(http)));
+        return ApiResponses.ok(orders.assign(no, orEmpty(req),
+                com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                        com.zxp.dormrepair.statemachine.ActorType.ADMIN,
+                        com.zxp.dormrepair.statemachine.ActorType.SYSTEM)));
     }
 
     @PostMapping("/orders/{no}/arrive")
@@ -67,7 +74,10 @@ public class OrderController {
      */
     @PostMapping("/buildings/{id}/arrive")
     public Map<String, Object> arriveBuilding(@PathVariable String id, HttpServletRequest http) {
-        return ApiResponses.ok(orders.arriveBuilding(id, actor(http)));
+        return ApiResponses.ok(orders.arriveBuilding(id,
+                com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                        com.zxp.dormrepair.statemachine.ActorType.WORKER,
+                        com.zxp.dormrepair.statemachine.ActorType.ADMIN)));
     }
     @PostMapping("/orders/{no}/no-show")
     public Map<String, Object> noShow(@PathVariable String no,
@@ -94,7 +104,10 @@ public class OrderController {
     public Map<String, Object> partsArrived(@PathVariable String no,
                                             @RequestBody(required = false) TransitRequest req,
                                             HttpServletRequest http) {
-        return ApiResponses.ok(orders.partsArrived(no, orEmpty(req), actor(http)));
+        return ApiResponses.ok(orders.partsArrived(no, orEmpty(req),
+                com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                        com.zxp.dormrepair.statemachine.ActorType.ADMIN,
+                        com.zxp.dormrepair.statemachine.ActorType.SYSTEM)));
     }
 
     @PostMapping("/orders/{no}/accept")
@@ -109,6 +122,27 @@ public class OrderController {
                                       @RequestBody(required = false) TransitRequest req,
                                       HttpServletRequest http) {
         return ApiResponses.ok(orders.reject(no, orEmpty(req), actor(http)));
+    }
+
+    /** 目标路径：学生申请返修，只记录，不改变状态。 */
+    @PostMapping("/orders/{no}/rework-request")
+    public ResponseEntity<Map<String, Object>> reworkRequest(@PathVariable String no,
+                                                             @RequestBody ReworkRequestCreate req,
+                                                             HttpServletRequest http) {
+        Actor student = com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                com.zxp.dormrepair.statemachine.ActorType.STUDENT);
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(ApiResponses.ok(orders.requestRework(no, req, student)));
+    }
+
+    /** 目标路径：管理员审查返修申请。 */
+    @PostMapping("/orders/{no}/rework-review")
+    public Map<String, Object> reworkReview(@PathVariable String no,
+                                            @RequestBody ReworkReviewRequest req,
+                                            HttpServletRequest http) {
+        Actor admin = com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                com.zxp.dormrepair.statemachine.ActorType.ADMIN);
+        return ApiResponses.ok(orders.reviewRework(no, req, admin));
     }
 
     @PostMapping("/orders/{no}/cancel")
@@ -154,34 +188,35 @@ public class OrderController {
      */
     @PostMapping("/orders/{no}/admin-cancel")
     public Map<String, Object> adminCancel(@PathVariable String no, HttpServletRequest http) {
+        com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                com.zxp.dormrepair.statemachine.ActorType.ADMIN);
         orders.detail(no);
         throw BizException.notImplemented("师傅已进楼，作废或补偿师傅要管理员定；这条边还没批准",
                 "CR-001");
     }
 
-    @GetMapping("/orders")    public Map<String, Object> list(@RequestParam(required = false) String status) {
+    @GetMapping("/orders")    public Map<String, Object> list(@RequestParam(required = false) String status,
+                                     HttpServletRequest http) {
+        com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                com.zxp.dormrepair.statemachine.ActorType.ADMIN);
         List<OrderView> items = orders.list(status);
         return ApiResponses.ok(Map.of("items", items, "total", items.size()));
     }
 
     @GetMapping("/orders/{no}")
-    public Map<String, Object> detail(@PathVariable String no) {
-        return ApiResponses.ok(orders.detail(no));
+    public Map<String, Object> detail(@PathVariable String no, HttpServletRequest http) {
+        return ApiResponses.ok(orders.detailForActor(no, actor(http)));
     }
 
     @GetMapping("/orders/{no}/events")
-    public Map<String, Object> events(@PathVariable String no) {
-        List<OrderEventLog> log = orders.detail(no).events();
+    public Map<String, Object> events(@PathVariable String no, HttpServletRequest http) {
+        List<OrderEventLog> log = orders.detailForActor(no, actor(http)).events();
         return ApiResponses.ok(Map.of("items", log, "total", log.size()));
     }
 
     private static Actor actor(HttpServletRequest http) {
-        return Actor.of(http.getHeader("X-Actor-Type"),
-                http.getHeader("X-Actor-Id"),
-                http.getHeader("X-Actor-Name"));
-    }
-
-    private static TransitRequest orEmpty(TransitRequest req) {
+        return com.zxp.dormrepair.common.ActorResolver.resolve(http);
+    }    private static TransitRequest orEmpty(TransitRequest req) {
         return req == null
                 ? new TransitRequest(null, null, null, null, null, null, null, null, null, null)
                 : req;

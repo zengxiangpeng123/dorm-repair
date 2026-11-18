@@ -53,10 +53,6 @@ async function fire (path, body, tag) {
     const r = await path(o.value.no, { ...body, version: o.value.version })
     sheet.value = null
     form.value = { signerName: '', reason: '' }
-    if (tag === 'reject' && r && r.no) {
-      router.replace(`/student/detail/${r.no}`)
-      return
-    }
     await load()
   } catch (e) {
     err.value = describeError(e)
@@ -78,7 +74,7 @@ function confirmSheet () {
     fire(ordersApi.accept, { signerName: form.value.signerName.trim() }, 'accept')
   } else if (sheet.value === 'reject') {
     if (form.value.reason.trim().length < 2) return
-    fire(ordersApi.reject, { reason: form.value.reason.trim() }, 'reject')
+    fire(ordersApi.reworkRequest, { reason: form.value.reason.trim() }, 'reject')
   } else if (sheet.value === 'cancel') {
     fire(ordersApi.cancel, { reason: form.value.reason.trim() || '不需要修了' }, 'cancel')
   } else if (sheet.value === 'cancelRequest') {
@@ -117,6 +113,10 @@ onUnmounted(() => clearInterval(timer))
         <div class="row"><LevelPill :level="o.level" /><StatusPill :status="o.status" /></div>
       </div>
       <p class="desc">{{ o.desc }}</p>
+      <div v-if="o.reworkReview" class="note" :data-tone="o.reworkReview.status === 'REJECTED' ? 'bad' : o.reworkReview.status === 'APPROVED' ? 'ok' : 'warn'">
+        返修审查：{{ o.reworkReview.status === 'PENDING' ? '等待管理员审查' : o.reworkReview.status === 'APPROVED' ? '已批准，正在生成返修单' : '申请已驳回' }}
+        <span v-if="o.reworkReview.decisionReason"> · {{ o.reworkReview.decisionReason }}</span>
+      </div>
 
       <div class="steps">
         <div v-for="(s, i) in stepList" :key="i" class="st" :data-s="s.state">
@@ -260,8 +260,11 @@ onUnmounted(() => clearInterval(timer))
       </button>
     </template>
     <template v-else-if="o.status === 'VERIFYING'">
-      <button class="dbtn ghost" @click="openSheet('reject')">还没修好</button>
-      <button class="dbtn primary" @click="openSheet('accept')">确认修好并签字</button>
+      <div v-if="o.reworkReview?.status === 'PENDING'" class="readonly">已提交返修申请，等待管理员审查</div>
+      <template v-else>
+        <button class="dbtn ghost" @click="openSheet('reject')">申请返修</button>
+        <button class="dbtn primary" @click="openSheet('accept')">确认修好并签字</button>
+      </template>
     </template>
     <template v-else>
       <div class="readonly">{{ o.statusLabel }}{{ o.status === 'DONE' ? ' · 还在归档倒计时里' : o.status === 'CLOSED' ? ' · 已归档只读' : '' }}</div>
@@ -272,7 +275,7 @@ onUnmounted(() => clearInterval(timer))
   <div v-if="sheet" class="mask" @click.self="sheet = null">
     <div class="sheet">
       <div class="sheet-hd">
-        <b>{{ sheet === 'accept' ? '确认修好并签字' : sheet === 'reject' ? '还没修好' : sheet === 'cancel' ? '撤销报修' : '申请撤销' }}</b>
+        <b>{{ sheet === 'accept' ? '确认修好并签字' : sheet === 'reject' ? '申请返修' : sheet === 'cancel' ? '撤销报修' : '申请撤销' }}</b>
         <button @click="sheet = null">取消</button>
       </div>
 
@@ -288,7 +291,7 @@ onUnmounted(() => clearInterval(timer))
         <label class="lb">哪儿还不行</label>
         <textarea v-model="form.reason" rows="3" class="in ta" placeholder="举个例子：还在滴水，地上还是湿的" />
         <p class="note" data-tone="warn" style="margin-top: 9px">
-          打回会生成一张返修单（-R1），紧急程度升一档，原单的历史和照片都带过去。
+          提交后先由管理员审查；确认属于维修质量问题才会生成返修单并重新排队，学生误报会被驳回。
         </p>
       </template>
 

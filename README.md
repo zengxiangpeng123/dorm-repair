@@ -1,7 +1,7 @@
 # 宿舍维修系统（V5.0）
 
 一个能自己跑完的宿舍报修闭环：学生拍照提交 → 系统定级派工 → 师傅进楼维修 → 学生验收 → 归档。
-目标不是"做得像大厂系统"，而是**证明这条链不需要人催、不需要人批、每步都留痕**。
+目标不是"做得像大厂系统"，而是**证明正常维修链不需要人催、返修必须人工审查、每步都留痕**。
 
 ---
 
@@ -9,23 +9,23 @@
 
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
-| M1 | Spring Boot 4 骨架 + 状态机内核 + 一条链 | ✅ 14 项测试 + 13 项脚本验收 |
-| M2 | MySQL 8 + MyBatis-Plus，10 张表，重启数据还在 | ✅ 16 项脚本验收 |
-| M3 | Python AI 定级服务，800ms 兜底，AI 挂了照样能建单 | ✅ 20 项脚本验收 + 7 项规则单测 |
-| M4 | Vue3 + Element Plus 前端 11 页（学生 4 / 师傅 4 / 管理 1 / 自检台 / 入口） | ✅ 全部接真接口，11 张截图在 `app\screens\vue\` |
-| M5 | 管理端补充、测试报告、CG01–CG14 交付文档 | ⬜ |
+| M1 | Spring Boot 4 骨架 + 状态机内核 + 一条链 | ✅ JUnit 34 项 + M1 13 项脚本验收 |
+| M2 | MySQL 8 + MyBatis-Plus，正式 15 张表，重启数据还在 | ✅ 角色分表、迁移与 16 项脚本验收 |
+| M3 | Python AI 定级服务，1500ms 快速兜底，AI 挂了照样能建单 | ✅ 20 项脚本验收 + 22 项 pytest |
+| M4 | Vue3 + Element Plus 前端 12 页（含登录与学生/管理返修审查） | ✅ 全部接真接口，15 张截图在 `app\screens\vue\` |
+| M5 | Bearer Token、返修审查、迁移验收、测试报告、CG01–CG14 | ✅ 已完成并验证 |
 
 **界面现在看哪儿**：
-- 正式前端（Vue，接真接口）：`http://localhost:5173/` —— 需要先起后端 8080；三端入口在 `/`，学生 `/student`、师傅 `/worker`、管理端 `/admin`、状态机自检台 `/lab`。
+- 正式前端（Vue，接真接口）：`http://localhost:5173/` —— 需要先起后端 8082；三端入口在 `/`，学生 `/student`、师傅 `/worker`、管理端 `/admin`、状态机自检台 `/lab`。
 - 原型（零依赖假数据，双击就开）：`prototype\index.html` —— 视觉定稿的依据，留着当"改过不止一版"的证据。
 
-`app\screens\vue\` 是 Vue 版的 11 张截图（1440 桌面宽 / 860 手机宽），`app\screens\` 里那 11 张是已退役的原生页面，只作视觉参照。
+`app\screens\vue\` 是 Vue 版的 15 张截图（1440 桌面宽 / 430 手机宽），覆盖登录、学生申请返修、管理端待审与审查弹层。`app\screens\` 里那 11 张是已退役的原生页面，只作视觉参照。
 
 ---
 
 ## 怎么跑起来
 
-三个进程：AI（Python 8000）→ 后端（Java 8080）→ 前端（Vue 5173，`/api` 代理到 8080）。
+三个进程：AI（Python 8001）→ 后端（Java 8082）→ 前端（Vue 5173，`/api` 代理到 8082）。
 
 **Windows：双击 `start.bat`**，它会开两个窗口（AI + 后端）并打开 `/api/v1/health`。
 
@@ -34,7 +34,7 @@
 ```powershell
 # 1 AI 定级服务
 cd app\ai
-D:\develop\python-envs\dorm-ai\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8000
+D:\develop\python-envs\dorm-ai\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8001
 
 # 2 后端（先建库，见下一节）
 cd app\server
@@ -44,10 +44,10 @@ java -jar target\dorm-repair-server-1.0.0.jar
 
 | 想改什么 | 怎么改 |
 |---|---|
-| 端口 | `server.port`（后端 8080）、`--port`（AI 8000）、`PORT`（前端） |
+| 端口 | `server.port`（后端 8082）、`--port`（AI 8001）、`PORT`（前端） |
 | 数据库 | 环境变量 `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`（默认 `localhost:3306/dorm_repair`，`root/123456`） |
 | 存储换内存 | `APP_STORE=memory`（只用于跑单测与临时演示，重启就没了） |
-| AI 不在本机 | `APP_AI_BASE_URL`（默认 `http://127.0.0.1:8000`）、`APP_AI_TIMEOUT_MS`（默认 800） |
+| AI 不在本机 | `AI_SERVICE_URL`（默认 `http://127.0.0.1:8001`）、`AI_TIMEOUT_MS`（默认 1500）、`AI_REVIEW_TIMEOUT_MS`（默认 30000） |
 
 ### 建库（只需一次）
 
@@ -70,7 +70,7 @@ Copy-Item app\server\src\main\resources\db\data.sql  $tmp
 ```powershell
 cd app\web
 npm install          # 首次；用 --registry=https://registry.npmmirror.com 更快
-npm run dev          # http://localhost:5173，/api 代理到 8080
+npm run dev          # http://localhost:5173，/api 代理到 8082
 ```
 
 构建 `npm run build`。本机两个坑（已写进 package.json）：`%TEMP%` 里 esbuild 临时文件删不掉会让 vite 崩（0xC0000409）→ 构建前把 `$env:TEMP` 指到 `app\web\.tmp`；`dist/` 被安全策略锁着删不掉 → build 带 `--emptyOutDir=false`。
@@ -80,12 +80,14 @@ npm run dev          # http://localhost:5173，/api 代理到 8080
 
 | 要证明的事 | 一条命令 | 期望 |
 |---|---|---|
-| 9 状态 13 转移，96 种非法组合全拒，矩阵 10×13=130 | `cd app\server; mvn -q test` | `Tests run: 18, Failures: 0` |
+| 9 状态 13 转移，117 种非法组合全拒，矩阵 10×13=130 | `cd app\server; mvn -q test` | `Tests run: 34, Failures: 0` |
 | 一条链真跑通（打真服务，不是 mock） | `pwsh -NoProfile -File app\server\tests\m1-chain.ps1` | `13 通过 / 0 失败` |
 | 重启之后数据还在（真 MySQL） | `pwsh -NoProfile -File app\server\tests\m2-mysql.ps1` | `16 通过 / 0 失败` |
 | AI 接上了；**杀掉 AI 之后建单仍成功**走兜底 | `pwsh -NoProfile -File app\server\tests\m3-ai.ps1` | `20 通过 / 0 失败` |
-| 驳回生成 `-R1`、返修单验收后**原单级联关闭** | `pwsh -NoProfile -File app\server\tests\m4-rework.ps1` | `18 通过 / 0 失败` |
-| AI 规则本身（安全类定紧急、浸水风险算安全类…） | `cd app\ai; <venv>\python.exe -m pytest -q` | `7 passed` |
+| 新审查链 R1/R2、反复返修例外、最终关闭整条链 | `pwsh -NoProfile -File app\server\tests\m4-rework.ps1` | `26 通过 / 0 失败` |
+| 真 Bearer Token、三角色权限、system 令牌与越权 | `pwsh -NoProfile -File app\server\tests\m5-auth.ps1` | `36 通过 / 0 失败` |
+| AI 规则、分类器与 LLM 兜底 | `cd app\ai; <venv>\python.exe -m pytest -q` | `22 passed` |
+| 前端状态词、五步进度与倒计时 | `cd app\web; npm run test:unit` | `8 passed` |
 | 原型状态机与后端一致（离线也算得对） | `node prototype/tests/selftest.js prototype` | `34 通过 / 0 失败` |
 
 看接口而不是跑脚本：
@@ -164,7 +166,7 @@ npm run dev          # http://localhost:5173，/api 代理到 8080
 - 一条链自己走完：提交 → 派工 → 到门打卡 → 完工 → 验收 → 归档；
 - 非法转移**当场**被拒（409），且**被拒后状态一个字没变**（`updateCas` 受影响行数≠1 → 409，测试里逐条断言）；
 - 版本冲突（两个人同时点）→ `409 VERSION_CONFLICT`「状态已变化，请刷新」；
-- AI 挂了不影响学生报修：800ms 超时 → 兜底档 + `levelSource=FALLBACK`，且兜底也认安全类词；
+- AI 挂了不影响学生报修：1500ms 超时 → 兜底档 + `levelSource=FALLBACK`，且兜底也认安全类词；
 - 数据真落 MySQL：杀进程重启，单子、事件、照片都还在（`m2-mysql.ps1` 第 11-13 项）；
 - 例外清单只出约定那四类；超预算那笔账**花过就留着**，配件到货后仍在清单里直到归档。
 

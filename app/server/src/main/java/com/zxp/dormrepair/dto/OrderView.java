@@ -1,6 +1,7 @@
 package com.zxp.dormrepair.dto;
 
 import com.zxp.dormrepair.domain.OrderEventLog;
+import com.zxp.dormrepair.domain.ReworkReview;
 import com.zxp.dormrepair.domain.WorkOrder;
 import com.zxp.dormrepair.statemachine.StateMachine;
 import java.math.BigDecimal;
@@ -45,7 +46,21 @@ public record OrderView(
         int reworkCount,
         List<String> allowed,
         List<OrderEventLog> events,
-        CancelRequest cancelRequest) {
+        CancelRequest cancelRequest,
+        ReworkReviewView reworkReview) {
+
+    public record ReworkReviewView(
+            long id,
+            int attemptNo,
+            String status,
+            Integer reworkIndex,
+            String requestedBy,
+            String reason,
+            String requestedAt,
+            String decidedBy,
+            String decisionReason,
+            String decidedAt) {
+    }
 
     /** 学生申请撤销只留记录、不改状态；这里把最近一次申请翻出来给界面用。 */
     public record CancelRequest(String at, String by, String reason) {
@@ -70,6 +85,10 @@ public record OrderView(
     }
 
     public static OrderView of(WorkOrder o) {
+        return of(o, null);
+    }
+
+    public static OrderView of(WorkOrder o, ReworkReview review) {
         return new OrderView(
                 o.getNo(),
                 o.getStatus().name(),
@@ -106,6 +125,10 @@ public record OrderView(
                 o.getReworkCount() == null ? 0 : o.getReworkCount(),
                 StateMachine.allowedEvents(o.getStatus()),
                 o.getEvents(),
-                cancelRequestOf(o));
+                cancelRequestOf(o),
+                review == null ? null : new ReworkReviewView(
+                        review.id(), review.attemptNo(), review.status(), review.reworkIndex(),
+                        review.requestedBy(), review.requestReason(), review.requestedAt(),
+                        review.decidedBy(), review.decisionReason(), review.decidedAt()));
     }
 }

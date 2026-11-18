@@ -4,22 +4,21 @@ cd /d "%~dp0"
 echo ============================================================
 echo   宿舍维修系统 · 正式项目（Spring Boot 4 + MySQL + Python AI）
 echo ------------------------------------------------------------
-echo   后端  http://localhost:8080/api/v1/health
-echo   自检  http://localhost:8080/api/v1/state/matrix
-echo   AI    http://localhost:8000/health
-echo   前端  Vue 还没做（M4），现在先用浏览器看接口，
-echo         界面可以先看 prototype\index.html（双击就能开）
+echo   后端  http://localhost:8082/api/v1/health
+echo   自检  http://localhost:8082/api/v1/state/matrix
+echo   AI    http://localhost:8001/health
+echo   前端  cd app\web ^&^& npm run dev  ->  http://localhost:5173
 echo ------------------------------------------------------------
 echo   会开两个黑窗口：一个 AI，一个后端。关掉窗口就是停服务。
 echo   数据库：MySQL 8 的 dorm_repair 库（root/123456）
-echo   想重置演示数据：POST http://localhost:8080/api/v1/demo/reset
+echo   想重置演示数据：POST http://localhost:8082/api/v1/demo/reset
 echo ============================================================
 echo.
 
-start "宿舍维修 AI" cmd /k "cd /d %~dp0app\ai && D:\develop\python-envs\dorm-ai\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8000"
+start "宿舍维修 AI" cmd /k "cd /d %~dp0app\ai && D:\develop\python-envs\dorm-ai\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8001"
 
 timeout /t 3 >nul
-start "" http://localhost:8080/api/v1/health
+start "" http://localhost:8082/api/v1/health
 
 cd /d "%~dp0app\server"
 if not exist "target\dorm-repair-server-1.0.0.jar" (

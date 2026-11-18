@@ -41,6 +41,15 @@ public class MybatisUserRepository implements UserRepository {
     }
 
     @Override
+    public Optional<UserAccount> findWorkerForBuilding(String buildingId) {
+        if (buildingId == null || buildingId.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(mapper.findWorkerForBuilding(buildingId))
+                .map(MybatisUserRepository::toAccount);
+    }
+
+    @Override
     public void insert(UserAccount u) {
         UserRow row = new UserRow();
         row.setId(u.id());
@@ -52,12 +61,27 @@ public class MybatisUserRepository implements UserRepository {
         row.setPhone(u.phone());
         row.setActive(u.active());
         row.setPassword(u.password());
-        mapper.insert(row);
+        switch (u.role()) {
+            case STUDENT -> mapper.insertStudent(row);
+            case WORKER -> mapper.insertWorker(row);
+            case ADMIN -> mapper.insertAdmin(row);
+            default -> throw new IllegalArgumentException("不支持的人员角色：" + u.role());
+        }
     }
 
     @Override
     public void setPassword(String id, String passwordHash) {
-        mapper.setPasswordHash(id, passwordHash);
+        int changed;
+        if (id != null && id.startsWith("W")) {
+            changed = mapper.setWorkerPassword(id, passwordHash);
+        } else if (id != null && id.startsWith("A")) {
+            changed = mapper.setAdminPassword(id, passwordHash);
+        } else {
+            changed = mapper.setStudentPassword(id, passwordHash);
+        }
+        if (changed != 1) {
+            throw new IllegalArgumentException("账号不存在：" + id);
+        }
     }
 
     private static UserAccount toAccount(UserRow r) {

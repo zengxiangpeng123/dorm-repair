@@ -59,6 +59,7 @@ public class AuthService {
         m.put("token", s.token());
         m.put("expiresAt", TimeUtil.fmt(s.expiresAt()));
         m.put("user", Map.of("id", "system", "role", "SYSTEM", "name", "定时任务"));
+        m.put("actor", Map.of("type", "SYSTEM", "id", "system", "name", "定时任务"));
         m.put("ttlSeconds", 3600);
         return m;
     }

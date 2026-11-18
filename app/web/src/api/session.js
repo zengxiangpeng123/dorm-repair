@@ -5,6 +5,7 @@
  * 中文姓名不能进请求头（只支持 ASCII），所以姓名由后端按 id 补默认值 —— 这里只传 type 和 id。
  */
 const KEY = 'dorm.actor'
+const SESSION_KEY = 'dorm.session'
 
 /** 四类演示身份，跟 data.sql 里的账号对齐 */
 export const ACTORS = {
@@ -45,6 +46,31 @@ export function setActor (type, id) {
   all[type] = id
   localStorage.setItem(KEY, JSON.stringify(all))
   return actorOf(type)
+}
+
+export function saveSession (payload) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(payload))
+  return payload
+}
+
+export function sessionOf () {
+  try {
+    return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+  } catch {
+    return null
+  }
+}
+
+export function tokenOf () {
+  return sessionOf()?.token || ''
+}
+
+export function userOf () {
+  return sessionOf()?.user || null
+}
+
+export function clearSession () {
+  localStorage.removeItem(SESSION_KEY)
 }
 
 /** 当前页面属于哪一端：靠路由前缀判，别在页面里写死 */

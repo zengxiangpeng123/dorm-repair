@@ -50,10 +50,12 @@ public class AuthController {
 
     /** 演示模式专用：给状态机自检台发一张 system 令牌，让 AUTO_ACCEPT / ARCHIVE 记 manual=0。 */
     @PostMapping("/system-token")
-    public Map<String, Object> systemToken() {
+    public Map<String, Object> systemToken(HttpServletRequest http) {
         if (!demo) {
             throw com.zxp.dormrepair.common.BizException.notFound("演示模式没开");
         }
+        ActorResolver.require(ActorResolver.resolve(http),
+                com.zxp.dormrepair.statemachine.ActorType.ADMIN);
         return ApiResponses.ok(auth.systemToken());
     }
 }

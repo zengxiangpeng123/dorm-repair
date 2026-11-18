@@ -145,6 +145,8 @@ public class OrderStore implements OrderRepository {
         c.setClosedAt(o.getClosedAt());
         c.setCancelledAt(o.getCancelledAt());
         c.setStatusAt(o.getStatusAt());
+        c.setVerifyDueAt(o.getVerifyDueAt());
+        c.setArchiveDueAt(o.getArchiveDueAt());
         c.setReworkOf(o.getReworkOf());
         c.setReworkIndex(o.getReworkIndex());
         c.setReworkCount(o.getReworkCount());

@@ -30,6 +30,12 @@ __pycache__/
 .pytest_cache/
 *.pyc
 
+# 密钥：AI 服务的真实 api key 只放在本机 .env.local，绝不入库（仓库是 Public）
+.env
+.env.local
+app/ai/.env
+app/ai/.env.local
+
 # Vite 构建残留与本地临时目录（本机安全策略不让清空 dist/，只能改出别目录兜着）
 app/web/dist2/
 app/web/dist3/

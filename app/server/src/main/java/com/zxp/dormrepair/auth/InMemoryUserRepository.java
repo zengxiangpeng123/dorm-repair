@@ -43,6 +43,15 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public Optional<UserAccount> findWorkerForBuilding(String buildingId) {
+        return users.values().stream()
+                .filter(u -> u.role() == ActorType.WORKER && buildingId != null
+                        && buildingId.equals(u.building()) && u.active())
+                .sorted((a, b) -> a.id().compareTo(b.id()))
+                .findFirst();
+    }
+
+    @Override
     public void insert(UserAccount user) {
         users.put(user.id(), user);
     }

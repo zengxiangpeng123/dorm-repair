@@ -7,6 +7,7 @@ import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.statemachine.StateMachine;
 import com.zxp.dormrepair.store.OrderRepository;
+import com.zxp.dormrepair.store.ReworkReviewRepository;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,11 +35,14 @@ public class TimerService {
     private final OrderRepository store;
     private final OrderStateService state;
     private final ConfigService config;
+    private final ReworkReviewRepository reviews;
 
-    public TimerService(OrderRepository store, OrderStateService state, ConfigService config) {
+    public TimerService(OrderRepository store, OrderStateService state, ConfigService config,
+                        ReworkReviewRepository reviews) {
         this.store = store;
         this.state = state;
         this.config = config;
+        this.reviews = reviews;
     }
 
     /** 30 秒扫一次。演示环境里也可以手动调 /demo/advance 立刻跑一遍。 */
@@ -66,18 +70,33 @@ public class TimerService {
 
         for (WorkOrder o : store.all()) {
             if (o.getStatus() == OrderStatus.VERIFYING) {
-                Long f = TimeUtil.epochMs(o.getFinishAt());
-                if (f != null && f + t1Ms <= nowMs) {
+                if (reviews.hasPending(o.getNo())) {
+                    continue;
+                }
+                Long due = TimeUtil.epochMs(o.getVerifyDueAt());
+                if (due == null) {
+                    Long f = TimeUtil.epochMs(o.getFinishAt());
+                    due = f == null ? null : f + t1Ms;
+                }
+                if (due != null && due <= nowMs) {
+                    String at = TimeUtil.now();
                     String note = "超时自动验收（满 " + config.verifyHours() + " 小时没回应）";
-                    if (push(o, OrderEvent.AUTO_ACCEPT, note, x -> x.setSignAt(TimeUtil.now()))) {
+                    if (push(o, OrderEvent.AUTO_ACCEPT, note, x -> {
+                        x.setSignAt(at);
+                        x.setArchiveDueAt(plusDays(at, config.archiveDays()));
+                    })) {
                         accepted.add(o.getNo());
                     } else {
                         failed.add(o.getNo());
                     }
                 }
             } else if (o.getStatus() == OrderStatus.DONE) {
-                Long s = TimeUtil.epochMs(o.getSignAt());
-                if (s != null && s + t2Ms <= nowMs) {
+                Long due = TimeUtil.epochMs(o.getArchiveDueAt());
+                if (due == null) {
+                    Long s = TimeUtil.epochMs(o.getSignAt());
+                    due = s == null ? null : s + t2Ms;
+                }
+                if (due != null && due <= nowMs) {
                     String note = "满 " + config.archiveDays() + " 天自动归档";
                     if (push(o, OrderEvent.ARCHIVE, note, x -> x.setClosedAt(TimeUtil.now()))) {
                         archived.add(o.getNo());
@@ -117,19 +136,33 @@ public class TimerService {
         WorkOrder o = store.require(no);
         long now = TimeUtil.nowMs();
         if (event == OrderEvent.AUTO_ACCEPT) {
+            if (reviews.hasPending(no)) {
+                throw com.zxp.dormrepair.common.BizException.precondition(
+                        "返修审查中，T1 暂停", "REWORK_REVIEW_PENDING");
+            }
             if (o.getStatus() == OrderStatus.VERIFYING) {
-                Long f = TimeUtil.epochMs(o.getFinishAt());
-                long due = (f == null ? now : f) + config.verifyHours() * 3600_000L;
+                Long due = TimeUtil.epochMs(o.getVerifyDueAt());
+                if (due == null) {
+                    Long f = TimeUtil.epochMs(o.getFinishAt());
+                    due = (f == null ? now : f) + config.verifyHours() * 3600_000L;
+                }
                 if (now < due) {
                     throw com.zxp.dormrepair.common.BizException.precondition(
                             "验收倒计时还没走完，到期时间是 " + TimeUtil.fmt(due), "T1_NOT_DUE");
                 }
             }
-            state.transit(no, event, SYSTEM, "手动触发：超时自动验收", null, x -> x.setSignAt(TimeUtil.now()));
+            String at = TimeUtil.now();
+            state.transit(no, event, SYSTEM, "手动触发：超时自动验收", null, x -> {
+                x.setSignAt(at);
+                x.setArchiveDueAt(plusDays(at, config.archiveDays()));
+            });
         } else if (event == OrderEvent.ARCHIVE) {
             if (o.getStatus() == OrderStatus.DONE) {
-                Long s = TimeUtil.epochMs(o.getSignAt());
-                long due = (s == null ? now : s) + config.archiveDays() * 24 * 3600_000L;
+                Long due = TimeUtil.epochMs(o.getArchiveDueAt());
+                if (due == null) {
+                    Long s = TimeUtil.epochMs(o.getSignAt());
+                    due = (s == null ? now : s) + config.archiveDays() * 24 * 3600_000L;
+                }
                 if (now < due) {
                     throw com.zxp.dormrepair.common.BizException.precondition(
                             "归档倒计时还没走完，到期时间是 " + TimeUtil.fmt(due), "T2_NOT_DUE");
@@ -148,11 +181,13 @@ public class TimerService {
         if (o.getStatus() == OrderStatus.VERIFYING) {
             m.put("kind", "T1");
             m.put("from", o.getFinishAt());
-            m.put("deadline", plusHours(o.getFinishAt(), config.verifyHours()));
+            m.put("deadline", o.getVerifyDueAt() != null ? o.getVerifyDueAt()
+                    : plusHours(o.getFinishAt(), config.verifyHours()));
         } else if (o.getStatus() == OrderStatus.DONE) {
             m.put("kind", "T2");
             m.put("from", o.getSignAt());
-            m.put("deadline", plusDays(o.getSignAt(), config.archiveDays()));
+            m.put("deadline", o.getArchiveDueAt() != null ? o.getArchiveDueAt()
+                    : plusDays(o.getSignAt(), config.archiveDays()));
         }
         m.put("allowed", StateMachine.allowedEvents(o.getStatus()));
         return m;

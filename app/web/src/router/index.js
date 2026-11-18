@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { userOf } from '../api/session'
 
 /**
  * 三端一套代码：学生端/师傅端是手机页（430 壳），管理端是桌面页（desk 壳）。
@@ -6,6 +7,7 @@ import { createRouter, createWebHistory } from 'vue-router'
  */
 const routes = [
   { path: '/', name: 'entry', component: () => import('../views/Entry.vue'), meta: { shell: 'desk' } },
+  { path: '/login', name: 'login', component: () => import('../views/Login.vue'), meta: { shell: 'desk', public: true } },
 
   { path: '/student', name: 's-home', component: () => import('../views/student/Home.vue'), meta: { shell: 'phone' } },
   { path: '/student/new', name: 's-new', component: () => import('../views/student/New.vue'), meta: { shell: 'phone' } },
@@ -23,4 +25,17 @@ const routes = [
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
 
-export default createRouter({ history: createWebHistory(), routes })
+const router = createRouter({ history: createWebHistory(), routes })
+
+router.beforeEach((to) => {
+  if (to.meta.public || to.path === '/') return true
+  const user = userOf()
+  if (!user) return { path: '/login', query: { redirect: to.fullPath } }
+  const role = String(user.role || '').toUpperCase()
+  if (to.path.startsWith('/student') && role !== 'STUDENT') return '/login'
+  if (to.path.startsWith('/worker') && role !== 'WORKER' && role !== 'ADMIN') return '/login'
+  if (to.path.startsWith('/admin') && role !== 'ADMIN') return '/login'
+  return true
+})
+
+export default router

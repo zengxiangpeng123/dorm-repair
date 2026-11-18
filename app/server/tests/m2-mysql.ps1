@@ -9,7 +9,7 @@
 $ErrorActionPreference = 'Stop'
 $serverDir = Split-Path -Parent $PSScriptRoot          # app\server
 $jar  = Join-Path $serverDir 'target\dorm-repair-server-1.0.0.jar'
-$base = 'http://localhost:8080/api/v1'
+$base = 'http://localhost:8082/api/v1'
 $mysql = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe'
 
 if (-not (Test-Path $jar)) { throw "找不到 jar：$jar（先跑 mvn -DskipTests package）" }
@@ -22,9 +22,12 @@ function Check($name, $cond, $detail) {
 
 function Start-App {
     $env:APP_STORE = 'mysql'
+    $env:DB_NAME = 'dorm_repair_test'
     $env:DB_USER = 'root'
     $env:DB_PASSWORD = '123456'
-    $p = Start-Process java -ArgumentList '-jar', $jar -WorkingDirectory $serverDir -PassThru -WindowStyle Hidden
+    # 鉴权上线后，脚本仍用 X-Actor-* 头冒充身份：这个开关只给测试用，线上默认关
+$env:APP_AUTH_ALLOW_HEADER = 'true'
+$p = Start-Process java -ArgumentList '-jar', $jar -WorkingDirectory $serverDir -PassThru -WindowStyle Hidden
     for ($i = 0; $i -lt 60; $i++) {
         Start-Sleep -Milliseconds 500
         try {
@@ -44,6 +47,8 @@ function Post($path, $body) {
         -Headers @{ 'X-Actor-Type' = 'STUDENT'; 'X-Actor-Id' = 'S001'; 'X-Actor-Name' = 'Zhang' } `
         -Body ([System.Text.Encoding]::UTF8.GetBytes(($body | ConvertTo-Json -Depth 6)))
 }
+
+$studentHeaders = @{ 'X-Actor-Type' = 'STUDENT'; 'X-Actor-Id' = 'S001'; 'X-Actor-Name' = 'Zhang' }
 
 Write-Host '=== 第一次启动（APP_STORE=mysql）===' -ForegroundColor Cyan
 $app = Start-App
@@ -65,7 +70,7 @@ Check '状态是待派工' ($created.data.status -eq 'PENDING') $created.data.st
 Check '版本从 1 开始' ($created.data.version -eq 1) $created.data.version
 
 # 查询：落库读得回来
-$one = Invoke-RestMethod "$base/orders/$no"
+$one = Invoke-RestMethod "$base/orders/$no" -Headers $studentHeaders
 Check '回头查得到' ($one.data.no -eq $no) $one.data.no
 Check '照片也落库了' ($one.data.photosBefore.Count -ge 1) ($one.data.photosBefore -join ',')
 Check '事件有一条 SUBMIT' (($one.data.events | Where-Object { $_.event -eq 'SUBMIT' }).Count -eq 1) 'SUB:missing'
@@ -81,7 +86,7 @@ try {
     $err = $_.ErrorDetails.Message
 }
 Check '待派工推完工 → 409' ($status -eq 409) "status=$status $err"
-$after = Invoke-RestMethod "$base/orders/$no"
+$after = Invoke-RestMethod "$base/orders/$no" -Headers $studentHeaders
 Check '被拒之后版本没变' ($after.data.version -eq 1) $after.data.version
 Check '被拒之后状态没变' ($after.data.status -eq 'PENDING') $after.data.status
 
@@ -89,7 +94,7 @@ Stop-App $app
 
 Write-Host '=== 重启（模拟第二天开机）===' -ForegroundColor Cyan
 $app2 = Start-App
-$again = Invoke-RestMethod "$base/orders/$no"
+$again = Invoke-RestMethod "$base/orders/$no" -Headers $studentHeaders
 Check '重启后同一张单还在' ($again.data.no -eq $no) $again.data.no
 Check '重启后状态还是待派工' ($again.data.status -eq 'PENDING') $again.data.status
 
@@ -100,7 +105,7 @@ $w = @{ 'X-Actor-Type' = 'WORKER'; 'X-Actor-Id' = 'W0428'; 'X-Actor-Name' = 'Li'
 Invoke-RestMethod "$base/orders/$no/arrive" -Method Post -ContentType 'application/json' -Headers $w -Body '{}' | Out-Null
 Invoke-RestMethod "$base/orders/$no/finish" -Method Post -ContentType 'application/json' -Headers $w `
     -Body ([System.Text.Encoding]::UTF8.GetBytes('{"photosAfter":["demo://after/m2.jpg"],"note":"M2 验收完工：疏通地漏，换密封圈"}')) | Out-Null
-$done = Invoke-RestMethod "$base/orders/$no"
+$done = Invoke-RestMethod "$base/orders/$no" -Headers $studentHeaders
 Check '走到待验收' ($done.data.status -eq 'VERIFYING') $done.data.status
 Check '版本累加到 4' ($done.data.version -eq 4) $done.data.version
 Check '事件 4 条（提交/派工/到门/完工）' ($done.data.events.Count -eq 4) $done.data.events.Count
@@ -110,7 +115,7 @@ Stop-App $app2
 
 Write-Host '=== 直接数一遍库 ===' -ForegroundColor Cyan
 $sql = @"
-USE dorm_repair;
+USE dorm_repair_test;
 SELECT 'orders' t, COUNT(*) c FROM t_work_order
 UNION ALL SELECT 'events', COUNT(*) FROM t_work_order_event
 UNION ALL SELECT 'photos', COUNT(*) FROM t_work_order_photo;

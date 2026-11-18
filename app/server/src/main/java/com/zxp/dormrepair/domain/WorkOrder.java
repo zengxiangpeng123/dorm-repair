@@ -89,6 +89,12 @@ public class WorkOrder {
     @TableField(value = "status_at", typeHandler = DateTimeStringTypeHandler.class)
     private String statusAt;
 
+    @TableField(value = "verify_due_at", typeHandler = DateTimeStringTypeHandler.class)
+    private String verifyDueAt;
+
+    @TableField(value = "archive_due_at", typeHandler = DateTimeStringTypeHandler.class)
+    private String archiveDueAt;
+
     /** 返修关系：返修单指向原始单（没有 -R 后缀的那个），原单的 reworkCount 由驳回时 +1。 */
     @TableField("rework_of")
     private String reworkOf;

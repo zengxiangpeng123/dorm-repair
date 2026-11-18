@@ -5,7 +5,9 @@ import com.zxp.dormrepair.domain.OrderEventLog;
 import com.zxp.dormrepair.domain.WorkOrder;
 import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
+import com.zxp.dormrepair.store.ExceptionRecordRepository;
 import com.zxp.dormrepair.store.OrderRepository;
+import com.zxp.dormrepair.store.ReworkReviewRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -22,13 +24,22 @@ import org.springframework.stereotype.Service;
 public class SeedService {
 
     private final OrderRepository store;
+    private final ReworkReviewRepository reviews;
+    private final ConfigService config;
+    private final ExceptionRecordRepository exceptions;
 
-    public SeedService(OrderRepository store) {
+    public SeedService(OrderRepository store, ReworkReviewRepository reviews, ConfigService config,
+                       ExceptionRecordRepository exceptions) {
         this.store = store;
+        this.reviews = reviews;
+        this.config = config;
+        this.exceptions = exceptions;
     }
 
     /** 清空后重灌 6 张单（覆盖 6 个状态）。返回灌了几张。 */
     public int reset() {
+        exceptions.clear();
+        reviews.clear();
         store.clear();
         return seed();
     }
@@ -183,6 +194,16 @@ public class SeedService {
             o.setVersion(Math.max(1, o.getEvents().size()));
             o.setStatusAt(o.getEvents().isEmpty() ? o.getCreatedAt()
                     : o.getEvents().get(o.getEvents().size() - 1).at());
+            if (o.getStatus() == OrderStatus.VERIFYING) {
+                Long finish = TimeUtil.epochMs(o.getFinishAt());
+                o.setVerifyDueAt(finish == null ? null
+                        : TimeUtil.fmt(finish + config.verifyHours() * 3600_000L));
+            }
+            if (o.getStatus() == OrderStatus.DONE) {
+                Long sign = TimeUtil.epochMs(o.getSignAt());
+                o.setArchiveDueAt(sign == null ? null
+                        : TimeUtil.fmt(sign + config.archiveDays() * 86_400_000L));
+            }
             store.save(o);
             n++;
         }

@@ -10,32 +10,85 @@ CREATE DATABASE IF NOT EXISTS dorm_repair
 USE dorm_repair;
 
 -- ------------------------------------------------------------
--- 1 人员（学生 / 师傅 / 管理员）
+-- 1 人员（学生 / 师傅 / 管理员分表）
 -- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS t_user (
-  id           VARCHAR(20)  NOT NULL COMMENT '学号 / 工号',
-  role         VARCHAR(10)  NOT NULL COMMENT 'STUDENT / WORKER / ADMIN',
-  name         VARCHAR(30)  NOT NULL,
-  team         VARCHAR(20)  NULL COMMENT '师傅班组：水电班 / 综合班',
-  building_id  VARCHAR(10)  NULL COMMENT '所属楼栋：B7 / B8',
-  room         VARCHAR(10)  NULL COMMENT '学生寝室',
-  phone        VARCHAR(20)  NULL,
-  active       TINYINT(1)   NOT NULL DEFAULT 1,
-  created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE IF NOT EXISTS t_student (
+  id            VARCHAR(20)  NOT NULL COMMENT '学号',
+  name          VARCHAR(30)  NOT NULL,
+  phone         VARCHAR(20)  NULL,
+  building_id   VARCHAR(10)  NOT NULL,
+  room          VARCHAR(10)  NOT NULL,
+  password_hash VARCHAR(200) NULL,
+  active        TINYINT(1)   NOT NULL DEFAULT 1,
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  KEY idx_user_role (role),
-  KEY idx_user_building (building_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='人员';
+  KEY idx_student_location (building_id, room),
+  KEY idx_student_active (active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生';
+
+CREATE TABLE IF NOT EXISTS t_worker (
+  id            VARCHAR(20)  NOT NULL COMMENT '工号',
+  name          VARCHAR(30)  NOT NULL,
+  phone         VARCHAR(20)  NULL,
+  team          VARCHAR(20)  NULL COMMENT '水电班 / 综合班',
+  password_hash VARCHAR(200) NULL,
+  active        TINYINT(1)   NOT NULL DEFAULT 1,
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_worker_active (active),
+  KEY idx_worker_team (team)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='维修师傅';
+
+CREATE TABLE IF NOT EXISTS t_admin (
+  id            VARCHAR(20)  NOT NULL COMMENT '管理员账号',
+  name          VARCHAR(30)  NOT NULL,
+  phone         VARCHAR(20)  NULL,
+  department    VARCHAR(40)  NULL,
+  password_hash VARCHAR(200) NULL,
+  active        TINYINT(1)   NOT NULL DEFAULT 1,
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_admin_active (active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员';
+
+CREATE TABLE IF NOT EXISTS t_worker_building (
+  worker_id   VARCHAR(20) NOT NULL,
+  building_id VARCHAR(10) NOT NULL,
+  is_primary  TINYINT(1)  NOT NULL DEFAULT 0,
+  PRIMARY KEY (worker_id, building_id),
+  KEY idx_worker_building (building_id, worker_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='师傅可服务楼栋';
+
+CREATE OR REPLACE VIEW v_user_account AS
+SELECT id, 'STUDENT' AS role, name, NULL AS team, building_id, room, phone,
+       password_hash, active, created_at
+FROM t_student
+UNION ALL
+SELECT id, 'WORKER' AS role, name, team, NULL AS building_id, NULL AS room, phone,
+       password_hash, active, created_at
+FROM t_worker
+UNION ALL
+SELECT id, 'ADMIN' AS role, name, NULL AS team, NULL AS building_id, NULL AS room, phone,
+       password_hash, active, created_at
+FROM t_admin;
 
 -- ------------------------------------------------------------
--- 2 楼栋（台账与派工的边界）
+-- 2 楼栋与楼层
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS t_building (
   id        VARCHAR(10) NOT NULL COMMENT 'B7',
   name      VARCHAR(30) NOT NULL COMMENT '东区7号楼',
-  floors    VARCHAR(60) NOT NULL COMMENT '2,3,4,5',
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='楼栋';
+
+CREATE TABLE IF NOT EXISTS t_building_floor (
+  building_id VARCHAR(10) NOT NULL,
+  floor       INT         NOT NULL,
+  PRIMARY KEY (building_id, floor)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='楼栋楼层';
 
 -- ------------------------------------------------------------
 -- 3 工单（核心表，状态只能由 OrderStateService.transit 改）
@@ -74,6 +127,8 @@ CREATE TABLE IF NOT EXISTS t_work_order (
   closed_at      DATETIME     NULL,
   cancelled_at   DATETIME     NULL,
   status_at      DATETIME     NULL,
+  verify_due_at  DATETIME     NULL COMMENT 'T1 到期时间',
+  archive_due_at DATETIME     NULL COMMENT 'T2 到期时间',
   PRIMARY KEY (no),
   KEY idx_wo_status (status),
   KEY idx_wo_building (building_id, status),
@@ -89,7 +144,7 @@ CREATE TABLE IF NOT EXISTS t_work_order_event (
   seq        BIGINT       NOT NULL AUTO_INCREMENT,
   order_no   VARCHAR(20)  NOT NULL,
   at         DATETIME     NOT NULL,
-  event      VARCHAR(20)  NOT NULL COMMENT 'SUBMIT/ASSIGN/ARRIVE/NO_SHOW/FINISH/NEED_PARTS/PARTS_ARRIVED/ACCEPT/REJECT/AUTO_ACCEPT/ARCHIVE/CANCEL/CANCEL_REQUEST',
+  event      VARCHAR(30)  NOT NULL COMMENT '状态事件 + CANCEL_REQUEST/REWORK_REQUEST/REWORK_REJECTED/ORIGIN_CLOSED',
   actor_type VARCHAR(10)  NOT NULL COMMENT 'STUDENT/WORKER/ADMIN/SYSTEM',
   actor_id   VARCHAR(20)  NOT NULL,
   actor_name VARCHAR(30)  NOT NULL,
@@ -152,7 +207,29 @@ CREATE TABLE IF NOT EXISTS t_part_request (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配件申请';
 
 -- ------------------------------------------------------------
--- 8 例外清单（三类不占状态位 + 第四类申请撤销）
+-- 8 返修审查（每次申请独立一行）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_rework_review (
+  id              BIGINT       NOT NULL AUTO_INCREMENT,
+  order_no        VARCHAR(20)  NOT NULL,
+  attempt_no      INT          NOT NULL COMMENT '同一原单第几次申请返修',
+  rework_index    INT          NULL COMMENT '批准后写入第几次返修，申请时为 NULL',
+  status          VARCHAR(12)  NOT NULL COMMENT 'PENDING/APPROVED/REJECTED',
+  requested_by    VARCHAR(20)  NOT NULL COMMENT '学生 ID',
+  request_reason  VARCHAR(300) NOT NULL,
+  requested_at    DATETIME     NOT NULL,
+  decided_by      VARCHAR(20)  NULL COMMENT '管理员 ID',
+  decision_reason VARCHAR(300) NULL,
+  decided_at      DATETIME     NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_review_attempt (order_no, attempt_no),
+  UNIQUE KEY uk_review_rework (order_no, rework_index),
+  KEY idx_rework_queue (status, requested_at),
+  KEY idx_rework_order (order_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='返修审查';
+
+-- ------------------------------------------------------------
+-- 9 例外清单（三类不占状态位 + 第四类申请撤销）
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS t_exception_record (
   id         BIGINT       NOT NULL AUTO_INCREMENT,
@@ -169,7 +246,7 @@ CREATE TABLE IF NOT EXISTS t_exception_record (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='例外清单';
 
 -- ------------------------------------------------------------
--- 9 配置（阈值不许写死在代码里）
+-- 10 配置（阈值不许写死在代码里）
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS t_config (
   k          VARCHAR(40) NOT NULL,
@@ -180,7 +257,7 @@ CREATE TABLE IF NOT EXISTS t_config (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置：预算线、验收小时、归档天数';
 
 -- ------------------------------------------------------------
--- 10 单号序号（按天递增，避免并发撞号）
+-- 11 单号序号（按天递增，避免并发撞号）
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS t_seq (
   day      VARCHAR(8) NOT NULL COMMENT 'yyyyMMdd',

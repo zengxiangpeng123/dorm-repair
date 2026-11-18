@@ -1,20 +1,31 @@
 package com.zxp.dormrepair.service;
 
+import com.zxp.dormrepair.auth.UserAccount;
+import com.zxp.dormrepair.auth.UserRepository;
 import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.common.TimeUtil;
 import com.zxp.dormrepair.domain.Actor;
 import com.zxp.dormrepair.domain.OrderEventLog;
+import com.zxp.dormrepair.domain.ReworkReview;
 import com.zxp.dormrepair.domain.WorkOrder;
 import com.zxp.dormrepair.dto.OrderView;
+import com.zxp.dormrepair.dto.ReworkRequestCreate;
+import com.zxp.dormrepair.dto.ReworkReviewRequest;
 import com.zxp.dormrepair.dto.SubmitRequest;
 import com.zxp.dormrepair.dto.TransitRequest;
+import com.zxp.dormrepair.statemachine.ActorType;
 import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.statemachine.StateMachine;
+import com.zxp.dormrepair.store.ExceptionRecordRepository;
 import com.zxp.dormrepair.store.OrderRepository;
+import com.zxp.dormrepair.store.ReworkReviewRepository;
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 12 条命令。业务前置（照片、金额、归属）在这里判，状态怎么流转交给 {@link OrderStateService}。
@@ -25,11 +36,24 @@ public class OrderService {
     private final OrderRepository store;
     private final OrderStateService state;
     private final AiClient ai;
+    private final AiReviewService review;
+    private final ConfigService config;
+    private final ReworkReviewRepository reviews;
+    private final UserRepository users;
+    private final ExceptionRecordRepository exceptions;
 
-    public OrderService(OrderRepository store, OrderStateService state, AiClient ai) {
+    public OrderService(OrderRepository store, OrderStateService state, AiClient ai,
+                        AiReviewService review, ConfigService config,
+                        ReworkReviewRepository reviews, UserRepository users,
+                        ExceptionRecordRepository exceptions) {
         this.store = store;
         this.state = state;
         this.ai = ai;
+        this.review = review;
+        this.config = config;
+        this.reviews = reviews;
+        this.users = users;
+        this.exceptions = exceptions;
     }
 
     // ---------------------------------------------------------------- 1 建单
@@ -57,9 +81,10 @@ public class OrderService {
         o.setDescription(desc);
         o.setVisitWindow(isBlank(req.window()) ? "全天（08:00-22:00）" : req.window());
         o.setPhotosBefore(req.photosBefore());
-        // 定级：AI 说了算，AI 不在就兜底，绝不因为 AI 挂了拦住学生的单
+        // 定级分两步：提交这一刻只跑规则（毫秒级，学生不用等模型）；
+        // 模型在后台复核，回来把更准的类型和紧急程度写回去。三步都不碰工单状态。
         AiClient.Verdict v = isBlank(req.category())
-                ? ai.classify(desc)
+                ? ai.classifyFast(desc)
                 : new AiClient.Verdict(req.category(), isBlank(req.level()) ? "普通" : req.level(),
                         1.0, "调用方指定类型，没走 AI", false, "MANUAL");
         o.setCategory(v.category());
@@ -72,14 +97,29 @@ public class OrderService {
                 actor.type().name(), actor.id(), actor.name(), actor.type().manual(),
                 "提交报修：" + desc));
         store.save(o);
+        if (isBlank(req.category())) {
+            review.review(o.getNo(), desc);   // 异步，立刻返回
+        }
         return OrderView.of(store.get(o.getNo()));
     }
 
     // ------------------------------------------------------- 2 / 3 派工与到门
 
     public OrderView assign(String no, TransitRequest req, Actor actor) {
-        String workerId = isBlank(req.workerId()) ? "W0428" : req.workerId();
-        String workerName = isBlank(req.workerName()) ? "李建国" : req.workerName();
+        WorkOrder cur = store.require(no);
+        UserAccount worker;
+        if (isBlank(req.workerId())) {
+            worker = users.findWorkerForBuilding(cur.getBuilding())
+                    .orElseThrow(() -> BizException.precondition(
+                            "本楼栋当前没有可派师傅", "NO_WORKER_AVAILABLE"));
+        } else {
+            worker = users.find(req.workerId())
+                    .filter(u -> u.role() == ActorType.WORKER && u.active())
+                    .orElseThrow(() -> BizException.precondition(
+                            "师傅不存在或已停用：" + req.workerId(), "WORKER_NOT_AVAILABLE"));
+        }
+        String workerName = isBlank(req.workerName()) ? worker.name() : req.workerName();
+        String workerId = worker.id();
         return OrderView.of(state.transit(no, OrderEvent.ASSIGN, actor, "派给 " + workerName,
                 req.version(), o -> {
                     o.setWorkerId(workerId);
@@ -149,10 +189,12 @@ public class OrderService {
         if (req.photosAfter() == null || req.photosAfter().isEmpty()) {
             throw BizException.precondition("完工照至少 1 张", "PHOTO_AFTER_REQUIRED");
         }
+        String at = TimeUtil.now();
         return OrderView.of(state.transit(no, OrderEvent.FINISH, actor,
                 isBlank(req.note()) ? "完工提交" : req.note(), req.version(), o -> {
                     o.setPhotosAfter(req.photosAfter());
-                    o.setFinishAt(TimeUtil.now());
+                    o.setFinishAt(at);
+                    o.setVerifyDueAt(plusHours(at, config.verifyHours()));
                 }));
     }
 
@@ -187,26 +229,36 @@ public class OrderService {
 
     // ------------------------------------------------------------ 8 / 9 验收
 
+    @Transactional
     public OrderView accept(String no, TransitRequest req, Actor actor) {
         guard(no, OrderEvent.ACCEPT, actor);
         if (isBlank(req.signerName())) {
             throw BizException.precondition("签字人必填", "SIGNER_REQUIRED");
         }
+        String at = TimeUtil.now();
         WorkOrder done = state.transit(no, OrderEvent.ACCEPT, actor,
-                "验收通过，签字人 " + req.signerName(), req.version(),
-                o -> o.setSignAt(TimeUtil.now()));
+                "验收通过，签字人 " + req.signerName(), req.version(), o -> {
+                    o.setSignAt(at);
+                    o.setArchiveDueAt(plusDays(at, config.archiveDays()));
+                });
         // SYS-004 第 8 条：验收的是返修单，原单同时关闭（级联，不占 13 条转移）
         String base = done.getReworkOf();
         if (base != null) {
-            WorkOrder origin = store.get(base);
-            if (origin != null && origin.getStatus() == OrderStatus.REWORKING) {
-                state.cascadeClose(base, actor,
-                        "返修单 " + no + " 验收通过，原单关闭（级联，不占 13 条转移）");
+            // 第一次返修只有原单；R2 以后，上一张返修单也停在 REWORKING。
+            // 最终验收通过时要关闭整个返修链，不能让中间单永久挂在办。
+            List<WorkOrder> waitingParents = store.all().stream()
+                    .filter(o -> o.getNo().equals(base) || base.equals(o.getReworkOf()))
+                    .filter(o -> o.getStatus() == OrderStatus.REWORKING)
+                    .toList();
+            for (WorkOrder parent : waitingParents) {
+                state.cascadeClose(parent.getNo(), actor,
+                        "返修单 " + no + " 验收通过，前序工单关闭（级联，不占 13 条转移）");
             }
         }
         return OrderView.of(store.get(no));
     }
 
+    @Transactional
     public OrderView reject(String no, TransitRequest req, Actor actor) {
         guard(no, OrderEvent.REJECT, actor);
         String reason = req.reason() == null ? "" : req.reason().trim();
@@ -218,6 +270,83 @@ public class OrderService {
                 "验收不通过：" + reason, req.version(), o -> { });
         WorkOrder rework = createRework(origin, reason, actor);
         return OrderView.of(store.get(rework.getNo()));
+    }
+
+    /** 学生提交返修申请：不改变状态，只写事件与审查行。 */
+    @Transactional
+    public Map<String, Object> requestRework(String no, ReworkRequestCreate req, Actor actor) {
+        StateMachine.assertCanTrigger(OrderEvent.REWORK_REQUEST, actor.type());
+        WorkOrder cur = store.require(no);
+        if (!actor.id().equals(cur.getStudentId())) {
+            throw BizException.notOwner("这张单不是你的：" + no);
+        }
+        if (cur.getStatus() != OrderStatus.VERIFYING) {
+            throw BizException.precondition("只有待验收的工单可以申请返修", "REWORK_ONLY_VERIFYING");
+        }
+        if (reviews.hasPending(no)) {
+            throw BizException.precondition("这张单已经在返修审查中", "REWORK_REVIEW_PENDING");
+        }
+        if (req == null || req.version() == null) {
+            throw BizException.precondition("返修申请必须带 version", "VERSION_REQUIRED");
+        }
+        String reason = req.reason() == null ? "" : req.reason().trim();
+        if (reason.length() < 2) {
+            throw BizException.precondition("请写清哪里没修好，至少 2 个字", "REASON_REQUIRED");
+        }
+        String at = TimeUtil.now();
+        WorkOrder updated = state.logOnly(no, OrderEvent.REWORK_REQUEST, actor,
+                "申请返修：" + reason, req.version());
+        ReworkReview review = reviews.createRequest(no, actor.id(), reason, at);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("order", OrderView.of(updated, review));
+        out.put("review", OrderView.of(updated, review).reworkReview());
+        return out;
+    }
+
+    /** 管理员审查返修申请；批准后才生成返修子单。 */
+    @Transactional
+    public Map<String, Object> reviewRework(String no, ReworkReviewRequest req, Actor admin) {
+        StateMachine.assertCanTrigger(OrderEvent.REJECT, admin.type());
+        WorkOrder cur = store.require(no);
+        if (cur.getStatus() != OrderStatus.VERIFYING) {
+            throw BizException.precondition("只有待验收的工单可以审查返修", "REVIEW_ONLY_VERIFYING");
+        }
+        ReworkReview pending = reviews.findPending(no)
+                .orElseThrow(() -> BizException.precondition("没有待处理的返修申请", "REWORK_REVIEW_NOT_FOUND"));
+        if (req == null || req.version() == null) {
+            throw BizException.precondition("返修审查必须带 version", "VERSION_REQUIRED");
+        }
+        String decision = req.decision() == null ? "" : req.decision().trim().toUpperCase();
+        String reason = req == null || req.reason() == null ? "" : req.reason().trim();
+        if (reason.length() < 2) {
+            throw BizException.precondition("请写清审查意见，至少 2 个字", "REVIEW_REASON_REQUIRED");
+        }
+        String at = TimeUtil.now();
+        if ("APPROVE".equals(decision)) {
+            WorkOrder origin = state.transit(no, OrderEvent.REJECT, admin,
+                    "返修审查通过：" + reason, req.version(), o -> {
+                        o.setVerifyDueAt(null);
+                    });
+            Actor student = Actor.of("STUDENT", origin.getStudentId(), origin.getStudentName());
+            WorkOrder child = createRework(origin, pending.requestReason(), student);
+            reviews.decide(pending, "APPROVED", child.getReworkIndex(), admin.id(), reason, at);
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("original", OrderView.of(store.get(no), reviews.findLatest(no).orElse(null)));
+            out.put("reworkOrder", OrderView.of(child));
+            return out;
+        }
+        if ("REJECT".equals(decision)) {
+            WorkOrder original = state.logOnly(no, OrderEvent.REWORK_REJECTED, admin,
+                    "驳回返修申请：" + reason, req.version(), o -> {
+                        o.setVerifyDueAt(plusHours(at, config.verifyHours()));
+                    });
+            ReworkReview rejected = reviews.decide(pending, "REJECTED", null, admin.id(), reason, at);
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("original", OrderView.of(original, rejected));
+            out.put("reworkOrder", null);
+            return out;
+        }
+        throw BizException.badRequest("decision 只能是 APPROVE 或 REJECT");
     }
 
     /**
@@ -270,8 +399,13 @@ public class OrderService {
                 "返修单：由「" + origin.getNo() + "」验收不通过生成（" + reason + "）"));
         store.save(r);
 
-        int count = (origin.getReworkCount() == null ? 0 : origin.getReworkCount()) + 1;
-        store.update(base, origin.getVersion(), o -> o.setReworkCount(count));
+        WorkOrder root = store.require(base);
+        int count = (root.getReworkCount() == null ? 0 : root.getReworkCount()) + 1;
+        store.update(base, root.getVersion(), o -> o.setReworkCount(count));
+        if (idx >= 2 && exceptions.findOpen("REPEAT_REWORK", base).isEmpty()) {
+            exceptions.createRepeatRework(base,
+                    "这张原单已经返修 " + count + " 次，该看是不是根因没找对", at);
+        }
         return r;
     }
 
@@ -313,7 +447,32 @@ public class OrderService {
     // ---------------------------------------------------------------- 查询
 
     public OrderView detail(String no) {
-        return OrderView.of(store.require(no));
+        WorkOrder o = store.require(no);
+        return OrderView.of(o, reviews.findLatest(no).orElse(null));
+    }
+
+    /** 详情和事件流都只给本人、本单师傅或管理端看。 */
+    public OrderView detailForActor(String no, Actor actor) {
+        WorkOrder o = store.require(no);
+        boolean visible = switch (actor.type()) {
+            case ADMIN, SYSTEM -> true;
+            case STUDENT -> actor.id().equals(o.getStudentId());
+            case WORKER -> actor.id().equals(o.getWorkerId());
+        };
+        if (!visible) {
+            throw BizException.forbidden("不能查看不属于你的工单：" + no);
+        }
+        return OrderView.of(o, reviews.findLatest(no).orElse(null));
+    }
+
+    private static String plusHours(String at, int hours) {
+        Long ms = TimeUtil.epochMs(at);
+        return ms == null ? at : TimeUtil.fmt(ms + hours * 3600_000L);
+    }
+
+    private static String plusDays(String at, int days) {
+        Long ms = TimeUtil.epochMs(at);
+        return ms == null ? at : TimeUtil.fmt(ms + days * 24 * 3600_000L);
     }
 
     public List<OrderView> list(String status) {
