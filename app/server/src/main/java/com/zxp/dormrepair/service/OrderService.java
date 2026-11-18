@@ -230,6 +230,7 @@ public class OrderService {
 
     @Transactional
     public OrderView finish(String no, TransitRequest req, Actor actor) {
+        guardWorkerOwnership(no, actor);
         guard(no, OrderEvent.FINISH, actor);
         List<String> afterPhotoIds = bindPhotos(req.photoIdsAfter(), req.photosAfter(), "AFTER", actor);
         if (afterPhotoIds.isEmpty() && (req.photosAfter() == null || req.photosAfter().isEmpty())) {
@@ -248,6 +249,7 @@ public class OrderService {
     }
 
     public OrderView needParts(String no, TransitRequest req, Actor actor) {
+        guardWorkerOwnership(no, actor);
         guard(no, OrderEvent.NEED_PARTS, actor);
         if (isBlank(req.partsName())) {
             throw BizException.precondition("配件名称必填", "PARTS_NAME_REQUIRED");
@@ -277,6 +279,7 @@ public class OrderService {
 
     @Transactional
     public OrderView accept(String no, TransitRequest req, Actor actor) {
+        guardStudentOwnership(no, actor);
         guard(no, OrderEvent.ACCEPT, actor);
         if (isBlank(req.signerName())) {
             throw BizException.precondition("签字人必填", "SIGNER_REQUIRED");
@@ -466,6 +469,7 @@ public class OrderService {
     // --------------------------------------------------------- 12 / 13 撤销
 
     public OrderView cancel(String no, TransitRequest req, Actor actor) {
+        guardStudentOwnership(no, actor);
         guard(no, OrderEvent.CANCEL, actor);
         WorkOrder cur = store.require(no);
         if (cur.getArriveAt() != null) {
@@ -480,6 +484,7 @@ public class OrderService {
 
     /** 维修中不许直接撤，只是留一条申请，等管理端决定（唯一由人决定的入口）。 */
     public OrderView cancelRequest(String no, TransitRequest req, Actor actor) {
+        guardStudentOwnership(no, actor);
         guard(no, OrderEvent.CANCEL_REQUEST, actor);
         if (store.require(no).getStatus() != OrderStatus.REPAIRING) {
             throw BizException.precondition(
@@ -611,6 +616,26 @@ public class OrderService {
                 })
                 .map(OrderView::of)
                 .toList();
+    }
+
+    private void guardWorkerOwnership(String no, Actor actor) {
+        if (actor.type() != ActorType.WORKER) {
+            return;
+        }
+        WorkOrder cur = store.require(no);
+        if (!actor.id().equals(cur.getWorkerId())) {
+            throw BizException.notOwner("这张单不是你的：" + no);
+        }
+    }
+
+    private void guardStudentOwnership(String no, Actor actor) {
+        if (actor.type() != ActorType.STUDENT) {
+            return;
+        }
+        WorkOrder cur = store.require(no);
+        if (!actor.id().equals(cur.getStudentId())) {
+            throw BizException.notOwner("这张单不是你的：" + no);
+        }
     }
 
     /** 先判身份、再判这条边在不在。顺序不许换：403 与 409 是两件事。 */

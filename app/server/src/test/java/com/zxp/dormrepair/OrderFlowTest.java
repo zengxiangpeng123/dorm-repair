@@ -302,6 +302,26 @@ class OrderFlowTest {
                 "worker", "W0512");
         assertEquals(403, otherWorker.status);
         assertEquals("NOT_OWNER", otherWorker.error().get("code").asText());
+        Resp otherFinish = call("POST", "/orders/" + no + "/finish",
+                "{\"version\":2,\"photosAfter\":[\"demo://x.jpg\"]}", "worker", "W0512");
+        assertEquals(403, otherFinish.status);
+        assertEquals("NOT_OWNER", otherFinish.error().get("code").asText());
+
+        Resp otherParts = call("POST", "/orders/" + no + "/need-parts",
+                "{\"version\":2,\"partsName\":\"阀芯\",\"partsAmount\":38,\"partsEta\":\"2026-11-20\"}",
+                "worker", "W0512");
+        assertEquals(403, otherParts.status);
+        assertEquals("NOT_OWNER", otherParts.error().get("code").asText());
+
+        Resp otherAccept = call("POST", "/orders/" + no + "/accept",
+                "{\"version\":2,\"signerName\":\"别人\"}", "student", "S002");
+        assertEquals(403, otherAccept.status);
+        assertEquals("NOT_OWNER", otherAccept.error().get("code").asText());
+
+        Resp otherCancel = call("POST", "/orders/" + no + "/cancel",
+                "{\"version\":2,\"reason\":\"误操作\"}", "student", "S002");
+        assertEquals(403, otherCancel.status);
+        assertEquals("NOT_OWNER", otherCancel.error().get("code").asText());
     }
 
     @Test
