@@ -12,6 +12,20 @@ import org.springframework.stereotype.Component;
 @Profile("prod")
 public class ProductionSafetyValidator {
 
+    private static boolean queryFlag(String url, String key) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        String query = url.contains("?") ? url.substring(url.indexOf('?') + 1) : "";
+        for (String part : query.split("&")) {
+            int separator = part.indexOf('=');
+            if (separator > 0 && part.substring(0, separator).equals(key)) {
+                return "true".equalsIgnoreCase(part.substring(separator + 1));
+            }
+        }
+        return false;
+    }
+
     public ProductionSafetyValidator(
             @Value("${app.demo:false}") boolean demo,
             @Value("${app.auth.allow-header:false}") boolean allowHeader,
@@ -35,6 +49,9 @@ public class ProductionSafetyValidator {
         }
         if (datasourceUrl.isBlank() || username.isBlank() || password.isBlank()) {
             throw new IllegalStateException("生产环境必须显式配置数据库 URL、账号和口令");
+        }
+        if (!queryFlag(datasourceUrl, "useSSL") || !queryFlag(datasourceUrl, "verifyServerCertificate")) {
+            throw new IllegalStateException("生产环境数据库连接必须启用 TLS 并校验服务端证书");
         }
         if (password.equals("123456") || password.equals("root")) {
             throw new IllegalStateException("生产环境禁止使用默认数据库口令");

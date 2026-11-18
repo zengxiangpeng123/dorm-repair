@@ -28,6 +28,7 @@ if (($bootstrap | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count 
 if ($bootstrap[2] -and $bootstrap[2].Length -lt 12) { Fail 'BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters' }
 if ($values['APP_FILE_S3_ENDPOINT'] -notmatch '^https://') { Fail 'APP_FILE_S3_ENDPOINT must use HTTPS' }
 if ($values['DB_USE_SSL'] -ne 'true') { Fail 'DB_USE_SSL must be true in production' }
+if ($values['DB_SSL_VERIFY_SERVER_CERTIFICATE'] -ne 'true') { Fail 'DB_SSL_VERIFY_SERVER_CERTIFICATE must be true in production' }
 $mysql = Get-Command mysql -ErrorAction SilentlyContinue
 if (-not $mysql) { Fail 'mysql client is required to verify the production schema' }
 $dbHost = if ($values['DB_HOST']) { $values['DB_HOST'] } else { '127.0.0.1' }

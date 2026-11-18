@@ -41,6 +41,7 @@ fi
 s3_endpoint="$(grep -E '^APP_FILE_S3_ENDPOINT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 case "$s3_endpoint" in https://*) ;; *) fail "APP_FILE_S3_ENDPOINT must use HTTPS" ;; esac
 grep -q '^DB_USE_SSL=true' "$ENV_FILE" || fail "DB_USE_SSL must be true in production"
+grep -q '^DB_SSL_VERIFY_SERVER_CERTIFICATE=true' "$ENV_FILE" || fail "DB_SSL_VERIFY_SERVER_CERTIFICATE must be true in production"
 
 echo "checking database schema (read-only)"
 command -v mysql >/dev/null 2>&1 || fail "mysql client is required to verify the production schema"
