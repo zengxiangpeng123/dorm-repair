@@ -75,6 +75,20 @@ Uploaded files that remain unbound to an order for 24 hours are deleted by the s
 cleanup job. Adjust `APP_FILE_CLEANUP_RETENTION_HOURS` and `APP_FILE_CLEANUP_BATCH_SIZE`
 for the deployment policy.
 
+## Runtime database account
+
+After the first schema initialization, strip DDL and user-management privileges from the
+runtime account. Run this once per environment (and again only after recreating the database):
+
+```bash
+export DB_HOST=mysql DB_ROOT_PASSWORD='...' DB_USER=dorm_app DB_NAME=dorm_repair
+./deploy/scripts/restrict-app-user.sh
+```
+
+The application account must retain only `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and
+`EXECUTE`. Migrations use a separate controlled operator account. `preflight.sh` rejects a
+runtime account that still has `CREATE`, `DROP`, `ALTER`, `ALL PRIVILEGES`, or `GRANT OPTION`.
+
 ## Authentication operations
 
 Login failures are limited per account and client address. Defaults are five failures in a

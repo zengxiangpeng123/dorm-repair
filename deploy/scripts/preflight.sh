@@ -91,4 +91,9 @@ ssl_cipher="$(mysql --defaults-extra-file="$MYSQL_CNF" --ssl-mode=REQUIRED --bat
 schema_errors="$(mysql --defaults-extra-file="$MYSQL_CNF" --ssl-mode=REQUIRED --batch --skip-column-names "$DB_NAME" -e "$schema_sql" 2>/dev/null || true)"
 [ -z "$schema_errors" ] || fail "database schema incomplete: ${schema_errors//$'\n'/, }; run deploy/scripts/migrate.sh"
 
+privileges="$(mysql --defaults-extra-file="$MYSQL_CNF" --batch --skip-column-names -e "SHOW GRANTS FOR CURRENT_USER" 2>/dev/null || true)"
+if printf '%s' "$privileges" | grep -Eiq 'ALL PRIVILEGES|CREATE|DROP|ALTER|GRANT OPTION'; then
+  fail "runtime database account has DDL/admin privileges; run deploy/scripts/restrict-app-user.sh"
+fi
+
 echo "production preflight: PASS"
