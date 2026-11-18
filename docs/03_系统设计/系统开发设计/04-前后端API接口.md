@@ -3,7 +3,7 @@
 | 项 | 内容 |
 |---|---|
 | 文档编号 | DEV-04 |
-| 版本 | V1.2 |
+| 版本 | V1.3 |
 | 状态 | ✅ 已实现并完成联调、鉴权与回归 |
 | 更新日期 | 2026-11-18 |
 | 基础路径 | `/api/v1` |
@@ -81,8 +81,8 @@
 | `studentName` | string | 否 | 学生姓名快照 |
 | `desc` | string | 否 | 故障描述 |
 | `window` | string | 否 | 可上门时段 |
-| `photosBefore` | string[] | 否 | 现场照片 URL |
-| `photosAfter` | string[] | 否 | 完工照片 URL，未完工时为空数组 |
+| `photosBefore` | string[] | 否 | 现场照片受权读取 URL；旧演示数据可为 demo 协议 |
+| `photosAfter` | string[] | 否 | 完工照片受权读取 URL，未完工时为空数组 |
 | `category` | string | 否 | 故障类型 |
 | `level` | string | 否 | 紧急程度 |
 | `levelSource` | string | 否 | AI 结果来源 |
@@ -160,7 +160,7 @@
 | `room` | string | 建议 | 为空默认 `402` |
 | `desc` | string | 是 | 去除首尾空格后至少 4 字，否则 422 `DESC_TOO_SHORT` |
 | `window` | string | 否 | 为空默认全天 |
-| `photosBefore` | string[] | 是 | 至少 1 个 URL，否则 422 `PHOTO_REQUIRED` |
+| `photoIdsBefore` | string[] | 是 | 上传接口返回的文件 ID；正式环境至少 1 个 |
 | `category` | string | 否 | 传值时跳过 AI 分类；必须是五类之一 |
 | `level` | string | 否 | 仅在传 `category` 时使用；为空默认普通 |
 | `studentId` | string | 否 | **当前不参与建单，身份以 Token 为准** |
@@ -176,7 +176,7 @@
 | `note` | string | 完工说明等自由文本 |
 | `reason` | string | 未遇、驳回、撤销原因或固定原因代码 |
 | `signerName` | string | 验收签字人，`accept` 必填 |
-| `photosAfter` | string[] | 完工照片 URL，`finish` 至少 1 张 |
+| `photoIdsAfter` | string[] | 完工照片文件 ID，`finish` 至少 1 张 |
 | `partsName` | string | 缺件名称，`need-parts` 必填 |
 | `partsAmount` | number | 缺件金额，必须大于 0 |
 | `partsEta` | string | 到货日期 `yyyy-MM-dd`，必填 |
@@ -202,7 +202,9 @@
 | POST | `/auth/login` | `account,password` | `token,expiresAt,ttlSeconds,user` |
 | POST | `/auth/logout` | Header Token | `logout:boolean` |
 | GET | `/auth/me` | Header Token | `user,expiresAt` |
-| POST | `/auth/system-token` | 无 | `token,expiresAt,user,actor,ttlSeconds` |
+| POST | `/auth/system-token` | 管理员（仅演示模式） | `token,expiresAt,user,actor,ttlSeconds` |
+| POST | `/files` | 已登录角色 | multipart `file,purpose=BEFORE/AFTER` | `id,url,mime,byteSize,sha256` |
+| GET | `/files/{id}` | 上传者 / 本单学生 / 本单师傅 / 管理员 | 无 | 图片字节，带安全响应头 |
 
 `user` 字段：`id`、`role`、`name`，可选 `team`、`building`、`room`。`login` 的 `user` 不包含密码。
 
@@ -217,7 +219,7 @@
 | POST | `/orders/{no}/arrive` | 师傅 | `version` | `OrderView` |
 | POST | `/buildings/{id}/arrive` | 师傅/管理员 | 无 body | 批量结果对象 |
 | POST | `/orders/{no}/no-show` | 师傅 | `version,reason` | `OrderView`，`reason` 默认 `KNOCK_NO_ANSWER` |
-| POST | `/orders/{no}/finish` | 师傅 | `version,photosAfter,note` | `OrderView` |
+| POST | `/orders/{no}/finish` | 师傅 | `version,photoIdsAfter,photosAfter,note` | `OrderView` |
 | POST | `/orders/{no}/need-parts` | 师傅 | `version,partsName,partsAmount,partsEta` | `OrderView` |
 | POST | `/orders/{no}/parts-arrived` | 管理员/系统 | `version` | `OrderView` |
 | POST | `/orders/{no}/accept` | 学生 | `version,signerName` | `OrderView` |
@@ -364,3 +366,4 @@
 - `/reject` 迁移到返修审查前，必须按“返回新返修单”处理；迁移后改用 `/rework-request` 与 `/rework-review`。
 - 返修审查 UI 只读取 `review`/`reworkReview`，不得从前端自行推断审查状态。
 - 修改后端 DTO 或 Map 返回字段时，必须同步更新本文件、前端接口封装和接口测试。
+- 新照片只能提交 `/files` 返回的 ID；不得再生成 demo 协议占位地址。

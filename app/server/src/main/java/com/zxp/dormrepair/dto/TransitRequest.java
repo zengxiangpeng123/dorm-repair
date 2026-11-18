@@ -12,6 +12,7 @@ public record TransitRequest(
         String reason,
         String signerName,
         List<String> photosAfter,
+        List<String> photoIdsAfter,
         String partsName,
         BigDecimal partsAmount,
         String partsEta,

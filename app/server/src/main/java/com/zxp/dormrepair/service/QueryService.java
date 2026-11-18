@@ -176,6 +176,10 @@ public class QueryService {
             m.put("location", o.location());
             m.put("workerName", o.getWorkerName());
             m.put("version", o.getVersion());
+            m.put("photosBefore", o.getPhotosBefore());
+            m.put("photosAfter", o.getPhotosAfter());
+            m.put("photoIdsBefore", o.getPhotoIdsBefore());
+            m.put("photoIdsAfter", o.getPhotoIdsAfter());
             m.put("order", OrderView.of(o, r));
             items.add(m);
         }

@@ -20,6 +20,7 @@ public class OrderPhotoRow {
     private String orderNo;
     private String kind;
     private String url;
+    private String fileId;
     private String uploadedBy;
 
     @TableField(value = "created_at", typeHandler = DateTimeStringTypeHandler.class)

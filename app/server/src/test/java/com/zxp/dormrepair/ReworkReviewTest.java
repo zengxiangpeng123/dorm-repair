@@ -161,7 +161,7 @@ class ReworkReviewTest {
         orders.finish(r2.no(), finish(r2Arrived.getVersion(), "最终修复完成"), worker);
         WorkOrder r2Verifying = store.require(r2.no());
         orders.accept(r2.no(), new TransitRequest(r2Verifying.getVersion(), null, null,
-                "张同学", null, null, null, null, null, null), student);
+                "张同学", null, null, null, null, null, null, null), student);
 
         assertEquals(OrderStatus.DONE, store.require(r2.no()).getStatus());
         assertEquals(OrderStatus.CLOSED, store.require(original.getNo()).getStatus());
@@ -185,21 +185,21 @@ class ReworkReviewTest {
         Actor student = actor(ActorType.STUDENT, "S001", "张同学");
         OrderView submitted = orders.submit(new SubmitRequest("B9", 1, "101",
                 "水管一直滴水，需要维修", "全天", List.of("demo://b9.jpg"),
-                null, null, null, null), student);
+                null, null, null, null, null), student);
         BizException e = assertThrows(BizException.class,
-                () -> orders.assign(submitted.no(), new TransitRequest(null, null, null, null,
+                () -> orders.assign(submitted.no(), new TransitRequest(null, null, null, null, null,
                         null, null, null, null, null, null), Actor.system()));
         assertEquals("NO_WORKER_AVAILABLE", e.extra().get("reason"));
         assertEquals(OrderStatus.PENDING, store.require(submitted.no()).getStatus());
     }
 
     private TransitRequest transit(int version) {
-        return new TransitRequest(version, null, null, null, null, null, null, null, null, null);
+        return new TransitRequest(version, null, null, null, null, null, null, null, null, null, null);
     }
 
     private TransitRequest finish(int version, String note) {
         return new TransitRequest(version, note, null, null, List.of("demo://after/second.jpg"),
-                null, null, null, null, null);
+                null, null, null, null, null, null);
     }
 
     private WorkOrder verifyingOrder() {

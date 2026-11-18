@@ -12,6 +12,7 @@ public record SubmitRequest(
         String desc,
         String window,
         List<String> photosBefore,
+        List<String> photoIdsBefore,
         String category,
         String level,
         String studentId,

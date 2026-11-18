@@ -22,6 +22,7 @@ http.interceptors.response.use(
 export const api = {
   get: (url, params) => http.get(url, { params }),
   post: (url, body) => http.post(url, body ?? {}),
+  blob: (url) => http.get(url, { responseType: 'blob' }),
   put: (url, body) => http.put(url, body ?? {})
 }
 export { describeError } from '@dorm/contract'

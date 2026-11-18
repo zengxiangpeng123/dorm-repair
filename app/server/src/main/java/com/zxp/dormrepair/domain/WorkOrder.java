@@ -51,6 +51,13 @@ public class WorkOrder {
     @TableField(exist = false)
     private List<String> photosAfter = new ArrayList<>();
 
+    /** 上传文件的内部 ID；与 URL 列表一一对应，外部只通过受权下载接口读取。 */
+    @TableField(exist = false)
+    private List<String> photoIdsBefore = new ArrayList<>();
+
+    @TableField(exist = false)
+    private List<String> photoIdsAfter = new ArrayList<>();
+
     private String category;
     private String level;
     private String levelSource;

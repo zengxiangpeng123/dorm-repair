@@ -4,7 +4,9 @@ import { useRouter } from 'vue-router'
 import BottomNav from '../../components/BottomNav.vue'
 import StatusPill from '../../components/StatusPill.vue'
 import LevelPill from '../../components/LevelPill.vue'
+import ProtectedImage from '../../components/ProtectedImage.vue'
 import { studentApi } from '../../api/orders'
+import { fileApi } from '../../api/files'
 import { userOf } from '../../api/session'
 import { describeError } from '../../api/request'
 import { shortWindow } from '../../constants/status'
@@ -13,6 +15,8 @@ const router = useRouter()
 const me = userOf()
 const meta = ref(null)
 const photos = ref([])
+const uploading = ref(false)
+const fileInput = ref(null)
 const desc = ref('')
 const window = ref('')
 const busy = ref(false)
@@ -20,7 +24,7 @@ const err = ref('')
 const done = ref(null)
 
 const windows = computed(() => meta.value?.windows || [])
-const canSubmit = computed(() => photos.value.length > 0 && desc.value.trim().length >= 4 && !busy.value)
+const canSubmit = computed(() => photos.value.length > 0 && desc.value.trim().length >= 4 && !busy.value && !uploading.value)
 
 onMounted(async () => {
   try {
@@ -32,9 +36,24 @@ onMounted(async () => {
 })
 
 function shoot () {
-  if (photos.value.length >= 3) return
-  // 演示环境没有真上传：拿到的是一个标记，服务端只校验"至少一张"
-  photos.value.push(`demo://before/${me.id}/${Date.now()}-${photos.value.length + 1}.jpg`)
+  if (photos.value.length >= 3 || uploading.value) return
+  fileInput.value?.click()
+}
+
+async function picked (event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file || photos.value.length >= 3) return
+  uploading.value = true
+  err.value = ''
+  try {
+    const uploaded = await fileApi.upload(file, 'BEFORE')
+    photos.value.push({ id: uploaded.id, url: uploaded.url, name: file.name })
+  } catch (e) {
+    err.value = describeError(e)
+  } finally {
+    uploading.value = false
+  }
 }
 
 function remove (i) {
@@ -52,7 +71,8 @@ async function submit () {
       room: me.room,
       desc: desc.value.trim(),
       window: window.value,
-      photosBefore: photos.value
+      photosBefore: photos.value.map((p) => p.url),
+      photoIdsBefore: photos.value.map((p) => p.id)
     })
     done.value = created
   } catch (e) {
@@ -73,14 +93,15 @@ async function submit () {
   <div class="body">
     <div class="card">
       <div class="card-hd"><h3>① 拍一张</h3><span class="hint">必填，至少 1 张</span></div>
-      <button class="uploader" @click="shoot">
+      <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden @change="picked" />
+      <button class="uploader" :disabled="uploading || photos.length >= 3" @click="shoot">
         <div style="font-size: 20px">📷</div>
-        <div style="margin-top: 4px">点一下，拍下坏的地方</div>
-        <div class="tiny" style="margin-top: 2px">最多 3 张</div>
+        <div style="margin-top: 4px">{{ uploading ? '上传中…' : '拍一张，上传坏的地方' }}</div>
+        <div class="tiny" style="margin-top: 2px">JPEG / PNG / WebP，最多 3 张，每张 ≤ 8 MB</div>
       </button>
       <div v-if="photos.length" class="thumbs">
-        <div v-for="(p, i) in photos" :key="p" class="thumb" data-tone="ok" @click="remove(i)">
-          <span>📷</span><span>第 {{ i + 1 }} 张</span>
+        <div v-for="(p, i) in photos" :key="p.id" class="thumb" data-tone="ok" @click="remove(i)">
+          <ProtectedImage :src="p.url" :alt="p.name" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
         </div>
       </div>
     </div>

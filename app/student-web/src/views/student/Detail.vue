@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import BottomNav from '../../components/BottomNav.vue'
 import StatusPill from '../../components/StatusPill.vue'
 import LevelPill from '../../components/LevelPill.vue'
+import ProtectedImage from '../../components/ProtectedImage.vue'
 import { studentApi } from '../../api/orders'
 import { describeError } from '../../api/request'
 import { EVENT, shortWindow, shortLeft, steps } from '../../constants/status'
@@ -184,10 +185,12 @@ onUnmounted(() => clearInterval(timer))
       <div class="card-hd"><h3>照片</h3><span class="hint">现场 {{ (o.photosBefore || []).length }} 张 · 完工 {{ afterPhotos }} 张</span></div>
       <div class="thumbs">
         <div v-for="(p, i) in o.photosBefore" :key="p" class="thumb" data-tone="ok">
-          <span>📷</span><span>现场 {{ i + 1 }}</span>
+          <ProtectedImage v-if="!p.startsWith('demo://')" :src="p" :alt="`现场 ${i + 1}`" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+          <template v-else><span>📷</span><span>现场 {{ i + 1 }}</span></template>
         </div>
         <div v-for="(p, i) in o.photosAfter" :key="p" class="thumb" data-tone="ok">
-          <span>📸</span><span>完工 {{ i + 1 }}</span>
+          <ProtectedImage v-if="!p.startsWith('demo://')" :src="p" :alt="`完工 ${i + 1}`" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+          <template v-else><span>📸</span><span>完工 {{ i + 1 }}</span></template>
         </div>
         <div v-if="mismatch" class="thumb" data-tone="bad">
           <span>⚠️</span><span>缺完工照</span>

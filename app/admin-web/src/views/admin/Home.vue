@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import StatusPill from '../../components/StatusPill.vue'
 import LevelPill from '../../components/LevelPill.vue'
+import ProtectedImage from '../../components/ProtectedImage.vue'
 import { adminApi } from '../../api/orders'
 import { describeError } from '../../api/request'
 import { shortLeft, STATUS } from '../../constants/status'
@@ -204,6 +205,16 @@ onMounted(load)
               </div>
               <div class="why">学生原因：{{ r.reason }}</div>
               <div class="why">师傅：{{ r.workerName || '—' }} · 历史返修 {{ r.reworkCount }} 次</div>
+              <div v-if="(r.photosBefore || []).length || (r.photosAfter || []).length" class="thumbs review-thumbs">
+                <div v-for="(p, i) in r.photosBefore || []" :key="p" class="thumb" data-tone="ok">
+                  <ProtectedImage v-if="!p.startsWith('demo://')" :src="p" :alt="`现场 ${i + 1}`" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+                  <template v-else><span>📷</span><span>现场 {{ i + 1 }}</span></template>
+                </div>
+                <div v-for="(p, i) in r.photosAfter || []" :key="p" class="thumb" data-tone="ok">
+                  <ProtectedImage v-if="!p.startsWith('demo://')" :src="p" :alt="`完工 ${i + 1}`" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+                  <template v-else><span>📸</span><span>完工 {{ i + 1 }}</span></template>
+                </div>
+              </div>
             </div>
             <div class="review-actions">
               <button class="dbtn sm" :disabled="busy === 'review-' + r.id" @click="openReview(r, 'REJECT')">驳回申请</button>
@@ -466,6 +477,7 @@ onMounted(load)
 .review-panel { margin-bottom: 14px; }
 .review-empty { padding: 18px 16px; color: var(--ink-3); font-size: 12px; }
 .review-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-top: 1px solid #f3f6fa; }
+.review-thumbs { margin-top: 8px; }
 .review-main { flex: 1; min-width: 0; }
 .review-actions { display: flex; gap: 7px; flex: none; }
 .review-actions .primary { background: #1b4ed8; border-color: #1b4ed8; color: #fff; }

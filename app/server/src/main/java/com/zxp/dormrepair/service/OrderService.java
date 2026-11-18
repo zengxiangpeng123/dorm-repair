@@ -20,6 +20,8 @@ import com.zxp.dormrepair.statemachine.StateMachine;
 import com.zxp.dormrepair.store.ExceptionRecordRepository;
 import com.zxp.dormrepair.store.OrderRepository;
 import com.zxp.dormrepair.store.ReworkReviewRepository;
+import com.zxp.dormrepair.file.FileRecord;
+import com.zxp.dormrepair.file.FileRepository;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,13 +43,16 @@ public class OrderService {
     private final ReworkReviewRepository reviews;
     private final UserRepository users;
     private final ExceptionRecordRepository exceptions;
+    private final FileRepository files;
     private final boolean autoAssign;
+    private final boolean legacyDemoPhotos;
 
     public OrderService(OrderRepository store, OrderStateService state, AiClient ai,
                         AiReviewService review, ConfigService config,
                         ReworkReviewRepository reviews, UserRepository users,
-                        ExceptionRecordRepository exceptions,
-                        @org.springframework.beans.factory.annotation.Value("${app.order.auto-assign:true}") boolean autoAssign) {
+                        ExceptionRecordRepository exceptions, FileRepository files,
+                        @org.springframework.beans.factory.annotation.Value("${app.order.auto-assign:true}") boolean autoAssign,
+                        @org.springframework.beans.factory.annotation.Value("${app.file.allow-legacy-demo-urls:false}") boolean legacyDemoPhotos) {
         this.store = store;
         this.state = state;
         this.ai = ai;
@@ -56,14 +61,17 @@ public class OrderService {
         this.reviews = reviews;
         this.users = users;
         this.exceptions = exceptions;
+        this.files = files;
         this.autoAssign = autoAssign;
+        this.legacyDemoPhotos = legacyDemoPhotos;
     }
 
     // ---------------------------------------------------------------- 1 建单
 
     public OrderView submit(SubmitRequest req, Actor actor) {
         StateMachine.assertCanTrigger(OrderEvent.SUBMIT, actor.type());
-        if (req.photosBefore() == null || req.photosBefore().isEmpty()) {
+        List<String> beforePhotoIds = bindPhotos(req.photoIdsBefore(), req.photosBefore(), "BEFORE", actor);
+        if (beforePhotoIds.isEmpty() && (req.photosBefore() == null || req.photosBefore().isEmpty())) {
             throw BizException.precondition("现场照片至少 1 张", "PHOTO_REQUIRED");
         }
         String desc = req.desc() == null ? "" : req.desc().trim();
@@ -83,7 +91,8 @@ public class OrderService {
         o.setStudentName(actor.name());
         o.setDescription(desc);
         o.setVisitWindow(isBlank(req.window()) ? "全天（08:00-22:00）" : req.window());
-        o.setPhotosBefore(req.photosBefore());
+        o.setPhotoIdsBefore(beforePhotoIds);
+        o.setPhotosBefore(displayUrls(beforePhotoIds, req.photosBefore()));
         // 定级分两步：提交这一刻只跑规则（毫秒级，学生不用等模型）；
         // 模型在后台复核，回来把更准的类型和紧急程度写回去。三步都不碰工单状态。
         AiClient.Verdict v = isBlank(req.category())
@@ -100,9 +109,10 @@ public class OrderService {
                 actor.type().name(), actor.id(), actor.name(), actor.type().manual(),
                 "提交报修：" + desc));
         store.save(o);
+        beforePhotoIds.forEach(id -> files.bind(id, o.getNo(), "BEFORE"));
         if (autoAssign) {
             // 派工是系统动作，由后端在提交事务内完成；学生端不再调用 /assign。
-            assign(o.getNo(), new TransitRequest(null, null, null, null, null,
+            assign(o.getNo(), new TransitRequest(null, null, null, null, null, null,
                     null, null, null, null, null), Actor.system());
         }
         if (isBlank(req.category())) {
@@ -161,7 +171,7 @@ public class OrderService {
             if (o.getStatus() != OrderStatus.ASSIGNED) continue;
             if (!actor.id().equals(o.getWorkerId())) continue;
             try {
-                arrive(o.getNo(), new TransitRequest(null, null, null, null, null, null, null, null, null, null), actor);
+                arrive(o.getNo(), new TransitRequest(null, null, null, null, null, null, null, null, null, null, null), actor);
                 ok.add(o.getNo());
             } catch (RuntimeException e) {
                 failed.add(o.getNo());
@@ -194,16 +204,20 @@ public class OrderService {
 
     public OrderView finish(String no, TransitRequest req, Actor actor) {
         guard(no, OrderEvent.FINISH, actor);
-        if (req.photosAfter() == null || req.photosAfter().isEmpty()) {
+        List<String> afterPhotoIds = bindPhotos(req.photoIdsAfter(), req.photosAfter(), "AFTER", actor);
+        if (afterPhotoIds.isEmpty() && (req.photosAfter() == null || req.photosAfter().isEmpty())) {
             throw BizException.precondition("完工照至少 1 张", "PHOTO_AFTER_REQUIRED");
         }
         String at = TimeUtil.now();
-        return OrderView.of(state.transit(no, OrderEvent.FINISH, actor,
+        WorkOrder updated = state.transit(no, OrderEvent.FINISH, actor,
                 isBlank(req.note()) ? "完工提交" : req.note(), req.version(), o -> {
-                    o.setPhotosAfter(req.photosAfter());
+                    o.setPhotoIdsAfter(afterPhotoIds);
+                    o.setPhotosAfter(displayUrls(afterPhotoIds, req.photosAfter()));
                     o.setFinishAt(at);
                     o.setVerifyDueAt(plusHours(at, config.verifyHours()));
-                }));
+                });
+        afterPhotoIds.forEach(id -> files.bind(id, no, "AFTER"));
+        return OrderView.of(updated);
     }
 
     public OrderView needParts(String no, TransitRequest req, Actor actor) {
@@ -391,6 +405,7 @@ public class OrderService {
         r.setDescription(origin.getDescription());
         r.setVisitWindow(origin.getVisitWindow());
         r.setPhotosBefore(new java.util.ArrayList<>(origin.getPhotosBefore()));
+        r.setPhotoIdsBefore(new java.util.ArrayList<>(origin.getPhotoIdsBefore()));
         r.setCategory(origin.getCategory());
         String up = levelUp(origin.getLevel());
         r.setLevel(up);
@@ -471,6 +486,52 @@ public class OrderService {
             throw BizException.forbidden("不能查看不属于你的工单：" + no);
         }
         return OrderView.of(o, reviews.findLatest(no).orElse(null));
+    }
+
+    /** 上传后的文件 ID 才能绑定到工单；旧 demo URL 只在显式 demo 模式兼容。 */
+    private List<String> bindPhotos(List<String> ids, List<String> legacyUrls, String kind, Actor actor) {
+        if (ids != null && !ids.isEmpty()) {
+            if (ids.size() > 3) {
+                throw BizException.precondition("每类照片最多 3 张", "PHOTO_LIMIT_EXCEEDED");
+            }
+            List<FileRecord> records = files.findByIds(ids);
+            if (records.size() != ids.size()) {
+                throw BizException.precondition("有照片不存在或已被清理，请重新上传", "PHOTO_NOT_FOUND");
+            }
+            for (FileRecord f : records) {
+                if (!actor.id().equals(f.uploadedBy())) {
+                    throw BizException.forbidden("不能绑定别人上传的照片");
+                }
+                if (!kind.equals(f.purpose())) {
+                    throw BizException.precondition("照片用途不匹配", "PHOTO_PURPOSE_MISMATCH");
+                }
+                if (f.orderNo() != null) {
+                    throw BizException.precondition("照片已经绑定到工单", "FILE_ALREADY_BOUND");
+                }
+            }
+            return ids;
+        }
+        if (legacyUrls == null || legacyUrls.isEmpty()) {
+            return List.of();
+        }
+        if (!legacyDemoPhotos) {
+            throw BizException.precondition("生产环境必须使用上传接口返回的文件 ID", "PHOTO_UPLOAD_REQUIRED");
+        }
+        if (legacyUrls.size() > 3) {
+            throw BizException.precondition("每类照片最多 3 张", "PHOTO_LIMIT_EXCEEDED");
+        }
+        if (legacyUrls.stream().anyMatch(u -> u == null || !u.startsWith("demo://"))) {
+            throw BizException.precondition("演示环境只兼容 demo:// 旧数据", "PHOTO_UPLOAD_REQUIRED");
+        }
+        // 旧演示数据没有文件 ID；保留 URL 列表，并让调用方继续执行原有照片校验。
+        return List.of();
+    }
+
+    private static List<String> displayUrls(List<String> ids, List<String> legacyUrls) {
+        if (ids != null && !ids.isEmpty()) {
+            return ids.stream().map(id -> "/api/v1/files/" + id).toList();
+        }
+        return legacyUrls == null ? List.of() : legacyUrls;
     }
 
     private static String plusHours(String at, int hours) {

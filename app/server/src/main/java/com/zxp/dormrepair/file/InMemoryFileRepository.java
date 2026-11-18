@@ -1,0 +1,57 @@
+package com.zxp.dormrepair.file;
+
+import com.zxp.dormrepair.common.BizException;
+import com.zxp.dormrepair.common.TimeUtil;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Repository;
+
+/** 测试/内存模式的文件元数据仓库。 */
+@Repository
+@ConditionalOnProperty(name = "app.file.metadata", havingValue = "memory")
+public class InMemoryFileRepository implements FileRepository {
+
+    private final ConcurrentHashMap<String, FileRecord> files = new ConcurrentHashMap<>();
+
+    @Override
+    public FileRecord create(String objectKey, String originalName, String mime, long byteSize,
+                             String sha256, String uploadedBy, String purpose) {
+        String id = UUID.randomUUID().toString();
+        FileRecord f = new FileRecord(id, objectKey, originalName, mime, byteSize, sha256,
+                uploadedBy, purpose, null, null, TimeUtil.now());
+        files.put(id, f);
+        return f;
+    }
+
+    @Override
+    public Optional<FileRecord> find(String id) {
+        return Optional.ofNullable(files.get(id));
+    }
+
+    @Override
+    public List<FileRecord> findByIds(List<String> ids) {
+        List<FileRecord> out = new ArrayList<>();
+        if (ids != null) {
+            ids.forEach(id -> {
+                FileRecord f = files.get(id);
+                if (f != null) out.add(f);
+            });
+        }
+        return out;
+    }
+
+    @Override
+    public void bind(String id, String orderNo, String kind) {
+        files.compute(id, (key, f) -> {
+            if (f == null) throw BizException.notFound("文件不存在：" + id);
+            if (f.orderNo() != null && f.orderNo().equals(orderNo) && f.kind() != null) return f;
+            if (f.orderNo() != null) throw BizException.precondition("文件已经绑定到其他工单", "FILE_ALREADY_BOUND");
+            return new FileRecord(f.id(), f.objectKey(), f.originalName(), f.mime(), f.byteSize(),
+                    f.sha256(), f.uploadedBy(), f.purpose(), orderNo, kind, f.createdAt());
+        });
+    }
+}

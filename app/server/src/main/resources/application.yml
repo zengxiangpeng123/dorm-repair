@@ -7,6 +7,10 @@ spring:
     name: dorm-repair-server
   jackson:
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 10MB
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:dorm_repair}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
     username: ${DB_USER:root}
@@ -29,6 +33,16 @@ app:
     allow-header: ${APP_AUTH_ALLOW_HEADER:false}
   order:
     auto-assign: ${APP_ORDER_AUTO_ASSIGN:true}
+  file:
+    storage: ${APP_FILE_STORAGE:local}
+    metadata: ${APP_FILE_METADATA:mysql}
+    # 仅旧测试/演示数据可开启；生产必须为 false，新照片只能走上传接口。
+    allow-legacy-demo-urls: ${APP_FILE_ALLOW_LEGACY_DEMO_URLS:false}
+    local-root: ${APP_FILE_LOCAL_ROOT:./data/uploads}
+    s3:
+      endpoint: ${APP_FILE_S3_ENDPOINT:}
+      region: ${APP_FILE_S3_REGION:us-east-1}
+      bucket: ${APP_FILE_S3_BUCKET:}
   ai:
     base-url: ${AI_SERVICE_URL:http://127.0.0.1:8001}
     timeout-ms: ${AI_TIMEOUT_MS:1500}

@@ -3,11 +3,20 @@ app:
   demo: true
   order:
     auto-assign: false
+  file:
+    storage: memory
+    metadata: memory
+    allow-legacy-demo-urls: true
+    local-root: ./target/test-uploads
   auth:
     allow-header: true
     ttl-hours: 1
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 10MB
   datasource:
     url: jdbc:mysql://localhost:3306/dorm_repair?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: root

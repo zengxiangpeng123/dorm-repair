@@ -17,7 +17,10 @@ public class ProductionSafetyValidator {
             @Value("${app.auth.allow-header:false}") boolean allowHeader,
             @Value("${spring.datasource.url:}") String datasourceUrl,
             @Value("${spring.datasource.username:}") String username,
-            @Value("${spring.datasource.password:}") String password) {
+            @Value("${spring.datasource.password:}") String password,
+            @Value("${app.file.storage:local}") String fileStorage,
+            @Value("${app.file.s3.bucket:}") String fileBucket,
+            @Value("${app.file.allow-legacy-demo-urls:false}") boolean legacyDemoPhotos) {
         if (demo) {
             throw new IllegalStateException("生产环境禁止开启 app.demo");
         }
@@ -29,6 +32,12 @@ public class ProductionSafetyValidator {
         }
         if (password.equals("123456") || password.equals("root")) {
             throw new IllegalStateException("生产环境禁止使用默认数据库口令");
+        }
+        if (!"s3".equalsIgnoreCase(fileStorage) || fileBucket.isBlank()) {
+            throw new IllegalStateException("生产环境必须使用私有 S3 对象存储并配置 bucket");
+        }
+        if (legacyDemoPhotos) {
+            throw new IllegalStateException("生产环境禁止接受 demo:// 照片");
         }
     }
 }

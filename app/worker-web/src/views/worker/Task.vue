@@ -5,7 +5,9 @@ import BottomNav from '../../components/BottomNav.vue'
 import Plate from '../../components/Plate.vue'
 import StatusPill from '../../components/StatusPill.vue'
 import LevelPill from '../../components/LevelPill.vue'
+import ProtectedImage from '../../components/ProtectedImage.vue'
 import { workerApi } from '../../api/orders'
+import { fileApi } from '../../api/files'
 import { userOf } from '../../api/session'
 import { describeError } from '../../api/request'
 import { EVENT, shortWindow } from '../../constants/status'
@@ -21,6 +23,9 @@ const busy = ref('')
 const sheet = ref(null) // 'finish' | 'parts' | 'noshow'
 
 const photoCount = ref(0)
+const photoFiles = ref([])
+const uploading = ref(false)
+const fileInput = ref(null)
 const noteTags = ref([])
 const note = ref('')
 const parts = ref({ name: '', amount: '', eta: '' })
@@ -86,17 +91,49 @@ async function fire (path, body, tag) {
 }
 
 function openSheet (k) {
-  if (k === 'finish') { photoCount.value = 0; noteTags.value = []; note.value = '' }
+  if (k === 'finish') { photoCount.value = 0; photoFiles.value = []; noteTags.value = []; note.value = '' }
   if (k === 'parts') { parts.value = { name: '', amount: '', eta: tomorrow() } }
   if (k === 'noshow') noShowReason.value = reasons.value[0]?.code || ''
   sheet.value = k
 }
 
+function pickFinishPhotos () {
+  if (photoCount.value >= 3 || uploading.value) return
+  fileInput.value?.click()
+}
+
+async function finishPhotosPicked (event) {
+  const files = Array.from(event.target.files || []).slice(0, 3 - photoCount.value)
+  event.target.value = ''
+  if (!files.length) return
+  uploading.value = true
+  err.value = ''
+  try {
+    for (const file of files) {
+      const uploaded = await fileApi.upload(file, 'AFTER')
+      photoFiles.value.push({ id: uploaded.id, url: uploaded.url, name: file.name })
+    }
+    photoCount.value = photoFiles.value.length
+  } catch (e) {
+    err.value = describeError(e)
+  } finally {
+    uploading.value = false
+  }
+}
+
+function removeFinishPhoto (i) {
+  photoFiles.value.splice(i, 1)
+  photoCount.value = photoFiles.value.length
+}
+
 function submitFinish () {
-  if (!photoCount.value) return
-  const photos = Array.from({ length: photoCount.value }, (_, i) => `demo://after/${o.value.no}-${i + 1}.jpg`)
+  if (!photoCount.value || uploading.value) return
   const text = [...noteTags.value, note.value.trim()].filter(Boolean).join('、') || '完工提交'
-  fire(workerApi.finish, { photosAfter: photos, note: text }, 'finish')
+  fire(workerApi.finish, {
+    photosAfter: photoFiles.value.map((p) => p.url),
+    photoIdsAfter: photoFiles.value.map((p) => p.id),
+    note: text
+  }, 'finish')
 }
 
 function submitParts () {
@@ -202,8 +239,14 @@ onMounted(load)
     <div class="card">
       <div class="card-hd"><h3>照片</h3><span class="hint">学生 {{ (o.photosBefore || []).length }} 张 · 你上传 {{ (o.photosAfter || []).length }} 张</span></div>
       <div class="thumbs">
-        <div v-for="(p, i) in o.photosBefore" :key="p" class="thumb"><span>📷</span><span>现场 {{ i + 1 }}</span></div>
-        <div v-for="(p, i) in o.photosAfter" :key="p" class="thumb" data-tone="ok"><span>📸</span><span>完工 {{ i + 1 }}</span></div>
+        <div v-for="(p, i) in o.photosBefore" :key="p" class="thumb">
+          <ProtectedImage v-if="!p.startsWith('demo://')" :src="p" :alt="`现场 ${i + 1}`" class="photo-img" />
+          <template v-else><span>📷</span><span>现场 {{ i + 1 }}</span></template>
+        </div>
+        <div v-for="(p, i) in o.photosAfter" :key="p" class="thumb" data-tone="ok">
+          <ProtectedImage v-if="!p.startsWith('demo://')" :src="p" :alt="`完工 ${i + 1}`" class="photo-img" />
+          <template v-else><span>📸</span><span>完工 {{ i + 1 }}</span></template>
+        </div>
         <div v-if="!o.photosAfter?.length" class="thumb" data-tone="bad"><span>⚠️</span><span>完工照必填</span></div>
       </div>
     </div>
@@ -235,12 +278,16 @@ onMounted(load)
   <div v-if="sheet === 'finish'" class="mask" @click.self="sheet = null">
     <div class="sheet">
       <div class="sheet-hd"><b>完工提交</b><button @click="sheet = null">取消</button></div>
-      <button class="uploader" @click="photoCount = Math.min(3, photoCount + 1)">
+      <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple hidden @change="finishPhotosPicked" />
+      <button class="uploader" :disabled="uploading || photoCount >= 3" @click="pickFinishPhotos">
         <div style="font-size: 20px">📸</div>
-        <div style="margin-top: 4px">拍完工照（必填，已拍 {{ photoCount }} 张）</div>
+        <div style="margin-top: 4px">{{ uploading ? '上传中…' : `拍完工照（必填，已上传 ${photoCount} 张）` }}</div>
+        <div class="tiny" style="margin-top: 2px">JPEG / PNG / WebP，最多 3 张，每张 ≤ 8 MB</div>
       </button>
       <div v-if="photoCount" class="thumbs">
-        <div v-for="i in photoCount" :key="i" class="thumb" data-tone="ok"><span>📸</span><span>第 {{ i }} 张</span></div>
+        <div v-for="(p, i) in photoFiles" :key="p.id" class="thumb" data-tone="ok" @click="removeFinishPhoto(i)">
+          <ProtectedImage :src="p.url" :alt="p.name" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+        </div>
       </div>
       <div class="lb" style="margin-top: 12px">动了什么（可多选）</div>
       <div class="chips" style="margin-top: 6px">
@@ -251,7 +298,7 @@ onMounted(load)
       </div>
       <div class="lb" style="margin-top: 12px">补充一句（可不写）</div>
       <input v-model="note" class="in" placeholder="举个例子：阀芯老化，换完不漏了" />
-      <button class="submit" :disabled="!photoCount || !!busy" @click="submitFinish">
+      <button class="submit" :disabled="!photoCount || uploading || !!busy" @click="submitFinish">
         {{ busy === 'finish' ? '提交中…' : '提交完工' }}
       </button>
       <p v-if="err" class="err">{{ err }}</p>
@@ -336,4 +383,5 @@ onMounted(load)
 .in:focus { outline: 0; border-color: var(--navy); background: #fff; box-shadow: 0 0 0 3px rgba(18,41,75,.08); }
 .submit { width: 100%; margin-top: 12px; height: 46px; border: 0; border-radius: 12px; background: var(--navy); color: #fff; font-size: 15px; font-weight: 650; }
 .submit:disabled { background: #c7d0dd; }
+.photo-img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 </style>

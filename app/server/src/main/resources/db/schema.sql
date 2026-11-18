@@ -181,11 +181,36 @@ CREATE TABLE IF NOT EXISTS t_work_order_photo (
   order_no  VARCHAR(20) NOT NULL,
   kind      VARCHAR(10) NOT NULL COMMENT 'BEFORE 现场 / AFTER 完工',
   url       VARCHAR(300) NOT NULL,
+  file_id   VARCHAR(36) NULL COMMENT '上传文件 ID；旧 demo:// 数据为空',
   uploaded_by VARCHAR(20) NOT NULL,
   created_at DATETIME   NOT NULL,
   PRIMARY KEY (id),
-  KEY idx_photo_order (order_no, kind)
+  KEY idx_photo_order (order_no, kind),
+  KEY idx_photo_file (file_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='工单照片';
+
+-- ------------------------------------------------------------
+-- 5.1 文件元数据（对象存储只存字节，权限与工单归属在这里）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_file (
+  id            VARCHAR(36)  NOT NULL,
+  object_key    VARCHAR(300) NOT NULL,
+  original_name VARCHAR(200) NULL,
+  mime          VARCHAR(100) NOT NULL,
+  byte_size     BIGINT       NOT NULL,
+  sha256        CHAR(64)     NOT NULL,
+  uploaded_by   VARCHAR(20)  NOT NULL,
+  purpose       VARCHAR(20)  NOT NULL COMMENT 'BEFORE/AFTER',
+  visibility    VARCHAR(12)  NOT NULL DEFAULT 'PRIVATE',
+  order_no      VARCHAR(20)  NULL,
+  kind          VARCHAR(10)  NULL COMMENT 'BEFORE/AFTER',
+  deleted_at    DATETIME     NULL,
+  created_at    DATETIME     NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_file_object_key (object_key),
+  KEY idx_file_order (order_no, kind),
+  KEY idx_file_uploader (uploaded_by, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件元数据';
 
 -- ------------------------------------------------------------
 -- 6 配件台账（老师要求第 5 张业务表：配件与领用）

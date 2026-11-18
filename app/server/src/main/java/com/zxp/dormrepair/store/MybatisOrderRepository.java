@@ -75,8 +75,8 @@ public class MybatisOrderRepository implements OrderRepository {
     @Transactional
     public void save(WorkOrder o) {
         orders.insert(o);
-        insertPhotos(o.getNo(), "BEFORE", o.getPhotosBefore(), o.getStudentId());
-        insertPhotos(o.getNo(), "AFTER", o.getPhotosAfter(), o.getWorkerId());
+        insertPhotos(o.getNo(), "BEFORE", o.getPhotosBefore(), o.getPhotoIdsBefore(), o.getStudentId());
+        insertPhotos(o.getNo(), "AFTER", o.getPhotosAfter(), o.getPhotoIdsAfter(), o.getWorkerId());
         for (OrderEventLog log : o.getEvents()) {
             insertEvent(o.getNo(), log);
         }
@@ -99,6 +99,8 @@ public class MybatisOrderRepository implements OrderRepository {
         int evBefore = cur.getEvents().size();
         int beforeCount = cur.getPhotosBefore().size();
         int afterCount = cur.getPhotosAfter().size();
+        int beforeIdCount = cur.getPhotoIdsBefore().size();
+        int afterIdCount = cur.getPhotoIdsAfter().size();
 
         mutator.accept(cur);
         cur.setVersion(base + 1);
@@ -118,9 +120,11 @@ public class MybatisOrderRepository implements OrderRepository {
             }
         }
         List<String> newAfter = cur.getPhotosAfter().subList(afterCount, cur.getPhotosAfter().size());
-        insertPhotos(no, "AFTER", new ArrayList<>(newAfter), cur.getWorkerId());
+        List<String> newAfterIds = cur.getPhotoIdsAfter().subList(afterIdCount, cur.getPhotoIdsAfter().size());
+        insertPhotos(no, "AFTER", new ArrayList<>(newAfter), new ArrayList<>(newAfterIds), cur.getWorkerId());
         List<String> newBefore = cur.getPhotosBefore().subList(beforeCount, cur.getPhotosBefore().size());
-        insertPhotos(no, "BEFORE", new ArrayList<>(newBefore), cur.getStudentId());
+        List<String> newBeforeIds = cur.getPhotoIdsBefore().subList(beforeIdCount, cur.getPhotoIdsBefore().size());
+        insertPhotos(no, "BEFORE", new ArrayList<>(newBefore), new ArrayList<>(newBeforeIds), cur.getStudentId());
         return true;
     }
 
@@ -171,15 +175,21 @@ public class MybatisOrderRepository implements OrderRepository {
                 .eq("order_no", o.getNo()).orderByAsc("id"));
         List<String> before = new ArrayList<>();
         List<String> after = new ArrayList<>();
+        List<String> beforeIds = new ArrayList<>();
+        List<String> afterIds = new ArrayList<>();
         for (OrderPhotoRow p : ph) {
             if ("AFTER".equals(p.getKind())) {
                 after.add(p.getUrl());
+                if (p.getFileId() != null) afterIds.add(p.getFileId());
             } else {
                 before.add(p.getUrl());
+                if (p.getFileId() != null) beforeIds.add(p.getFileId());
             }
         }
         o.setPhotosBefore(before);
         o.setPhotosAfter(after);
+        o.setPhotoIdsBefore(beforeIds);
+        o.setPhotoIdsAfter(afterIds);
 
         List<OrderEventRow> rows = events.selectList(Wrappers.<OrderEventRow>query()
                 .eq("order_no", o.getNo()).orderByAsc("seq"));
@@ -208,16 +218,17 @@ public class MybatisOrderRepository implements OrderRepository {
         return r.getSeq() == null ? 0L : r.getSeq();
     }
 
-    private void insertPhotos(String no, String kind, List<String> urls, String by) {
+    private void insertPhotos(String no, String kind, List<String> urls, List<String> fileIds, String by) {
         if (urls == null || urls.isEmpty()) {
             return;
         }
         String at = TimeUtil.now();
-        for (String url : urls) {
+        for (int i = 0; i < urls.size(); i++) {
             OrderPhotoRow p = new OrderPhotoRow();
             p.setOrderNo(no);
             p.setKind(kind);
-            p.setUrl(url);
+            p.setUrl(urls.get(i));
+            p.setFileId(fileIds != null && i < fileIds.size() ? fileIds.get(i) : null);
             p.setUploadedBy(by == null ? "unknown" : by);
             p.setCreatedAt(at);
             photos.insert(p);

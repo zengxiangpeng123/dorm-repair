@@ -128,6 +128,8 @@ public class OrderStore implements OrderRepository {
         c.setVisitWindow(o.getVisitWindow());
         c.setPhotosBefore(new ArrayList<>(o.getPhotosBefore()));
         c.setPhotosAfter(new ArrayList<>(o.getPhotosAfter()));
+        c.setPhotoIdsBefore(new ArrayList<>(o.getPhotoIdsBefore()));
+        c.setPhotoIdsAfter(new ArrayList<>(o.getPhotoIdsAfter()));
         c.setCategory(o.getCategory());
         c.setLevel(o.getLevel());
         c.setLevelSource(o.getLevelSource());
