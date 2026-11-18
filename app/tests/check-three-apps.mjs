@@ -52,16 +52,22 @@ for (const [app, own] of Object.entries(builtApps)) {
   const refs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
     .map((m) => m[1])
     .filter((url) => url.startsWith('/') || url.startsWith('./'))
-  const missing = refs.filter((url) => !existsSync(join(dist, url.replace(/^\.?\//, '').split('?')[0])))
+  const badBase = refs.filter((url) => url.startsWith('/') && !url.startsWith(own.route))
+  const missing = refs.filter((url) => {
+    const local = url.startsWith(own.route) ? url.slice(own.route.length) : url.replace(/^\.?\//, '')
+    return !existsSync(join(dist, local.split('?')[0]))
+  })
   const mainRef = html.match(/src="([^"]+\.js)"/)?.[1]
-  const mainFile = mainRef ? join(dist, mainRef.replace(/^\.?\//, '')) : null
+  const mainLocal = mainRef ? (mainRef.startsWith(own.route) ? mainRef.slice(own.route.length) : mainRef.replace(/^\.?\//, '')) : null
+  const mainFile = mainLocal ? join(dist, mainLocal) : null
   const mainText = mainFile && existsSync(mainFile) ? readFileSync(mainFile, 'utf8') : ''
   const wrongSessions = allSessions.filter((key) => key !== own.session && mainText.includes(key))
   const crossRoutes = ['/student/', '/worker/', '/admin/']
     .filter((prefix) => prefix !== own.route && mainText.includes(prefix))
-  if (!mainText || missing.length || wrongSessions.length || crossRoutes.length) {
+  if (!mainText || badBase.length || missing.length || wrongSessions.length || crossRoutes.length) {
     console.log(app + ' DIST FAIL',
       'main=' + (mainText ? 'OK' : 'MISSING') + ';',
+      'badBase=' + badBase.join(',') + ';',
       'missing=' + missing.join(',') + ';',
       'wrongSessions=' + wrongSessions.join(',') + ';',
       'crossRoutes=' + crossRoutes.join(','))
