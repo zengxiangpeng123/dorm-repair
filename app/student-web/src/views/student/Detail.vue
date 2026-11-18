@@ -55,6 +55,9 @@ async function fire (path, body, tag) {
     sheet.value = null
     form.value = { signerName: '', reason: '' }
     await load()
+    if (tag === 'cancelRequest') {
+      window.alert('撤销申请已提交，等待管理员审查。')
+    }
   } catch (e) {
     err.value = describeError(e)
     // 409 说明别人动过这张单，顺手刷一下，别让学生看着旧状态反复点
@@ -313,7 +316,7 @@ onUnmounted(() => clearInterval(timer))
         <label class="lb">情况说明</label>
         <textarea v-model="form.reason" rows="3" class="in ta" placeholder="师傅已经进楼了，说明一下为什么想撤" />
         <p class="note" data-tone="warn" style="margin-top: 9px">
-          这条不改状态，只是把申请记下来给管理员看。作废还是给师傅补工钱，由管理员决定（接口在这个分支返回 501，等变更单 CR-001）。
+          这条申请不改工单状态，提交后由管理员审查。管理员批准后工单才会取消；是否给已上门的师傅补工钱也由管理员决定。
         </p>
       </template>
 

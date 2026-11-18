@@ -105,4 +105,4 @@ src/main/java/com/zxp/dormrepair/
 - 旧 `/reject` 只保留兼容；新 UI 使用 `/rework-request` 与 `/rework-review`。
 - 后续增强：对象存储、持久化会话、幂等键与并发压测。
 - M5：管理端 + 自检台 + 测试报告与 CG01–CG14 文档
-- 一直欠着：登录鉴权（现在身份走请求头，SYS-003 说的 Bearer token 还没做）；`REPAIRING→CANCELLED` 要等变更单 CR-001 批准
+- Bearer 登录、分角色人员表和会话撤销已实现；`REPAIRING→CANCELLED` 已作为管理员撤销决定接口实现，要求先有学生撤销申请。

@@ -221,7 +221,7 @@ public class QueryService {
             boolean asked = o.getEvents().stream().anyMatch(e -> e.event() == OrderEvent.CANCEL_REQUEST);
             if (asked && o.getStatus() == OrderStatus.REPAIRING) {
                 items.add(item("CANCEL_REQUEST", "学生申请撤销", o,
-                        "师傅已经进楼，学生想撤。作废或补偿师傅，得你定（走变更单 CR-001 前接口返回 501）"));
+                        "师傅已经进楼，学生申请撤销。是否取消工单及如何补偿师傅，由管理员决定"));
             }
         }
         // 3 反复返修：第 2 次批准时写入持久记录，不再由查询现场推算，保证事务内可追溯。
