@@ -408,7 +408,7 @@ onMounted(load)
               <header><b>口径与介入点</b><span class="spacer" /><span class="hint">SYS-004</span></header>
               <div class="pn">
                 <div class="rule-row"><span class="n">①</span><div><b>建单判不出来</b><div class="why">AI 置信度低就往急里判并留依据，不拦单。</div></div></div>
-                <div class="rule-row"><span class="n">②</span><div><b>缺件超预算</b><div class="why">金额超预算线进清单，事前就知道花多少。</div></div></div>
+                <div class="rule-row"><span class="n">②</span><div><b>缺件超预算</b><div class="why">金额超预算线进入例外清单，管理员据此决策；例外不改工单状态，采购事实保留到归档。</div></div></div>
                 <div class="rule-row"><span class="n">③</span><div><b>返修审查</b><div class="why">每次返修都先由管理员核对，确认质量问题后才生成返修单。</div></div></div>
                 <div class="rule-row"><span class="n">④</span><div><b>学生申请撤销</b><div class="why">师傅已进楼才有的情况，唯一能改状态的入口。</div></div></div>
               </div>
