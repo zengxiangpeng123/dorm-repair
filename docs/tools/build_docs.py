@@ -56,10 +56,10 @@ def cg09():
            "而是三条：第一，13 条合法转移一条不少；第二，96 种非法组合一条都过不去；第三，被拒之后工单一个字都没变。")
     p(doc, "测试分四层，越往下越接近真实：")
     table(doc, ["层", "测什么", "用什么写", "跑一次多久", "覆盖量"], [
-        ["白盒单测", "状态机转移表、触发方、终态封闭", "JUnit 5，不起容器", "0.1 秒", "7 个用例 / 118 种组合"],
+        ["白盒单测", "状态机转移表、触发方、终态封闭", "JUnit 5，不起容器", "0.1 秒", "7 个用例 / 96 种非法组合"],
         ["接口集成", "HTTP 命令与查询、乐观锁、错误码", "JUnit 5 + @SpringBootTest 真端口", "9 秒", "7 个用例"],
         ["兜底单测", "AI 不可用时的定级兜底", "@SpringBootTest 指向死端口", "3 秒", "4 个用例"],
-        ["脚本验收", "打真服务、真 MySQL 的一条链", "PowerShell + Invoke-RestMethod", "40 秒", "13 + 16 + 20 项断言"],
+        ["脚本验收", "打真服务、真 MySQL 的一条链", "PowerShell + Invoke-RestMethod", "90 秒", "13 + 16 + 20 + 18 项断言"],
         ["规则单测", "Python 定级规则", "pytest", "0.4 秒", "7 个用例"],
     ], [2.4, 5.4, 4.4, 2.0, 1.6], caption="表 1-1　四层测试分工", size=9)
     p(doc, "策略上有三条自我约束，写在 rules/05 里，改代码时照着做：只加断言不删断言；"
@@ -118,6 +118,8 @@ def cg09():
         ["IT-05", "撤销边界", "未进楼可撤（200 CANCELLED）；已进楼 409 from=REPAIRING；申请撤销 202 且状态不变；申请记录出现在工单视图里（cancelRequest.reason 就是原话，不带前缀）", "通过"],
         ["IT-06", "身份越权 403", "学生调派工 → 403；别的师傅打卡 → 403 NOT_OWNER；403 与 409 严格区分", "通过"],
         ["IT-07", "矩阵与 404", "GET /state/matrix 返回 130 / 13；不存在的单号 404", "通过"],
+            ["IT-08", "返修链：驳回生成 -R1，返修单验收后原单级联关闭", "驳回返回 -R1（reworkOf 指回原单、reworkIndex=1、位置与类型继承、紧急度升一档或停在紧急）；原单转 REWORKING 且 reworkCount=1；返修单验收通过后原单 CLOSED，末事件 ORIGIN_CLOSED 且 manual=1", "通过"],
+            ["IT-09", "两颗表没到点谁也推不动", "刚完工就调 /auto-accept → 422 T1_NOT_DUE；未完成调 /archive → 409；学生调 → 403；/admin-cancel → 501 CR-001，状态一个字没动", "通过"],
     ], [1.6, 4.4, 8.2, 1.2], caption="表 4-1　接口用例（OrderFlowTest）", size=9)
     p(doc, "IT-05 是这一轮改出来的：原先工单视图里没有 cancelRequest 字段，学生点了“申请撤销”之后，"
            "师傅在作业页上看不见，照样跑一趟——这正是系统要消灭的“白跑”。现在接口会把最近一次申请翻出来，"
@@ -178,6 +180,7 @@ def cg09():
         ["app\\server\\tests\\m1-chain.ps1", "只起 jar（内存仓库）", "13", "一条链、非法边、乐观锁、撤销边界、403/404 都对"],
         ["app\\server\\tests\\m2-mysql.ps1", "jar + 真 MySQL", "16", "落库、重启数据还在、事件表与照片表同步增长"],
         ["app\\server\\tests\\m3-ai.ps1", "uvicorn + jar", "20", "真 AI 定级、杀 AI 进程后仍能建单且落兜底"],
+            ["app\\server\\tests\\m4-rework.ps1", "jar + 真 MySQL", "18", "驳回生成 -R1、原单挂返修中、返修单验收后原单级联关闭"],
     ], [5.6, 4.2, 1.8, 4.2], caption="表 6-1　三段脚本验收", size=9)
     p(doc, "m2 里有两处是专门为“答辩被问”设计的：一是把服务杀掉再起来，重新查同一张单，证明数据真在库里；"
            "二是数一次 t_work_order / t_work_order_event / t_work_order_photo 的行数，"
@@ -220,12 +223,13 @@ def cg09():
 
     # ---------------------------------------------------------------- 附录
     h1(doc, "附录　如何复跑全部测试")
-    p(doc, "四条命令，全部通过才算这一段活干完（约 1 分钟）：")
+    p(doc, "五条命令，全部通过才算这一段活干完（约 2 分钟）：")
     bullets(doc, [
-        "cd app\\server; mvn -B test　→　Tests run: 18, Failures: 0, Errors: 0",
+        "cd app\\server; mvn -B test　→　Tests run: 20, Failures: 0, Errors: 0",
         "pwsh -NoProfile -File app\\server\\tests\\m1-chain.ps1　→　13 通过 / 0 失败",
         "cd app\\ai; D:\\develop\\python-envs\\dorm-ai\\Scripts\\python.exe -m pytest -q　→　7 passed",
-        "pwsh -NoProfile -File app\\server\\tests\\m2-mysql.ps1（需 MySQL）　→　16 通过 / 0 失败；m3-ai.ps1　→　20 通过 / 0 失败",
+        "pwsh -NoProfile -File app\\server\\tests\\m2-mysql.ps1（需 MySQL）　→　16 通过 / 0 失败",
+        "pwsh -NoProfile -File app\\server\\tests\\m3-ai.ps1　→　20 通过 / 0 失败；m4-rework.ps1　→　18 通过 / 0 失败",
     ])
     p(doc, "测试报告的原始输出建议随源代码一起交（截图或日志文件），本文档只写结论与判据。")
 
@@ -755,6 +759,7 @@ def cg02():
         ["M1", "Spring Boot 4 骨架 + 状态机内核 + 一条链", "mvn test 18 项全绿；m1-chain.ps1 13 项通过", "完成"],
         ["M2", "MySQL 8 + MyBatis-Plus，10 张表，双仓储实现", "m2-mysql.ps1 16 项通过；重启数据仍在", "完成"],
         ["M3", "Python 定级服务 + 800ms 兜底", "m3-ai.ps1 20 项通过；杀掉 AI 仍能建单", "完成"],
+            ["M3.5", "返修链：驳回生成 -R{N}，原单级联关闭", "m4-rework.ps1 18 项通过；mvn test 20/20", "完成"],
         ["M4", "Vue3 + Element Plus 11 页接真接口", "11 页可用、无假数据、截图核对完成", "完成"],
         ["M5", "管理端补充 + 测试报告 + CG 交付文档", "CG01–CG14 齐套、文档带封面目录页脚", "进行中"],
     ], [1.6, 6.0, 6.4, 1.8], caption="表 3-1　里程碑与判据", size=9)

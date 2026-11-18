@@ -107,6 +107,41 @@ public class TimerService {
         }
     }
 
+    /**
+     * 手动推一单到点事件（自检台和接口用）。
+     *
+     * <p>先判"到没到点"，再交给状态机：没到点返回 422，状态不对返回 409。
+     * 这样接口有本事手动推，但推不动还没到期的表 —— 两颗计时器仍然是时间说了算。
+     */
+    public WorkOrder fireOne(String no, OrderEvent event) {
+        WorkOrder o = store.require(no);
+        long now = TimeUtil.nowMs();
+        if (event == OrderEvent.AUTO_ACCEPT) {
+            if (o.getStatus() == OrderStatus.VERIFYING) {
+                Long f = TimeUtil.epochMs(o.getFinishAt());
+                long due = (f == null ? now : f) + config.verifyHours() * 3600_000L;
+                if (now < due) {
+                    throw com.zxp.dormrepair.common.BizException.precondition(
+                            "验收倒计时还没走完，到期时间是 " + TimeUtil.fmt(due), "T1_NOT_DUE");
+                }
+            }
+            state.transit(no, event, SYSTEM, "手动触发：超时自动验收", null, x -> x.setSignAt(TimeUtil.now()));
+        } else if (event == OrderEvent.ARCHIVE) {
+            if (o.getStatus() == OrderStatus.DONE) {
+                Long s = TimeUtil.epochMs(o.getSignAt());
+                long due = (s == null ? now : s) + config.archiveDays() * 24 * 3600_000L;
+                if (now < due) {
+                    throw com.zxp.dormrepair.common.BizException.precondition(
+                            "归档倒计时还没走完，到期时间是 " + TimeUtil.fmt(due), "T2_NOT_DUE");
+                }
+            }
+            state.transit(no, event, SYSTEM, "手动触发：满期归档", null, x -> x.setClosedAt(TimeUtil.now()));
+        } else {
+            throw com.zxp.dormrepair.common.BizException.badRequest("这个接口只接受 AUTO_ACCEPT 与 ARCHIVE");
+        }
+        return store.require(no);
+    }
+
     /** 给界面用：这颗表什么时候到期。 */
     public Map<String, Object> deadlines(WorkOrder o) {
         Map<String, Object> m = new LinkedHashMap<>();

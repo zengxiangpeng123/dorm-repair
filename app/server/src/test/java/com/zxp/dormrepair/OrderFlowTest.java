@@ -244,6 +244,39 @@ class OrderFlowTest {
         assertEquals(404, call("GET", "/orders/BX99999999999", null, null, null).status);
     }
 
+    @Test
+    @DisplayName("两颗表没到点谁也推不动：422；管理端作废仍是 501（变更单 CR-001）")
+    void timersAreTimeDriven() throws Exception {
+        String no = pending().get("no").asText();
+        assign(no, 1);
+        call("POST", "/orders/" + no + "/arrive", "{\"version\":2}", "worker", "W0428");
+        call("POST", "/orders/" + no + "/finish", """
+                {"version":3,"photosAfter":["demo://a.jpg"],"noteTags":["更换软管"]}
+                """, "worker", "W0428");
+
+        // 刚完工就来推自动验收：不允许，422
+        Resp early = call("POST", "/orders/" + no + "/auto-accept", "{}", "system", "system");
+        assertEquals(422, early.status, early.body);
+        assertEquals("T1_NOT_DUE", early.error().get("reason").asText());
+
+        // 归档同理：单子还没完成，状态机先拦（409），不是 422
+        Resp earlyArchive = call("POST", "/orders/" + no + "/archive", "{}", "system", "system");
+        assertEquals(409, earlyArchive.status, earlyArchive.body);
+
+        // 学生没有资格推系统事件
+        Resp byStudent = call("POST", "/orders/" + no + "/auto-accept", "{}", "student", "S001");
+        assertEquals(403, byStudent.status, byStudent.body);
+
+        // 管理端作废：这条边要变更单 CR-001，先返回 501
+        Resp adminCancel = call("POST", "/orders/" + no + "/admin-cancel", "{}", "admin", "A001");
+        assertEquals(501, adminCancel.status, adminCancel.body);
+        assertEquals("CR-001", adminCancel.error().get("changeRequest").asText());
+
+        // 推完之后状态一个字没动
+        Resp after = call("GET", "/orders/" + no, null, null, null);
+        assertEquals("VERIFYING", after.data().get("status").asText());
+    }
+
     // ------------------------------------------------------------- 小工具
 
     private JsonNode pending() throws Exception {

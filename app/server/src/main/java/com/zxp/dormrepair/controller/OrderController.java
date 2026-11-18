@@ -1,12 +1,15 @@
 package com.zxp.dormrepair.controller;
 
 import com.zxp.dormrepair.common.ApiResponses;
+import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.domain.Actor;
 import com.zxp.dormrepair.domain.OrderEventLog;
 import com.zxp.dormrepair.dto.OrderView;
 import com.zxp.dormrepair.dto.SubmitRequest;
 import com.zxp.dormrepair.dto.TransitRequest;
 import com.zxp.dormrepair.service.OrderService;
+import com.zxp.dormrepair.service.TimerService;
+import com.zxp.dormrepair.statemachine.OrderEvent;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +34,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     private final OrderService orders;
+    private final TimerService timers;
 
-    public OrderController(OrderService orders) {
+    public OrderController(OrderService orders, TimerService timers) {
         this.orders = orders;
+        this.timers = timers;
     }
 
     @PostMapping("/orders")
@@ -121,8 +126,40 @@ public class OrderController {
                 .body(ApiResponses.ok(orders.cancelRequest(no, orEmpty(req), actor(http))));
     }
 
-    @GetMapping("/orders")
-    public Map<String, Object> list(@RequestParam(required = false) String status) {
+    /** 系统到点自动验收。手动调时先判到没到点，没到点 422。 */
+    @PostMapping("/orders/{no}/auto-accept")
+    public Map<String, Object> autoAccept(@PathVariable String no, HttpServletRequest http) {
+        Actor a = actor(http);
+        if (a.type() != com.zxp.dormrepair.statemachine.ActorType.SYSTEM) {
+            throw BizException.forbidden("自动验收只能由系统触发");
+        }
+        timers.fireOne(no, OrderEvent.AUTO_ACCEPT);
+        return ApiResponses.ok(orders.detail(no));
+    }
+
+    /** 系统满期归档。手动调时同样先判到期。 */
+    @PostMapping("/orders/{no}/archive")
+    public Map<String, Object> archive(@PathVariable String no, HttpServletRequest http) {
+        Actor a = actor(http);
+        if (a.type() != com.zxp.dormrepair.statemachine.ActorType.SYSTEM) {
+            throw BizException.forbidden("归档只能由系统触发");
+        }
+        timers.fireOne(no, OrderEvent.ARCHIVE);
+        return ApiResponses.ok(orders.detail(no));
+    }
+
+    /**
+     * 管理员作废（师傅已进楼、学生申请撤销）。这条边是 13 条转移里没有的第 14 条，属变更单 CR-001；
+     * 没批准之前一律 501，管理端界面据此把按钮画成不可点。
+     */
+    @PostMapping("/orders/{no}/admin-cancel")
+    public Map<String, Object> adminCancel(@PathVariable String no, HttpServletRequest http) {
+        orders.detail(no);
+        throw BizException.notImplemented("师傅已进楼，作废或补偿师傅要管理员定；这条边还没批准",
+                "CR-001");
+    }
+
+    @GetMapping("/orders")    public Map<String, Object> list(@RequestParam(required = false) String status) {
         List<OrderView> items = orders.list(status);
         return ApiResponses.ok(Map.of("items", items, "total", items.size()));
     }
