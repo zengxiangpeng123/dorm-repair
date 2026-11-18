@@ -1,6 +1,6 @@
 # app/server —— 正式项目后端（Spring Boot 4）
 
-M1 已完成：状态机内核 + 一条链 + 13 条命令骨架。M2 已完成：MySQL 8 + MyBatis-Plus 仓储，重启数据还在。M3 已完成：调 Python 定级服务，800ms 超时兜底，AI 挂了照样能建单。M4 配 Vue 前端。
+M1 已完成：状态机内核 + 一条链 + 13 条命令骨架。M2 已完成：MySQL 8 + MyBatis-Plus 仓储，重启数据还在。M3 已完成：调 Python 定级服务，800ms 超时兜底，AI 挂了照样能建单。M3.5 已完成：驳回生成 -R{N} 返修单、原单级联关闭。M4 配 Vue 前端（11 页，已接真接口）。
 
 ## 怎么跑
 
@@ -96,7 +96,7 @@ src/main/java/com/zxp/dormrepair/
 
 ## 还没做（按里程碑往下排）
 
-- M4 之前的欠账：`-R1` 返修单生成、两颗 7 天计时器定时任务（M1 里只有 t1/t2 的算法没有定时扫描）、登录鉴权、`REPAIRING→CANCELLED` 501
+- 已完成：`-R1` 返修单生成与原单级联关闭、两颗计时器的定时扫描（30 秒一轮）与手动端点、`REPAIRING→CANCELLED` 的 501
 - M4：Vue3 + Element Plus 11 页
 - M5：管理端 + 自检台 + 测试报告与 CG01–CG14 文档
-- 一直欠着：`-R1` 返修单生成（现在验收不通过只把原单转返修中）、两颗 7 天计时器的定时任务、登录鉴权、`REPAIRING→CANCELLED`（变更单 #001 未批，将返回 501）
+- 一直欠着：登录鉴权（现在身份走请求头，SYS-003 说的 Bearer token 还没做）；`REPAIRING→CANCELLED` 要等变更单 CR-001 批准
