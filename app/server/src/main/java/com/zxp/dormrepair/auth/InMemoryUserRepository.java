@@ -85,4 +85,10 @@ public class InMemoryUserRepository implements UserRepository {
         users.computeIfPresent(id, (k, u) -> new UserAccount(u.id(), u.role(), u.name(), u.team(),
                 u.building(), u.room(), u.phone(), u.active(), passwordHash));
     }
+
+    /** 测试和运维停用账号；生产由人员表 active 字段控制。 */
+    public void setActive(String id, boolean active) {
+        users.computeIfPresent(id, (k, u) -> new UserAccount(u.id(), u.role(), u.name(), u.team(),
+                u.building(), u.room(), u.phone(), active, u.password()));
+    }
 }

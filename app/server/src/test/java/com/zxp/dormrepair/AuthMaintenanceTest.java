@@ -1,6 +1,8 @@
 package com.zxp.dormrepair;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.zxp.dormrepair.auth.AuthMaintenanceService;
 import com.zxp.dormrepair.auth.InMemoryAuthSessionRepository;
@@ -16,7 +18,7 @@ class AuthMaintenanceTest {
     @DisplayName("过期和已撤销会话会被维护任务清理，活跃会话保留")
     void cleanupRemovesExpiredAndRevokedSessions() throws Exception {
         var repo = new InMemoryAuthSessionRepository();
-        var store = new TokenStore(repo);
+        var store = new TokenStore(repo, new com.zxp.dormrepair.auth.InMemoryUserRepository());
         var maintenance = new AuthMaintenanceService(store);
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
 
@@ -28,5 +30,19 @@ class AuthMaintenanceTest {
         maintenance.cleanup();
 
         assertEquals(1, repo.count());
+    }
+
+    @Test
+    @DisplayName("账号停用后已有令牌立即失效")
+    void disabledAccountInvalidatesExistingToken() {
+        var users = new com.zxp.dormrepair.auth.InMemoryUserRepository();
+        var store = new TokenStore(new InMemoryAuthSessionRepository(), users);
+        Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
+        TokenStore.Session issued = store.issue(student, "S001", 60_000);
+        assertNotNull(store.resolve(issued.token()));
+
+        users.setActive("S001", false);
+
+        assertNull(store.resolve(issued.token()));
     }
 }

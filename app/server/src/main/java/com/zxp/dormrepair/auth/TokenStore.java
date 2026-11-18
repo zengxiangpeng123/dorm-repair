@@ -26,9 +26,11 @@ public class TokenStore {
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private final AuthSessionRepository sessions;
+    private final UserRepository users;
 
-    public TokenStore(AuthSessionRepository sessions) {
+    public TokenStore(AuthSessionRepository sessions, UserRepository users) {
         this.sessions = sessions;
+        this.users = users;
     }
 
     public Session issue(Actor actor, String account, long ttlMillis) {
@@ -52,6 +54,11 @@ public class TokenStore {
             return null;
         }
         AuthSessionRepository.StoredSession s = found.get();
+        // 权限回收立即生效：普通人员账号停用后旧会话失效；SYSTEM 是内部任务身份。
+        if (!"SYSTEM".equals(s.role())
+                && users.find(s.account()).map(u -> !u.active()).orElse(true)) {
+            return null;
+        }
         Actor actor = new Actor(ActorType.of(s.role()), s.accountId(), s.name());
         return new Session(token, actor, s.account(), s.issuedAtMs(), s.expiresAtMs());
     }

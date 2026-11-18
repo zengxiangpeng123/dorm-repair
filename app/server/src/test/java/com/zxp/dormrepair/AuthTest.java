@@ -77,11 +77,12 @@ class AuthTest {
     @DisplayName("持久化会话：同一摘要可恢复身份，撤销后立即失效")
     void persistedSessionCanBeRestoredAndRevoked() {
         AuthSessionRepository repo = new InMemoryAuthSessionRepository();
-        TokenStore store = new TokenStore(repo);
+        var users = new com.zxp.dormrepair.auth.InMemoryUserRepository();
+        TokenStore store = new TokenStore(repo, users);
         TokenStore.Session issued = store.issue(
                 new Actor(ActorType.STUDENT, "S001", "张同学"), "S001", 60_000);
 
-        TokenStore restored = new TokenStore(repo);
+        TokenStore restored = new TokenStore(repo, users);
         TokenStore.Session found = restored.resolve(issued.token());
         assertNotNull(found);
         assertEquals("S001", found.actor().id());
