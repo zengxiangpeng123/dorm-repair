@@ -149,11 +149,12 @@ public class MybatisOrderRepository implements OrderRepository {
     }
 
     @Override
+    @Transactional
     public String nextNo() {
         String day = LocalDate.now(TimeUtil.ZONE).toString().replace("-", "");
         for (int i = 0; i < 1000; i++) {
             seq.bump(day, "BX");
-            Integer v = seq.current(day, "BX");
+            Integer v = seq.lockCurrent(day, "BX");
             int n = (v == null ? 2 : v) - 1;
             String candidate = "BX" + day + String.format("%03d", n);
             if (orders.selectById(candidate) == null) {
