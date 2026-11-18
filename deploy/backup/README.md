@@ -1,0 +1,15 @@
+# Backup and restore
+
+Backups are gzip-compressed MySQL logical dumps. Object storage must use the provider's
+versioned bucket and lifecycle policy; this directory does not pretend that a database
+dump also backs up S3 objects.
+
+```bash
+export DB_HOST=mysql DB_USER=dorm_app DB_PASSWORD='...' DB_NAME=dorm_repair
+./backup.sh
+./verify.sh
+./restore.sh /backup/dorm_repair-YYYYMMDD-HHMMSS.sql.gz
+```
+
+Run a restore drill against a separate database before production. Keep at least 14 daily
+backups, encrypt the backup bucket, and record the restore time and row counts.

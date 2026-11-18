@@ -20,6 +20,15 @@ class ProductionSafetyValidatorTest {
                 false, false, "jdbc:mysql://db/app", "root", "123456", "s3", "dorm-files", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
                 false, false, "", "", "", "s3", "dorm-files", false, "https://ai.example.com", "model-x"));
+        assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
+                false, false, "jdbc:mysql://db/app", "app", "strong-password", "local", "", false,
+                "https://ai.example.com", "model-x"));
+        assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
+                false, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", true,
+                "https://ai.example.com", "model-x"));
+        assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
+                false, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", false,
+                "http://127.0.0.1:8001", "model-x"));
     }
 
     @Test

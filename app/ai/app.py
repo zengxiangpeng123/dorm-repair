@@ -20,9 +20,10 @@
 from __future__ import annotations
 
 import time
+import uuid
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from pydantic import BaseModel, Field
 
 import classifier
@@ -55,6 +56,18 @@ class ClassifyResponse(BaseModel):
     errorMessage: Optional[str] = None
 
 
+@app.middleware("http")
+async def request_observability(request, call_next):
+    request_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())
+    started = time.perf_counter()
+    response = await call_next(request)
+    response.headers["X-Request-Id"] = request_id
+    duration_ms = int((time.perf_counter() - started) * 1000)
+    print(f"http request method={request.method} path={request.url.path} "
+          f"status={response.status_code} durationMs={duration_ms} requestId={request_id}", flush=True)
+    return response
+
+
 @app.get("/health")
 def health() -> dict:
     return {
@@ -66,6 +79,23 @@ def health() -> dict:
         "classifier": classifier.stats(),
         "uptimeSeconds": round(time.time() - STARTED_AT, 1),
     }
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    stats = classifier.stats()
+    body = (
+        "# HELP dorm_ai_up AI service availability.\n"
+        "# TYPE dorm_ai_up gauge\n"
+        "dorm_ai_up 1\n"
+        "# HELP dorm_ai_uptime_seconds AI service uptime.\n"
+        "# TYPE dorm_ai_uptime_seconds gauge\n"
+        f"dorm_ai_uptime_seconds {time.time() - STARTED_AT:.1f}\n"
+        "# HELP dorm_ai_cache_entries Classifier cache entries.\n"
+        "# TYPE dorm_ai_cache_entries gauge\n"
+        f"dorm_ai_cache_entries {stats.get('cached', 0)}\n"
+    )
+    return Response(body, media_type="text/plain; version=0.0.4")
 
 
 @app.post("/classify", response_model=ClassifyResponse)

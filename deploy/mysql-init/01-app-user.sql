@@ -1,0 +1,4 @@
+-- The application user is created by the deployment operator.
+-- Never grant root or DDL privileges to the runtime account.
+-- MySQL image creates MYSQL_USER/MYSQL_PASSWORD from the Compose environment.
+-- Application migrations require limited DDL rights during controlled releases only.

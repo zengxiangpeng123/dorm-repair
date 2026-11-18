@@ -32,6 +32,10 @@ __pycache__/
 *.pyc
 
 # 密钥：AI 服务的真实 api key 只放在本机 .env.local，绝不入库（仓库是 Public）
+deploy/.env.production
+deploy/certs/
+deploy/backup/artifacts/
+
 .env
 .env.local
 app/ai/.env
