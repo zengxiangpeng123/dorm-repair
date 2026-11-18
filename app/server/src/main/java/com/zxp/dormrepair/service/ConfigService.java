@@ -31,6 +31,7 @@ public class ConfigService {
     private final ConfigMapper mapper;
     private final boolean useDb;
     private final Map<String, String> cache = new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile long loadedAtMs;
 
     public ConfigService(ConfigMapper mapper, @Value("${app.store:mysql}") String store) {
         this.mapper = mapper;
@@ -48,6 +49,7 @@ public class ConfigService {
             for (Map<String, Object> row : mapper.all()) {
                 cache.put(String.valueOf(row.get("k")), String.valueOf(row.get("v")));
             }
+            loadedAtMs = System.currentTimeMillis();
         } catch (Exception e) {
             log.warn("读 t_config 失败，先用默认值：{}", e.getMessage());
         }
@@ -55,15 +57,25 @@ public class ConfigService {
     }
 
     public int budgetLine() {
+        refreshIfStale();
         return intOf(BUDGET_LINE);
     }
 
     public int verifyHours() {
+        refreshIfStale();
         return intOf(VERIFY_HOURS);
     }
 
     public int archiveDays() {
+        refreshIfStale();
         return intOf(ARCHIVE_DAYS);
+    }
+
+    /** 多实例修改 t_config 后，其他实例最多 60 秒内看到新值。 */
+    private void refreshIfStale() {
+        if (useDb && System.currentTimeMillis() - loadedAtMs > 60_000L) {
+            reload();
+        }
     }
 
     /** 给 /meta 和前端配置页用 */
@@ -87,6 +99,7 @@ public class ConfigService {
         patch.forEach((k, v) -> {
             if (DEFAULTS.containsKey(k)) cache.put(k, String.valueOf(v));
         });
+        loadedAtMs = System.currentTimeMillis();
         return all();
     }
 
