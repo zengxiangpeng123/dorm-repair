@@ -138,6 +138,9 @@ public class OrderService {
                     .filter(u -> u.role() == ActorType.WORKER && u.active())
                     .orElseThrow(() -> BizException.precondition(
                             "师傅不存在或已停用：" + req.workerId(), "WORKER_NOT_AVAILABLE"));
+            if (!users.servesBuilding(worker.id(), cur.getBuilding())) {
+                throw BizException.precondition("该师傅不服务本楼栋：" + worker.id(), "WORKER_BUILDING_MISMATCH");
+            }
         }
         String workerName = isBlank(req.workerName()) ? worker.name() : req.workerName();
         String workerId = worker.id();

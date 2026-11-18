@@ -16,6 +16,9 @@ public interface UserRepository {
 
     Optional<UserAccount> findWorkerForBuilding(String buildingId);
 
+    /** 指定师傅派工时校验其服务范围，避免跨楼栋误派。 */
+    boolean servesBuilding(String workerId, String buildingId);
+
     void insert(UserAccount user);
 
     void setPassword(String id, String passwordHash);

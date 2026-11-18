@@ -55,6 +55,15 @@ public class MybatisUserRepository implements UserRepository {
     }
 
     @Override
+    public boolean servesBuilding(String workerId, String buildingId) {
+        if (workerId == null || buildingId == null) {
+            return false;
+        }
+        Integer count = mapper.countWorkerBuilding(workerId, buildingId);
+        return count != null && count > 0;
+    }
+
+    @Override
     public void insert(UserAccount u) {
         UserRow row = new UserRow();
         row.setId(u.id());

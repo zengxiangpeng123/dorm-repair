@@ -52,6 +52,13 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public boolean servesBuilding(String workerId, String buildingId) {
+        UserAccount worker = users.get(workerId);
+        return worker != null && worker.role() == ActorType.WORKER
+                && worker.active() && buildingId != null && buildingId.equals(worker.building());
+    }
+
+    @Override
     public void insert(UserAccount user) {
         users.put(user.id(), user);
     }

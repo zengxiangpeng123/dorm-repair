@@ -36,6 +36,17 @@ public interface UserMapper extends BaseMapper<UserRow> {
             """)
     String findPrimaryBuilding(@Param("workerId") String workerId);
 
+    @Select("""
+            SELECT COUNT(*)
+            FROM t_worker_building wb
+            JOIN t_worker w ON w.id = wb.worker_id
+            WHERE wb.worker_id = #{workerId}
+              AND wb.building_id = #{buildingId}
+              AND w.active = 1
+            """)
+    Integer countWorkerBuilding(@Param("workerId") String workerId,
+                                @Param("buildingId") String buildingId);
+
     @Insert("""
             INSERT INTO t_student (id,name,phone,building_id,room,password_hash,active)
             VALUES (#{id},#{name},#{phone},#{buildingId},#{room},#{password},#{active})
