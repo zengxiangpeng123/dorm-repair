@@ -1,4 +1,4 @@
-FROM node:22-alpine AS build
+FROM node:24.12.0-bookworm-slim AS build
 WORKDIR /src
 COPY app/student-web/package*.json ./student-web/
 COPY app/worker-web/package*.json ./worker-web/
