@@ -57,7 +57,7 @@ public class AuthService {
         }
         if (!u.active()) {
             throttle.failure(normalized, source);
-            throw BizException.forbidden("这个账号已停用，找后勤管理员");
+            throw BizException.unauthorized("账号或口令不对");
         }
         throttle.success(normalized, source);
         TokenStore.Session s = tokens.issue(u.toActor(), u.id(), ttlMillis);

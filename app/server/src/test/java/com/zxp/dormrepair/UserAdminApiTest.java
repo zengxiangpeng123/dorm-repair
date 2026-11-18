@@ -107,7 +107,7 @@ class UserAdminApiTest {
         assertTrue(disabled.data().get("revokedSessions").asInt() >= 1);
 
         assertEquals(401, send("GET", "/my/orders", null, worker).status);
-        assertEquals(403, send("POST", "/auth/login",
+        assertEquals(401, send("POST", "/auth/login",
                 "{\"account\":\"W9003\",\"password\":\"Active-Worker-2026\"}", null).status);
 
         Resp enabled = send("POST", "/admin/users/W9003/active", "{\"active\":true}", admin);
