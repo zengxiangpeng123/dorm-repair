@@ -76,13 +76,7 @@ public class MybatisOrderRepository implements OrderRepository {
         int safePage = Math.max(1, page);
         int safeSize = Math.max(1, Math.min(pageSize, 200));
         var query = Wrappers.<WorkOrder>query();
-        if ("ACTIVE".equalsIgnoreCase(status)) {
-            query.in("status", "PENDING", "ASSIGNED", "REPAIRING", "PARTS", "VERIFYING", "REWORKING");
-        } else if ("DONE".equalsIgnoreCase(status)) {
-            query.in("status", "DONE", "CLOSED", "CANCELLED");
-        } else if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
-            query.eq("status", status.toUpperCase());
-        }
+        applyStatusFilter(query, status);
         Long count = orders.selectCount(query);
         int total = count == null ? 0 : count.intValue();
         int from = Math.min(total, (safePage - 1) * safeSize);
@@ -91,6 +85,39 @@ public class MybatisOrderRepository implements OrderRepository {
                 .last("LIMIT " + safeSize + " OFFSET " + from));
         items.forEach(this::fill);
         return new Page(items, total, safePage, safeSize);
+    }
+
+    @Override
+    public Page pageForActor(com.zxp.dormrepair.statemachine.ActorType actorType, String actorId,
+                             String status, int page, int pageSize) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(pageSize, 200));
+        var query = Wrappers.<WorkOrder>query();
+        if (actorType == com.zxp.dormrepair.statemachine.ActorType.STUDENT) {
+            query.eq("student_id", actorId);
+        } else if (actorType == com.zxp.dormrepair.statemachine.ActorType.WORKER) {
+            query.eq("worker_id", actorId);
+        }
+        applyStatusFilter(query, status);
+        Long count = orders.selectCount(query);
+        int total = count == null ? 0 : count.intValue();
+        int from = Math.min(total, (safePage - 1) * safeSize);
+        List<WorkOrder> items = from >= total ? List.of() : orders.selectList(query
+                .orderByDesc("created_at").orderByDesc("no")
+                .last("LIMIT " + safeSize + " OFFSET " + from));
+        items.forEach(this::fill);
+        return new Page(items, total, safePage, safeSize);
+    }
+
+    private static void applyStatusFilter(com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<WorkOrder> query,
+                                          String status) {
+        if ("ACTIVE".equalsIgnoreCase(status)) {
+            query.in("status", "PENDING", "ASSIGNED", "REPAIRING", "PARTS", "VERIFYING", "REWORKING");
+        } else if ("DONE".equalsIgnoreCase(status)) {
+            query.in("status", "DONE", "CLOSED", "CANCELLED");
+        } else if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+            query.eq("status", status.toUpperCase());
+        }
     }
 
     @Override

@@ -339,6 +339,12 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 | `summary.repairing` | number | 维修中 |
 | `summary.parts` | number | 待配件 |
 
+### 7.3.1 我的工单 `GET /my/orders`
+
+学生/师傅按身份范围查询自己的工单，管理员可查全部。查询参数：`status`（`ACTIVE`、`DONE` 或具体状态）、`page`（默认 1）、`pageSize`（默认 200，最大 200）。学生/师傅范围过滤与 `LIMIT/OFFSET` 在数据库层完成。
+
+响应：`items[]`、`total`、`page`、`pageSize`、`hasMore`。
+
 ### 7.4 管理端工单列表 `GET /orders`
 
 仅管理员。查询参数：`status`（可选，支持 `ACTIVE`、`DONE` 或具体状态）、`page`（默认 1）、`pageSize`（默认 50，最大 200）。数据库查询会下推状态过滤与 `LIMIT/OFFSET`，只加载当前页的事件与照片。

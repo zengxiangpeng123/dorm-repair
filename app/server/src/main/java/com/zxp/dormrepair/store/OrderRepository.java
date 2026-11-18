@@ -24,6 +24,10 @@ public interface OrderRepository {
     /** 管理端分页：数据库/内存只加载当前页及本页明细。 */
     Page page(String status, int page, int pageSize);
 
+    /** 按人员范围分页；STUDENT 只查自己的，WORKER 只查派给自己的，ADMIN 查全部。 */
+    Page pageForActor(com.zxp.dormrepair.statemachine.ActorType actorType, String actorId,
+                     String status, int page, int pageSize);
+
     /** 定时器专用：只返回仍可能到期的待验收与已完成工单。 */
     List<WorkOrder> findTimerCandidates();
 

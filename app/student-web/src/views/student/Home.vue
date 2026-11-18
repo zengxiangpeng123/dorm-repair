@@ -26,7 +26,7 @@ function leftOf (o) {
 
 async function load () {
   try {
-    const [a, all] = await Promise.all([studentApi.myOrders('ACTIVE'), studentApi.myOrders('ALL')])
+    const [a, all] = await Promise.all([studentApi.myOrders('ACTIVE', { pageSize: 50 }), studentApi.myOrders('ALL', { pageSize: 50 })])
     active.value = a.items || []
     recent.value = (all.items || []).slice(0, 4)
     err.value = ''

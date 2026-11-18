@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import com.zxp.dormrepair.auth.AuthSessionRepository;
 import com.zxp.dormrepair.auth.InMemoryAuthSessionRepository;
+import com.zxp.dormrepair.auth.InMemoryLoginAttemptRepository;
 import com.zxp.dormrepair.auth.TokenStore;
 import com.zxp.dormrepair.domain.Actor;
 import com.zxp.dormrepair.statemachine.ActorType;
@@ -43,8 +44,12 @@ class AuthTest {
 
     private String base;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    InMemoryLoginAttemptRepository loginAttempts;
+
     @BeforeEach
     void setUp() throws Exception {
+        loginAttempts.clearAll();
         base = "http://localhost:" + port + "/api/v1";
         // 每个用例都从七张干净的样本单开始（reset 需要管理端身份，这也是"登录之后才能动数据"本身）
         send("POST", "/demo/reset", "{}", login("A001"));
@@ -198,6 +203,26 @@ class AuthTest {
         assertEquals(200, send("GET", "/orders/" + otherNo, null, admin).status);
     }
 
+    @Test
+    @DisplayName("我的工单按身份隔离并支持分页")
+    void myOrdersAreScopedAndPaginated() throws Exception {
+        String student1 = login("S001");
+        Resp mine = send("GET", "/my/orders?status=ALL&page=1&pageSize=2", null, student1);
+        assertEquals(200, mine.status);
+        assertEquals(2, mine.data().get("items").size());
+        assertEquals(2, mine.data().get("pageSize").asInt());
+        assertTrue(mine.data().get("total").asInt() >= 2);
+        for (var item : mine.data().get("items")) {
+            assertEquals("张同学", item.get("studentName").asText());
+        }
+
+        String worker = login("W0428");
+        Resp workerOrders = send("GET", "/my/orders?status=ALL&page=1&pageSize=2", null, worker);
+        assertEquals(200, workerOrders.status);
+        for (var item : workerOrders.data().get("items")) {
+            assertEquals("W0428", item.get("workerId").asText());
+        }
+    }
     @Test
     @DisplayName("登出之后同一个令牌立刻作废")
     void logoutInvalidatesToken() throws Exception {

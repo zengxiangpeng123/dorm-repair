@@ -71,6 +71,23 @@ public class OrderStore implements OrderRepository {
         return new Page(filtered.subList(from, to), filtered.size(), safePage, safeSize);
     }
 
+    @Override
+    public Page pageForActor(com.zxp.dormrepair.statemachine.ActorType actorType, String actorId,
+                             String status, int page, int pageSize) {
+        List<WorkOrder> filtered = all().stream()
+                .filter(o -> switch (actorType) {
+                    case STUDENT -> actorId.equals(o.getStudentId());
+                    case WORKER -> actorId.equals(o.getWorkerId());
+                    default -> true;
+                })
+                .filter(o -> matches(status, o))
+                .toList();
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, pageSize);
+        int from = Math.min(filtered.size(), (safePage - 1) * safeSize);
+        int to = Math.min(filtered.size(), from + safeSize);
+        return new Page(filtered.subList(from, to), filtered.size(), safePage, safeSize);
+    }
     private static boolean matches(String status, WorkOrder o) {
         if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) return true;
         if ("ACTIVE".equalsIgnoreCase(status)) return o.getStatus().active();

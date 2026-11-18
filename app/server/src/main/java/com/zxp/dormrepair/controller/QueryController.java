@@ -38,11 +38,22 @@ public class QueryController {
     /** 我的工单：学生看自己的，师傅看派给自己的，管理端看全部 */
     @GetMapping("/my/orders")
     public Map<String, Object> myOrders(@RequestParam(required = false) String status,
+                                        @RequestParam(defaultValue = "1") int page,
+                                        @RequestParam(defaultValue = "200") int pageSize,
                                         HttpServletRequest http) {
         var actor = ActorResolver.require(ActorResolver.resolve(http),
                 ActorType.STUDENT, ActorType.WORKER, ActorType.ADMIN);
-        List<OrderView> items = query.myOrders(actor, status);
-        return ApiResponses.ok(Map.of("total", items.size(), "items", items));
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(pageSize, 200));
+        var result = query.myOrders(actor, status, safePage, safeSize);
+        List<OrderView> items = result.items().stream().map(OrderView::of).toList();
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("items", items);
+        out.put("total", result.total());
+        out.put("page", result.page());
+        out.put("pageSize", result.pageSize());
+        out.put("hasMore", (long) result.page() * result.pageSize() < result.total());
+        return ApiResponses.ok(out);
     }
 
     /** 师傅工作台：按楼栋、楼层从高到低。管理端也能看，学生看不到。 */

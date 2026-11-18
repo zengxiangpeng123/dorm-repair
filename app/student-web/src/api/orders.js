@@ -1,7 +1,7 @@
 import { api } from './request'
 export const studentApi = {
   meta: () => api.get('/meta'),
-  myOrders: (status) => api.get('/my/orders', status ? { status } : {}),
+  myOrders: (status, params = {}) => api.get('/my/orders', { ...(status ? { status } : {}), ...params }),
   detail: (no) => api.get(`/orders/${no}`),
   submit: (body) => api.post('/orders', body),
   accept: (no, body) => api.post(`/orders/${no}/accept`, body),

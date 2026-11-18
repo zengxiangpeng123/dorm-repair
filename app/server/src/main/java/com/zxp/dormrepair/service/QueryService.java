@@ -62,18 +62,14 @@ public class QueryService {
 
     // ------------------------------------------------------------ 我的工单
 
-    /** 学生看自己的、师傅看派给自己的、管理端看全部。 */
+    /** 学生看自己的、师傅看派给自己的、管理端看全部；范围过滤和分页在仓储层完成。 */
+    public OrderRepository.Page myOrders(Actor actor, String status, int page, int pageSize) {
+        return store.pageForActor(actor.type(), actor.id(), status,
+                Math.max(1, page), Math.max(1, Math.min(pageSize, 200)));
+    }
+
     public List<OrderView> myOrders(Actor actor, String status) {
-        return store.all().stream()
-                .filter(o -> switch (actor.type()) {
-                    case STUDENT -> actor.id().equals(o.getStudentId());
-                    case WORKER -> actor.id().equals(o.getWorkerId());
-                    default -> true;
-                })
-                .filter(o -> match(status, o.getStatus()))
-                .sorted(Comparator.comparing(WorkOrder::getCreatedAt).reversed())
-                .map(OrderView::of)
-                .toList();
+        return myOrders(actor, status, 1, 200).items().stream().map(OrderView::of).toList();
     }
 
     private boolean match(String status, OrderStatus s) {

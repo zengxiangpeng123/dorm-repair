@@ -11,6 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const tab = ref(route.query.tab || 'ACTIVE')
 const all = ref([])
+const total = ref(0)
 const loading = ref(true)
 const err = ref('')
 
@@ -21,7 +22,7 @@ const TABS = [
 ]
 
 const counts = computed(() => {
-  const c = { ACTIVE: 0, DONE: 0, ALL: all.value.length }
+  const c = { ACTIVE: 0, DONE: 0, ALL: total.value }
   for (const o of all.value) {
     if (['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS', 'VERIFYING', 'REWORKING'].includes(o.status)) c.ACTIVE++
     if (o.status === 'DONE' || o.status === 'CLOSED') c.DONE++
@@ -43,8 +44,9 @@ function left (o) {
 
 async function load () {
   try {
-    const r = await studentApi.myOrders('ALL')
+    const r = await studentApi.myOrders('ALL', { pageSize: 200 })
     all.value = r.items || []
+    total.value = r.total ?? all.value.length
   } catch (e) {
     err.value = e.message
   } finally {
