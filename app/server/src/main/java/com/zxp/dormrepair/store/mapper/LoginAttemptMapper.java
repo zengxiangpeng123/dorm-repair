@@ -13,7 +13,16 @@ public interface LoginAttemptMapper extends BaseMapper<LoginAttemptRow> {
     @Select("SELECT failures, blocked_until_ms, updated_at_ms FROM t_login_attempt WHERE attempt_key=#{key}")
     LoginAttemptRow find(@Param("key") String key);
 
-    @Update("UPDATE t_login_attempt SET failures=failures+1, blocked_until_ms=CASE WHEN failures+1 >= #{threshold} THEN #{blockedUntil} ELSE 0 END, updated_at_ms=#{now} WHERE attempt_key=#{key}")
+    @Update("""
+            INSERT INTO t_login_attempt (attempt_key, failures, blocked_until_ms, updated_at_ms)
+            VALUES (#{key}, 1,
+                    CASE WHEN #{threshold} <= 1 THEN #{blockedUntil} ELSE 0 END,
+                    #{now})
+            ON DUPLICATE KEY UPDATE
+              failures = failures + 1,
+              blocked_until_ms = CASE WHEN failures + 1 >= #{threshold} THEN #{blockedUntil} ELSE 0 END,
+              updated_at_ms = #{now}
+            """)
     int increment(@Param("key") String key, @Param("threshold") int threshold,
                   @Param("blockedUntil") long blockedUntil, @Param("now") long now);
 

@@ -24,18 +24,8 @@ public class MybatisLoginAttemptRepository implements LoginAttemptRepository {
 
     @Override
     public Attempt increment(String key, int threshold, long blockMillis, long nowMs) {
+        mapper.increment(key, threshold, nowMs + blockMillis, nowMs);
         LoginAttemptRow row = mapper.find(key);
-        if (row == null) {
-            row = new LoginAttemptRow();
-            row.setAttemptKey(key);
-            row.setFailures(1);
-            row.setBlockedUntilMs(threshold <= 1 ? nowMs + blockMillis : 0L);
-            row.setUpdatedAtMs(nowMs);
-            mapper.insert(row);
-        } else {
-            mapper.increment(key, threshold, nowMs + blockMillis, nowMs);
-            row = mapper.find(key);
-        }
         return new Attempt(row.getFailures() == null ? 0 : row.getFailures(),
                 row.getBlockedUntilMs() == null ? 0L : row.getBlockedUntilMs());
     }

@@ -114,6 +114,29 @@ class AuthTest {
     }
 
     @Test
+    @DisplayName("首次并发失败登录不会因限流记录竞态返回 500")
+    void concurrentFirstFailuresAreCountedAtomically() throws Exception {
+        var start = new java.util.concurrent.CountDownLatch(1);
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var call = (java.util.concurrent.Callable<Resp>) () -> {
+                start.await();
+                return send("POST", "/auth/login",
+                        "{\"account\":\"S002\",\"password\":\"wrong-once\"}", null);
+            };
+            var first = pool.submit(call);
+            var second = pool.submit(call);
+            start.countDown();
+            Resp a = first.get(15, java.util.concurrent.TimeUnit.SECONDS);
+            Resp b = second.get(15, java.util.concurrent.TimeUnit.SECONDS);
+            assertTrue(a.status == 401 || a.status == 429, a.body);
+            assertTrue(b.status == 401 || b.status == 429, b.body);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     @DisplayName("空账号空口令是 400，跟「填错了」分开")
     void emptyCredentialsAre400() throws Exception {
         assertEquals(400, send("POST", "/auth/login", "{\"account\":\"\",\"password\":\"\"}", null).status);
