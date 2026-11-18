@@ -20,5 +20,13 @@ host=$DB_HOST
 user=$DB_USER
 password=$DB_PASSWORD
 EOF
-gunzip -c "$1" | mysql --defaults-extra-file="$CNF" "$DB_NAME"
+gzip -t "$1"
+TMP_SQL="$(mktemp)"
+trap 'rm -f "$CNF" "$TMP_SQL"' EXIT INT TERM
+gunzip -c "$1" > "$TMP_SQL"
+if [ ! -s "$TMP_SQL" ]; then
+  echo "refusing restore: backup expands to an empty file" >&2
+  exit 1
+fi
+mysql --defaults-extra-file="$CNF" "$DB_NAME" < "$TMP_SQL"
 echo "restore complete: $1"
