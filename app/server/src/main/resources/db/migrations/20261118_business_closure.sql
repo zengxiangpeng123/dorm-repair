@@ -1,5 +1,4 @@
-USE dorm_repair;
-
+-- The migration runner selects the target database. Never hard-code a database name here.
 CREATE TABLE IF NOT EXISTS t_idempotency_record (
   id              VARCHAR(36)  NOT NULL,
   actor_type      VARCHAR(12)  NOT NULL,

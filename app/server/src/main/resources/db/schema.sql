@@ -4,10 +4,8 @@
 -- 表前缀 t_，字段 snake_case；接口出参 camelCase 由 MyBatis-Plus 映射
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS dorm_repair
-  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-
-USE dorm_repair;
+-- The database must be created and selected by the deployment operator.
+-- Example: CREATE DATABASE dorm_repair CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 -- ------------------------------------------------------------
 -- 1 人员（学生 / 师傅 / 管理员分表）

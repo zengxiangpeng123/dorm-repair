@@ -1,3 +1,4 @@
+-- The migration runner selects the target database. Never hard-code a database name here.
 CREATE TABLE IF NOT EXISTS t_file (
   id            VARCHAR(36)  NOT NULL,
   object_key    VARCHAR(300) NOT NULL,

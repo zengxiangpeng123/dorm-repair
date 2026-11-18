@@ -19,8 +19,10 @@ export DB_HOST=mysql DB_USER=dorm_app DB_PASSWORD='...' DB_NAME=dorm_repair
 ./deploy/scripts/migrate.sh
 ```
 
-Fresh Compose databases initialize the schema and run the migration files once. Never
-run destructive cleanup or delete `t_user` during the observation window.
+Fresh Compose databases initialize only from `schema.sql`, which already represents the
+current structure. Existing databases use `deploy/scripts/migrate.sh`; never run both
+paths against the same database. Never run destructive cleanup or delete `t_user`
+during the observation window.
 
 ## Build and start
 

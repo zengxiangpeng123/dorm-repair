@@ -1,5 +1,4 @@
-USE dorm_repair;
-
+-- The migration runner selects the target database. Never hard-code a database name here.
 CREATE TABLE IF NOT EXISTS t_ai_review_task (
   id             VARCHAR(36)  NOT NULL,
   order_no       VARCHAR(20)  NOT NULL,

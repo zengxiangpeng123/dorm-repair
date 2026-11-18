@@ -26,11 +26,39 @@ for attempt in $(seq 1 60); do
   sleep 2
 done
 
-# 迁移脚本必须可重复执行；按文件名顺序执行。
+# Legacy upgrades must start from the pre-split t_user schema.
+# Refuse to silently skip a migration because the target is a fresh split schema.
+legacy_user_count="$("$MYSQL" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='t_user'")"
+if [ "$legacy_user_count" = "0" ]; then
+  echo "legacy t_user not found; use schema.sql for a fresh installation" >&2
+  exit 1
+fi
+
+"$MYSQL" <<'SQL'
+CREATE TABLE IF NOT EXISTS t_schema_migration (
+  version     VARCHAR(100) NOT NULL,
+  checksum    CHAR(64)     NOT NULL,
+  applied_at  DATETIME     NOT NULL,
+  PRIMARY KEY (version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='已执行的数据库迁移';
+SQL
+
 for migration in "$MIGRATIONS_DIR"/*.sql; do
   [ -f "$migration" ] || continue
-  echo "applying $(basename "$migration")"
+  version="$(basename "$migration")"
+  checksum="$(sha256sum "$migration" | awk '{print $1}')"
+  recorded="$("$MYSQL" --batch --skip-column-names -e     "SELECT checksum FROM t_schema_migration WHERE version='$version'")"
+  if [ -n "$recorded" ]; then
+    if [ "$recorded" != "$checksum" ]; then
+      echo "migration checksum changed after execution: $version" >&2
+      exit 1
+    fi
+    echo "skip $version (already applied)"
+    continue
+  fi
+  echo "applying $version"
   "$MYSQL" < "$migration"
+  "$MYSQL" -e     "INSERT INTO t_schema_migration(version,checksum,applied_at) VALUES('$version','$checksum',NOW())"
 done
 
 echo "migrations complete"

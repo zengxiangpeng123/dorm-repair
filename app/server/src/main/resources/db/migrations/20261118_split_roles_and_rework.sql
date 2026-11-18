@@ -1,4 +1,5 @@
-USE dorm_repair;
+-- LEGACY DATABASE ONLY: requires the pre-split t_user schema.
+-- Fresh installations must use schema.sql and must not run this file.
 
 -- 2026-11-18: 统一人员表拆分为学生/师傅/管理员，并加入审查表与到期字段。
 -- 本脚本用于已有 dorm_repair 库；新库请直接执行 schema.sql。
@@ -60,16 +61,21 @@ CREATE TABLE IF NOT EXISTS t_building_floor (
   PRIMARY KEY (building_id, floor)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 兼容更早版本：t_user 还没有 password_hash 时先补列。
-SET @col_exists := (
-  SELECT COUNT(*) FROM information_schema.columns
-  WHERE table_schema=DATABASE() AND table_name='t_user' AND column_name='password_hash'
+-- New installations already use the split schema and must not run this legacy copy block.
+
+-- Legacy copy block: execute only when the pre-split t_user table exists.
+SET @has_legacy_user := (
+  SELECT COUNT(*) FROM information_schema.TABLES
+  WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='t_user'
 );
-SET @ddl := IF(@col_exists=0,
+SET @legacy_sql := IF(@has_legacy_user > 0,
   'ALTER TABLE t_user ADD COLUMN password_hash VARCHAR(200) NULL',
   'SELECT 1');
-PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+PREPARE legacy_stmt FROM @legacy_sql;
+EXECUTE legacy_stmt;
+DEALLOCATE PREPARE legacy_stmt;
 
+-- The following data-copy statements are intentionally reached only for legacy databases.
 INSERT INTO t_student (id,name,phone,building_id,room,password_hash,active,created_at)
 SELECT id,name,phone,building_id,room,password_hash,active,created_at
 FROM t_user WHERE role='STUDENT'
