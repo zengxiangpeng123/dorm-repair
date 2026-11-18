@@ -23,7 +23,7 @@ const kindLabel = computed(() => {
   for (const k of meta.value?.exceptionKinds || []) m[k.code] = k.label
   return m
 })
-const active = computed(() => orders.value.filter((o) => !['CLOSED', 'CANCELLED'].includes(o.status)))
+const active = computed(() => orders.value.filter((o) => !['DONE', 'CLOSED', 'CANCELLED'].includes(o.status)))
 const archive = computed(() => orders.value.filter((o) => ['DONE', 'CLOSED'].includes(o.status)).slice(0, 6))
 
 function leftOf (o) {
@@ -180,7 +180,7 @@ onMounted(load)
 
         <div class="row2">
           <section class="panel">
-            <header><b>在办工单</b><span class="spacer" /><span class="hint">按楼层倒序 · 只读</span></header>
+            <header><b>在办工单</b><span class="spacer" /><span class="hint">按楼层倒序 · 只读 · 待归档的 {{ archive.length }} 张见「最近归档」</span></header>
             <table class="dt">
               <thead>
                 <tr>
