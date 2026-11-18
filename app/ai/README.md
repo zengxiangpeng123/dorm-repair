@@ -67,7 +67,7 @@ D:\develop\uv\uv.exe pip install --python 'D:\develop\python-envs\dorm-ai\Script
 D:\develop\python-envs\dorm-ai\Scripts\python.exe -m pytest -q
 ```
 
-期望 `22 passed`。覆盖规则定级、分类器、LLM JSON 解析与断线兜底。
+期望 `23 passed`。覆盖规则定级、分类器、LLM JSON 解析与断线兜底。
 
 端到端（含"杀掉 AI 后建单仍成功"）在 `../server/tests/m3-ai.ps1`，20 项。
 
