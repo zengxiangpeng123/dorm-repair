@@ -3,16 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f6f7f9">
+<meta name="theme-color" content="#12294B">
 <title>工作台 · 宿舍维修</title>
 <link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/assets/worker.css">
 </head>
-<body>
+<body data-app="worker">
 <div class="stage">
   <header class="top">
-    <div><h1 id="hi">师傅</h1><div class="sub" id="loc">—</div></div>
-    <div class="grow"></div>
-    <div id="who"></div>
+    <div id="who" class="who"></div>
+    <h1 id="hi">师傅</h1>
+    <div class="sub" id="loc">—</div>
+    <div class="tally" id="tally"></div>
   </header>
 
   <main class="body" id="main"><div class="empty">加载中…</div></main>
@@ -25,13 +27,15 @@
   try { ({ meta, user } = await App.start('worker')); }
   catch (e) { document.body.innerHTML = '<div class="empty">启动失败：' + App.esc(App.explainErr(e)) + '</div>'; return; }
 
-  App.$('#hi').textContent = user.name;
-  App.$('#loc').textContent = (user.team || '维修班') + ' · ' + ((meta.buildings.find(b => b.id === user.building) || {}).name || '未排班');
+  const bName = (meta.buildings.find(b => b.id === user.building) || {}).name || '本楼';
+  App.$('#hi').textContent = user.name + ' · ' + (user.team || '维修班');
+  App.$('#loc').textContent = bName + (user.building ? '' : ' · 未排班');
   App.$('#who').innerHTML = App.whoBar('worker', user);
   App.bindWho(document, 'worker');
   App.nav('worker', 'index.html');
 
   const main = App.$('#main');
+  const toGo = o => ({ REPAIRING: '接着修这间', ASSIGNED: '到门打卡，开始修', PARTS: '看缺什么件', PENDING: '还没派工' }[o.status] || '打开这单');
 
   async function load() {
     let d;
@@ -40,85 +44,82 @@
 
     const b = d.buildings[0];
     if (!b) {
+      App.$('#tally').innerHTML = '';
       main.innerHTML = `<div class="empty"><div class="big">今天没有派给你的单</div>本楼有单会自动派过来</div>`;
       return;
     }
 
-    // 按"该干谁"排序：先在修的，再没上门的，最后等配件的
+    const s = d.summary || {};
+    App.$('#tally').innerHTML = `
+      <div class="t ${s.todo ? 'hot' : ''}"><b>${s.todo || 0}</b><span>待我上门</span></div>
+      <div class="t"><b>${s.repairing || 0}</b><span>正在修</span></div>
+      <div class="t"><b>${s.parts || 0}</b><span>等配件</span></div>
+      <div class="t"><b>${b.progress.done}/${b.progress.total}</b><span>本楼已完</span></div>`;
+
     const rank = { REPAIRING: 0, ASSIGNED: 1, PARTS: 2 };
     const list = b.orders.slice().sort((x, y) => (rank[x.status] ?? 9) - (rank[y.status] ?? 9) || y.floor - x.floor);
+    const next = list[0];
+    const rest = list.slice(1);
 
     main.innerHTML = `
-      <div class="stats">
-        <div class="stat"><div class="num">${d.summary.todo}</div><div class="lb">待我上门</div></div>
-        <div class="stat"><div class="num">${d.summary.repairing}</div><div class="lb">正在维修</div></div>
-        <div class="stat"><div class="num">${d.summary.parts}</div><div class="lb">等配件</div></div>
-      </div>
+      ${next ? hero(next, b) : ''}
 
-      <div class="card">
-        <div class="hd"><h2>${App.esc(b.buildingName)}</h2><div class="grow"></div>
-          <span class="sk">本楼 ${b.progress.total} 单，已完工 ${b.progress.done}</span></div>
-        <div class="pd">
-          <div class="sk" style="margin-bottom:8px">按楼层分布（从上往下跑，少爬楼梯）</div>
-          <div class="chips">
-            ${b.floors.map(f => `<span class="chip">${f.floor}F　<b>${f.count}</b> 单</span>`).join('')}
-          </div>
-        </div>
-        <div class="ft">
-          ${b.arrived
-            ? `<span style="color:var(--ok)">✓ 已在楼内</span>　进楼打卡 ${App.when(b.orders[0].arriveAt || '')} 起`
-            : `<b>还没进楼打卡。</b>到了楼下点一下，本楼待上门的单会一起变成“维修中”。`}
-        </div>
-      </div>
+      <div class="list-h"><b>这一栋</b><span>还剩 ${rest.length} 间，按楼层从上往下走</span><div class="grow"></div></div>
+      ${rest.length ? rest.map(o => qrow(o)).join('') : `<div class="empty" style="padding:28px 20px">这一栋就剩手上这一间</div>`}
 
-      ${b.arrived ? '' : `<button class="btn primary big block" id="btnArrive" style="margin-bottom:14px">
-        进楼打卡 · ${App.esc(b.buildingName)}
-      </button>`}
-
-      <div class="section-t"><b>今天要跑的</b><span>${list.length} 单</span></div>
-      ${list.map(row).join('')}
+      <div class="tip" data-tone="info">打卡是<b>一次算一批</b>：在楼下点一次，本楼待上门的单一起转维修中，系统按这个时间开始算你的到场。</div>
     `;
 
-    const btn = App.$('#btnArrive');
-    if (btn) btn.addEventListener('click', async () => {
+    const btnArrive = App.$('#btnArrive');
+    if (btnArrive) btnArrive.addEventListener('click', async (ev) => {
+      const btn = ev.currentTarget;
       btn.disabled = true; btn.textContent = '打卡中…';
       try {
         const r = await App.api.post('/buildings/' + encodeURIComponent(user.building) + '/arrive', {}, { role: 'worker' });
-        const msg = r.ok.length
+        App.toast(r.ok.length
           ? `已打卡，${r.ok.length} 单转维修中${r.skipped.length ? `（${r.skipped.length} 单本来就在修）` : ''}`
-          : '打了卡，但没有待上门的单';
-        App.toast(msg);
+          : '打了卡，但没有待上门的单');
         await load();
       } catch (e) {
         App.toast(App.explainErr(e), 'bad');
-        btn.disabled = false; btn.textContent = '进楼打卡';
+        btn.disabled = false; btn.textContent = '进楼打卡 · ' + bName;
       }
     });
   }
 
-  function row(o) {
-    const st = o.status;
-    const hint = st === 'REPAIRING' ? '接着修'
-      : st === 'PARTS' ? '等配件到货'
-      : '还没上门';
-    return `<a class="ticket" data-st="${App.esc(st)}" href="task.html?no=${encodeURIComponent(o.no)}">
-      <div class="l1">
-        <span class="pill plain" style="background:#eef1f5">${o.floor}F · ${App.esc(o.room)}</span>
-        <div class="grow"></div>
-        ${App.statusPill(st)}
+  /* 下一间：全屏唯一的主角 */
+  const shortWin = w => String(w || '').split(/[（(]/)[0];
+
+  function hero(o, b) {
+    const cta = b.arrived
+      ? `<a class="cta" href="task.html?no=${encodeURIComponent(o.no)}">${App.esc(toGo(o))}</a>`
+      : `<button class="cta" id="btnArrive">进楼打卡 · ${App.esc(b.buildingName)}</button>`;
+    return `<section class="hero">
+      <div class="row1">
+        <div class="plate lg" data-st="${App.esc(o.status)}"><b>${App.esc(o.room)}</b><span>${o.floor}F 室</span></div>
+        <div class="rm">
+          <div class="kicker">下一间<span class="lv" data-l="${App.esc(o.level)}">${App.esc(o.level)}</span></div>
+          <p class="fault">${App.esc(o.desc)}</p>
+        </div>
       </div>
-      <div class="d">${App.esc(o.desc)}</div>
-      <div class="m">
-        <span>${App.esc(o.student.name)}</span><span class="dot">·</span>
-        <span>${App.esc(o.window)}</span><span class="dot">·</span>
-        ${App.levelPill(o.level)}
+      <div class="meta">
+        <i>${App.esc(o.category)}</i><i>可上门 ${App.esc(shortWin(o.window))}</i><i>${App.esc(o.student.name)}</i><i class="no">${App.esc(o.no)}</i>
       </div>
-      <div class="meterline">
-        <span>${hint}</span><div class="grow"></div>
-        <span>${{ ASSIGNED: '已派', REPAIRING: '已修', PARTS: '等件' }[o.status] || '已停留'} ${App.human(o.timers.stayedMs)}</span>
+      <div class="cta-wrap">
+        ${cta}
+        <a class="cta ghost" href="building.html">看这一栋剩下的 ${b.progress.total - b.progress.done} 间</a>
       </div>
-      ${o.cancelRequest ? `<div class="note" data-tone="warn" style="margin-top:10px"><span class="i">!</span>
-        <div>学生申请撤销，等管理员定——先别去。</div></div>` : ''}
+    </section>`;
+  }
+
+  function qrow(o) {
+    return `<a class="qrow" data-st="${App.esc(o.status)}" href="task.html?no=${encodeURIComponent(o.no)}">
+      <div class="plate" data-st="${App.esc(o.status)}"><b>${App.esc(o.room)}</b><span>${o.floor}F</span></div>
+      <div class="tx">
+        <div class="d">${o.level === '紧急' ? '<em class="hot">紧急</em>' : ''}${App.esc(o.desc)}</div>
+        <div class="m"><span>${App.esc(o.category)}</span><span>${App.esc(shortWin(o.window))}</span>${o.parts ? `<span>缺件 ${App.esc(o.parts.name)}</span>` : ''}</div>
+      </div>
+      <span class="st">${App.esc(o.statusLabel)}</span>
     </a>`;
   }
 

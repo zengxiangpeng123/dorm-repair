@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f6f7f9">
+<meta name="theme-color" content="#16305A">
 <title>单间作业 · 宿舍维修</title>
 <link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/assets/worker.css">
 </head>
-<body>
+<body data-app="worker">
 <div class="stage">
   <header class="top">
-    <a class="back" href="building.html" aria-label="返回">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
-    </a>
-    <div><h1 id="room">—</h1><div class="sub" id="sub">—</div></div>
-    <div class="grow"></div>
-    <div id="top-pill"></div>
+    <div id="who" class="who"></div>
+    <h1><a class="back" href="building.html" aria-label="返回本楼清单">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+    </a><span id="room">—</span><span class="hchip" id="stChip"></span></h1>
+    <div class="sub" id="sub">—</div>
   </header>
 
-  <main class="body" id="main" style="padding-bottom:120px"><div class="empty">加载中…</div></main>
+  <main class="body has-dock" id="main"><div class="empty">加载中…</div></main>
 </div>
 
 <script src="/assets/app.js"></script>
@@ -47,34 +47,47 @@
   if (!no) { main.innerHTML = `<div class="empty"><div class="big">现在没有要做的单</div>等派工</div>`; return; }
 
   let o = null;
+  const STEPS = { PENDING: 1, ASSIGNED: 2, REPAIRING: 3, PARTS: 3, VERIFYING: 4, DONE: 5, CLOSED: 5, CANCELLED: 0, REWORKING: 3 };
 
   async function load() {
     try { o = await App.api.get('/orders/' + encodeURIComponent(no), { role: 'worker' }); }
     catch (e) { main.innerHTML = `<div class="empty">${App.esc(App.explainErr(e))}</div>`; return; }
 
     App.$('#room').textContent = o.room + ' 室';
-    App.$('#sub').textContent = `${o.floor}F · ${o.category} · ${o.student.name}`;
-    App.$('#top-pill').innerHTML = App.statusPill(o.status);
+    App.$('#stChip').textContent = o.statusLabel;
+    App.$('#sub').textContent = `${o.no}${o.reworkOf ? ' · 返修单' : ''}　${o.floor}F · ${o.category} · ${o.student.name}`;
     render();
   }
 
   function render() {
-    main.innerHTML = [head(), judge(), photos(), log()].join('');
+    main.innerHTML = [head(), cancelTip(), judge(), photos(), log(), dock()].join('');
     main.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => act(b.dataset.act)));
   }
 
+  /* 学生申请撤销：有申请才出现，一条橙线，不抢主按钮 */
+  function cancelTip() {
+    if (!o.cancelRequest) return '';
+    return `<div class="tip" data-tone="warn"><b>学生申请撤销</b>（${App.esc(o.cancelRequest.reason)}）。要改状态得管理员批，批之前先别动手。</div>`;
+  }
+
   function head() {
-    return `<div class="card">
-      <div class="hd"><h2>这间什么毛病</h2><div class="grow"></div>${App.levelPill(o.level)}</div>
-      <div class="pd">
-        <div style="font-size:15.5px;line-height:1.5">${App.esc(o.desc)}</div>
-        <div class="rows" style="border:0;margin-top:12px">
-          <div class="row" style="padding-left:0;padding-right:0"><div class="k">学生</div><div class="v">${App.esc(o.student.name)}</div></div>
-          <div class="row" style="padding-left:0;padding-right:0"><div class="k">可上门</div><div class="v">${App.esc(o.window)}</div></div>
-          <div class="row" style="padding-left:0;padding-right:0"><div class="k">单号</div><div class="v no">${App.esc(o.no)}${o.reworkOf ? ' <span class="pill plain" style="font-size:10.5px">返修 ' + o.reworkIndex + '</span>' : ''}</div></div>
+    return `<section class="hero">
+      <div class="row1">
+        <div class="plate lg" data-st="${App.esc(o.status)}"><b>${App.esc(o.room)}</b><span>${o.floor}F 室</span></div>
+        <div class="rm">
+          <div class="kicker">这间什么毛病<span class="lv" data-l="${App.esc(o.level)}">${App.esc(o.level)}</span></div>
+          <p class="fault">${App.esc(o.desc)}</p>
+          <div class="meta"><i>${App.esc(o.category)}</i><i>可上门 ${App.esc(o.window)}</i><i>${App.esc(o.student.name)}</i></div>
         </div>
       </div>
-      <div class="ft">系统判断：${App.esc(o.ai.basis || '')}</div>
+      ${o.ai && o.ai.basis ? `<div class="why"><em>系统判断</em>${App.esc(o.ai.basis)}</div>` : ''}
+    </section>
+    <div class="slab">
+      <dl class="kv">
+        <dt>位置</dt><dd>${App.esc(o.building)} · ${o.floor}F · ${App.esc(o.room)} 室</dd>
+        <dt>报修人</dt><dd>${App.esc(o.student.name)}　可上门 ${App.esc(String(o.window || '').split(/[（(]/)[0])}</dd>
+        ${o.worker ? `<dt>派给</dt><dd>${App.esc(o.worker.name)}（${App.esc(o.worker.team)}）</dd>` : ''}
+      </dl>
     </div>`;
   }
 
@@ -82,80 +95,88 @@
     const st = o.status;
 
     if (st === 'ASSIGNED' && !o.arriveAt) {
-      return `<div class="card">
-        <div class="hd"><h2>① 能进场吗</h2><div class="grow"></div><span class="sk">到了门口再点</span></div>
-        <div class="pd" style="display:grid;gap:10px">
-          <button class="btn primary big block" data-act="arrive">门开着 / 学生在，开始修</button>
-          <button class="btn block" data-act="noshow">敲了门没人应</button>
-        </div>
-        <div class="ft">没人在就点下面那个，这单会重排回队列，不算你的问题。</div>
+      return `<div class="slab">
+        <div class="h"><b>能进场吗</b><div class="grow"></div><span>到了门口再点</span></div>
+        <div class="kv"><dt>说明</dt><dd>门开着、学生在，就点下面的按钮开始修；没人在就选原因，这单重排回队列，不算你的问题。</dd></div>
       </div>`;
     }
 
     if (st === 'REPAIRING') {
-      return `<div class="card">
-        <div class="hd"><h2>② 能当场修好吗</h2><div class="grow"></div><span class="sk">修完点上报</span></div>
-        <div class="pd" style="display:grid;gap:10px">
-          <button class="btn primary big block" data-act="finish">修好了，传完工照</button>
-          <button class="btn block" data-act="parts">修不好，要申请配件</button>
-        </div>
-        <div class="ft">${o.cancelRequest
-          ? `<span style="color:var(--warn)">学生申请撤销（${App.esc(o.cancelRequest.reason)}），等管理员定；先别动这单。</span>`
-          : '缺件先填名称、金额和预计到货日——金额会自己跟预算线比，超了转管理端。'}</div>
+      return `<div class="slab">
+        <div class="h"><b>能当场修好吗</b><div class="grow"></div><span>修完点上报</span></div>
+        <div class="kv"><dt>说明</dt><dd>修好了就传完工照，至少 1 张；缺件先登记名称、金额、到货日，金额会自己跟预算线比。</dd></div>
       </div>`;
     }
 
     if (st === 'PARTS') {
-      return `<div class="card">
-        <div class="hd"><h2>等配件</h2><div class="grow"></div><span class="pill plain">${o.parts && o.parts.status === 'PENDING_APPROVAL' ? '等管理员批' : '已下单'}</span></div>
-        <div class="rows" style="border-top:1px solid var(--line)">
-          <div class="row"><div class="k">配件</div><div class="v">${App.esc(o.parts ? o.parts.name : '—')}</div></div>
-          <div class="row"><div class="k">金额</div><div class="v">¥ ${App.esc(o.parts ? o.parts.amount : '—')}</div></div>
-          <div class="row"><div class="k">预计到货</div><div class="v">${App.esc(o.parts && o.parts.etaDate || '—')}</div></div>
-        </div>
-        <div class="ft">到货后点确认，这单会回队列重新派给你，紧急度不降。</div>
+      const p = o.parts || {};
+      return `<div class="slab">
+        <div class="h"><b>等配件</b><div class="grow"></div><span>${p.status === 'PENDING_APPROVAL' ? '等管理员批' : '已下单'}</span></div>
+        <dl class="kv">
+          <dt>配件</dt><dd>${App.esc(p.name || '—')}</dd>
+          <dt>金额</dt><dd class="no">¥ ${App.esc(p.amount ?? '—')}${Number(p.amount) > meta.budgetLine ? '　超预算线' : ''}</dd>
+          <dt>到货</dt><dd class="no">${App.esc(p.etaDate || '—')}</dd>
+        </dl>
+        <div class="why"><em>规则</em>到货后这单回队列重新派给你，紧急度不降。</div>
       </div>`;
     }
 
-    if (st === 'VERIFYING') return note('等学生验收', `已经上报完工，学生签字后就结束。超过 ${meta.verifyHours} 小时没人管，系统自动验收。`);
-    if (st === 'DONE') return note('学生已签字', '到了归档时间系统自己归档，你不用管。');
-    if (st === 'CLOSED') return note('已归档', '这单转只读了。');
-    if (st === 'CANCELLED') return note('已取消', '学生撤了，不用去。');
-    if (st === 'REWORKING') return note('返修中', `验收没过，返修单 ${App.esc(o.reworkNo || '')} 会重新派过来。`);
-    if (st === 'PENDING') return note('还没派到这单', '等系统派工。');
-    return '';
-  }
-
-  function note(t, s) {
-    return `<div class="card"><div class="hd"><h2>${t}</h2></div>
-      <div class="pd"><div class="sk">${App.esc(s)}</div></div></div>`;
+    const txt = {
+      VERIFYING: ['等学生验收', `已经上报完工，学生签字就结束。超过 ${meta.verifyHours} 小时没人管，系统自动验收。`],
+      DONE: ['学生已签字', '到归档时间系统自己归档，你不用管。'],
+      CLOSED: ['已归档', '这单转只读了。'],
+      CANCELLED: ['已取消', '学生撤了，不用去。'],
+      REWORKING: ['返修中', `验收没过，返修单 ${App.esc(o.reworkNo || '')} 会重新派过来。`],
+      PENDING: ['还没派到这单', '等系统派工。']
+    }[st];
+    if (!txt) return '';
+    return `<div class="slab"><div class="h"><b>${txt[0]}</b></div><div class="kv"><dt>说明</dt><dd>${App.esc(txt[1])}</dd></div></div>`;
   }
 
   function photos() {
     const before = o.photosBefore || [], after = o.photosAfter || [];
-    return `<div class="card">
-      <div class="hd"><h2>照片</h2><div class="grow"></div><span class="sk">${before.length} 张现场 · ${after.length} 张完工</span></div>
-      <div class="pd">
-        <div class="sk" style="margin-bottom:6px">学生拍的</div>
-        <div class="thumbs">${before.map((p, i) => `<div class="ph ok">${CAM}现场照 ${i + 1}</div>`).join('') || '<div class="ph">没有</div>'}</div>
-        <div class="sk" style="margin:12px 0 6px">你拍的（完工照必填）</div>
-        <div class="thumbs">${after.map((p, i) => `<div class="ph ok">${CAM}完工照 ${i + 1}</div>`).join('') || '<div class="ph">还没传</div>'}</div>
+    const needAfter = ['VERIFYING', 'DONE', 'CLOSED'].includes(o.status) && !after.length;
+    return `<div class="slab">
+      <div class="h"><b>照片</b><div class="grow"></div><span>${before.length} 张现场 · ${after.length} 张完工</span></div>
+      <div class="shots">
+        ${before.map((p, i) => `<div class="s has">${CAM}现场 ${i + 1}</div>`).join('') || '<div class="s">没有现场照</div>'}
+        ${after.map((p, i) => `<div class="s has">${CAM}完工 ${i + 1}</div>`).join('') ||
+          (needAfter ? '<div class="s" data-miss>缺完工照</div>' : `<div class="s">${CAM}还没传</div>`)}
       </div>
     </div>`;
   }
 
   function log() {
     const evs = (o.events || []).slice().sort((a, b) => a.seq - b.seq).slice(-5);
-    return `<div class="card">
-      <div class="hd"><h2>这单经过</h2><div class="grow"></div><a href="javascript:history.back()" style="color:var(--brand);text-decoration:none;font-size:13px">回本楼 ›</a></div>
-      <div class="pd"><div class="tl">
-        ${evs.map((e, i) => `<div class="ev" data-s="${i === evs.length - 1 ? 'now' : 'done'}">
-          <div class="dot"></div>
-          <div class="c"><div class="t1">${App.esc(App.EVENT_CN[e.event] || e.event)}</div>
-          <div class="t2">${App.when(e.at)} · ${App.esc(e.actorName || '')}</div></div>
+    return `<div class="slab">
+      <div class="h"><b>这单经过</b><div class="grow"></div><a href="building.html" style="color:var(--ink-3);text-decoration:none;font-size:12px">回本楼</a></div>
+      <div class="trail">
+        ${evs.map(e => `<div class="e">
+          <b>${App.esc(App.EVENT_CN[e.event] || e.event)}</b>
+          <span>${App.esc(String(e.at).slice(5, 16))} · ${App.esc(e.actorName || '')}${e.manual === 0 ? ' · 系统自动' : ''}</span>
         </div>`).join('')}
-      </div></div>
+      </div>
     </div>`;
+  }
+
+  function dock() {
+    const st = o.status;
+    if (st === 'ASSIGNED' && !o.arriveAt) {
+      return `<div class="dock">
+        <button class="cta" data-act="arrive">门开着，进去开工</button>
+        <button class="cta ghost" data-act="noshow">敲门没人应</button>
+      </div>`;
+    }
+    if (st === 'REPAIRING') {
+      return `<div class="dock">
+        <button class="cta" data-act="finish">修好了，传完工照</button>
+        <button class="cta ghost" data-act="parts">缺件，先登记</button>
+      </div>`;
+    }
+    if (st === 'PARTS') {
+      return `<div class="dock"><a class="cta ghost" href="parts.html">到货了，确认收货</a></div>`;
+    }
+    return '';
   }
 
   /* ---------------- 动作 ---------------- */
@@ -174,9 +195,8 @@
       const s = App.sheet({
         title: '没人在，选个原因',
         sub: '选了之后这单重排回队列，不算你的问题。',
-        body: `<div class="rows" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
-          ${meta.noShowReasons.map(r => `<button class="row" data-r="${r.code}" style="border:0;background:#fff;width:100%;text-align:left;font:inherit;cursor:pointer">
-            <div class="k">${App.esc(r.label)}</div><div class="v" style="color:var(--brand)">选它 ›</div></button>`).join('')}
+        body: `<div style="display:grid;gap:8px">
+          ${meta.noShowReasons.map(r => `<button class="cta ghost" data-r="${r.code}">${App.esc(r.label)}</button>`).join('')}
         </div>`
       });
       s.el.addEventListener('click', async ev => {
@@ -208,7 +228,7 @@
         <div class="sk" style="margin-bottom:8px">做了什么</div>
         <div class="chips" id="tags">${tags}</div>
         <textarea class="input" id="note" rows="2" placeholder="补充一句（选填）" style="margin-top:12px"></textarea>
-        <button class="btn primary block big" style="margin-top:12px" data-x="ok">上报完工</button>`
+        <button class="cta" style="margin-top:12px" data-x="ok">上报完工</button>`
     });
 
     const shots = [];
@@ -241,21 +261,21 @@
       title: '要申请配件',
       sub: `填名称、金额、到货日。超过预算线 ${meta.budgetLine} 元会转管理端审批。`,
       body: `
-        <input class="input" id="pName" placeholder="配件名称，例：滚筒减震器 ×4" style="margin-bottom:10px">
+        <input class="input" id="pName" placeholder="配件名称，例：软管 ×2" style="margin-bottom:10px">
         <input class="input" id="pAmt" type="number" inputmode="decimal" placeholder="金额（元）" style="margin-bottom:10px">
         <input class="input" id="pEta" type="date" value="${tomorrow}" style="margin-bottom:10px">
-        <div class="note" id="pTip" data-tone="info" style="margin:0"><span class="i">¥</span><div>预算线 ${meta.budgetLine} 元。</div></div>
-        <button class="btn primary block big" style="margin-top:12px" data-x="ok">提交缺件</button>`
+        <div class="tip" id="pTip" data-tone="info" style="margin:0"><b>预算线 ${meta.budgetLine} 元</b>，线内直接下单。</div>
+        <button class="cta" style="margin-top:12px" data-x="ok">提交缺件</button>`
     });
 
     const amt = App.$('#pAmt', s.el);
     amt.addEventListener('input', () => {
       const v = Number(amt.value || 0);
       const tip = App.$('#pTip', s.el);
-      if (!v) { tip.setAttribute('data-tone', 'info'); tip.lastElementChild.textContent = `预算线 ${meta.budgetLine} 元。`; return; }
+      if (!v) { tip.setAttribute('data-tone', 'info'); tip.innerHTML = `<b>预算线 ${meta.budgetLine} 元</b>，线内直接下单。`; return; }
       const over = v > meta.budgetLine;
       tip.setAttribute('data-tone', over ? 'warn' : 'info');
-      tip.lastElementChild.innerHTML = over
+      tip.innerHTML = over
         ? `<b>${v} 元超了 ${meta.budgetLine} 元预算线</b>，提交后这单进管理端例外清单，等人批。`
         : `${v} 元在预算线内，提交后直接下单，不用人批。`;
     });

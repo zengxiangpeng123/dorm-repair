@@ -3,16 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f6f7f9">
+<meta name="theme-color" content="#12294B">
 <title>本楼清单 · 宿舍维修</title>
 <link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/assets/worker.css">
 </head>
-<body>
+<body data-app="worker">
 <div class="stage">
   <header class="top">
-    <div><h1 id="bn">本楼</h1><div class="sub" id="sub">—</div></div>
-    <div class="grow"></div>
-    <div id="who"></div>
+    <div id="who" class="who"></div>
+    <h1 id="bn">本楼</h1>
+    <div class="sub" id="sub">—</div>
+    <div class="tally" id="tally"></div>
   </header>
 
   <main class="body" id="main"><div class="empty">加载中…</div></main>
@@ -32,6 +34,7 @@
   App.nav('worker', 'building.html');
 
   const main = App.$('#main');
+  const WALK = ['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS'];
 
   async function load() {
     let d;
@@ -41,18 +44,19 @@
     const allFloors = d.floors || [];
     const all = allFloors.flatMap(f => f.orders);
     const arrived = all.some(o => o.arriveAt);
-
-    // 上楼只看这几类；等验收 / 返修中 / 已归档的不用上楼，收成一行
-    const WALK = ['PENDING', 'ASSIGNED', 'REPAIRING', 'PARTS'];
     const orders = all.filter(o => WALK.includes(o.status));
     const rest = all.length - orders.length;
     const floors = allFloors
       .map(f => ({ floor: f.floor, orders: f.orders.filter(o => WALK.includes(o.status)) }))
       .filter(f => f.orders.length);
+    const empty = (d.emptyFloors || []);
 
-    App.$('#sub').textContent = arrived
-      ? `已在楼内 · 要上楼 ${orders.length} 单`
-      : `还没进楼 · 要上楼 ${orders.length} 单`;
+    App.$('#sub').textContent = '本楼清单 · ' + (arrived ? '已在楼内' : '还没进楼') + ' · 要上楼 ' + orders.length + ' 单';
+    const maxF = floors.length ? Math.max(...floors.map(f => f.floor)) : null;
+    App.$('#tally').innerHTML = `
+      <div class="t ${orders.length ? 'hot' : ''}"><b>${orders.length}</b><span>要上楼</span></div>
+      <div class="t"><b>${floors.length}</b><span>层要跑</span></div>
+      <div class="t"><b>${maxF ? maxF + 'F' : '—'}</b><span>从这层开始</span></div>`;
 
     if (!orders.length) {
       main.innerHTML = `<div class="empty"><div class="big">本楼没有要上楼的活</div>
@@ -61,28 +65,31 @@
     }
 
     main.innerHTML = `
-      ${arrived ? '' : `<div class="note" data-tone="warn" style="margin-bottom:14px"><span class="i">!</span>
-        <div>还没进楼打卡。到楼下先打卡，打卡之后本楼待上门的单会一起转成维修中。</div></div>
-        <button class="btn primary big block" id="btnArrive" style="margin-bottom:16px">进楼打卡 · ${App.esc(bName)}</button>`}
+      ${arrived ? '' : `<div class="tip" data-tone="warn">还没进楼打卡。到楼下先打一次，本楼待上门的单一起转维修中——系统按这个时间算到场。</div>`}
 
-      ${floors.map(f => `
-        <div class="floor-h"><b>${f.floor}F</b><span>${f.orders.length} 间</span></div>
-        ${f.orders.map(o => `<a class="ticket" data-st="${App.esc(o.status)}" href="task.html?no=${encodeURIComponent(o.no)}">
-          <div class="l1">
-            <span class="no">${App.esc(o.room)} 室</span><div class="grow"></div>${App.statusPill(o.status)}
+      ${floors.map(f => {
+        const cnt = {};
+        f.orders.forEach(o => { cnt[o.statusLabel] = (cnt[o.statusLabel] || 0) + 1; });
+        const cl = Object.keys(cnt).map(k => `${k} ${cnt[k]}`).join(' · ');
+        return `
+        <div class="floor-strip"><b>${f.floor}F</b><span>${f.orders.length} 间</span><div class="grow"></div>
+          <span>${cl}</span></div>
+        ${f.orders.map(o => `<a class="qrow" data-st="${App.esc(o.status)}" href="task.html?no=${encodeURIComponent(o.no)}">
+          <div class="plate" data-st="${App.esc(o.status)}"><b>${App.esc(o.room)}</b><span>${f.floor}F</span></div>
+          <div class="tx">
+            <div class="d">${o.level === '紧急' ? '<em class="hot">紧急</em>' : ''}${App.esc(o.desc)}</div>
+            <div class="m"><span>${App.esc(o.category)}</span><span>${App.esc(String(o.window || '').split(/[（(]/)[0])}</span>${o.parts ? `<span>缺件 ${App.esc(o.parts.name)}</span>` : ''}${o.cancelRequest ? '<span class="warn">学生申请撤销</span>' : ''}</div>
           </div>
-          <div class="d">${App.esc(o.desc)}</div>
-          <div class="m"><span>${App.esc(o.category)}</span><span class="dot">·</span><span>${App.esc(o.window)}</span><span class="dot">·</span>${App.levelPill(o.level)}</div>
-          ${o.parts ? `<div class="meterline"><span>缺件：${App.esc(o.parts.name)}</span></div>` : ''}
-          ${o.cancelRequest ? `<div class="meterline"><span style="color:var(--warn)">学生申请撤销，等管理员</span></div>` : ''}
-        </a>`).join('')}
-      `).join('')}
+          <span class="st">${App.esc(o.statusLabel)}</span>
+        </a>`).join('')}`;
+      }).join('')}
 
-      ${(d.emptyFloors || []).length ? `<div class="sk" style="text-align:center;margin:14px 0 4px">${d.emptyFloors.map(f => f + 'F').join('、')} 本层没有单，不用上去</div>` : ''}
-      ${rest ? `<div class="sk" style="text-align:center;margin:6px 0 4px">另有 ${rest} 单在等学生验收或返修，不用上楼</div>` : ''}
+      ${empty.length ? `<div class="floor-strip"><span>${empty.map(f => f + 'F').join('、')} 本层没有单，不用上去</span></div>` : ''}
+      ${rest ? `<div class="floor-strip"><span>另有 ${rest} 单在等学生验收或返修，不用上楼</span></div>` : ''}
 
-      <div class="note" data-tone="info" style="margin-top:6px"><span class="i">i</span>
-        <div>点任意一间进去，就是这单的作业页：能不能进场、能不能当场修好，两个判断走完这单就推到了下一步。</div></div>
+      <div class="tip" data-tone="info">从上往下跑：楼层已经排好，一层跑完再下一层，少爬两趟楼梯。点任意一间就是这单的作业页。</div>
+
+      ${arrived ? '' : `<div class="dock"><button class="cta" id="btnArrive">进楼打卡 · ${App.esc(bName)}</button></div>`}
     `;
 
     const btn = App.$('#btnArrive');
@@ -92,7 +99,7 @@
         const r = await App.api.post('/buildings/' + encodeURIComponent(user.building) + '/arrive', {}, { role: 'worker' });
         App.toast(`已打卡 ${r.ok.length} 单${r.skipped.length ? `，${r.skipped.length} 单本来就在修` : ''}`);
         await load();
-      } catch (e) { App.toast(App.explainErr(e), 'bad'); btn.disabled = false; btn.textContent = '进楼打卡'; }
+      } catch (e) { App.toast(App.explainErr(e), 'bad'); btn.disabled = false; btn.textContent = '进楼打卡 · ' + bName; }
     });
   }
 

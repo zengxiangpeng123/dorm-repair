@@ -66,12 +66,14 @@ def shoot(url, w, h, out, dsf):
 
 
 def last_row(im, x0, x1, y0=0):
+    # 背景色不止一种：手机页 --bg、桌面页 #f4f6f9、师傅端水泥灰 #e9ecf0
+    BGS = [BG, BG2, (233, 236, 240), (233, 238, 245)]
     px = im.convert("RGB").load()
     w, h = im.size
     for y in range(h - 1, y0, -1):
         for x in range(x0, min(x1, w), 3):
             p = px[x, y]
-            if any(abs(p[i] - BG[i]) > 7 for i in range(3)) and any(abs(p[i] - BG2[i]) > 7 for i in range(3)):
+            if all(any(abs(p[i] - b[i]) > 7 for i in range(3)) for b in BGS):
                 return y
     return y0
 
