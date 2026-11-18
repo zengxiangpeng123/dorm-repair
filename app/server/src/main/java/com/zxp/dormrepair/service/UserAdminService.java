@@ -16,6 +16,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserAdminService {
 
+    private static final java.util.Set<String> WEAK_PASSWORDS = java.util.Set.of(
+            "12345678", "123456789", "1234567890", "password", "password1", "qwerty123", "admin123", "dorm1234");
+
+    private static void validatePassword(String password) {
+        if (password == null || password.length() < 12) {
+            throw BizException.badRequest("口令至少 12 位");
+        }
+        if (WEAK_PASSWORDS.contains(password.toLowerCase(java.util.Locale.ROOT))) {
+            throw BizException.badRequest("口令过于常见，请使用更难猜测的口令");
+        }
+    }
+
     private final UserRepository users;
     private final TokenStore tokens;
 
@@ -36,9 +48,10 @@ public class UserAdminService {
     public Map<String, Object> create(UserCreateRequest req) {
         if (req == null || req.id() == null || req.id().isBlank()
                 || req.name() == null || req.name().isBlank()
-                || req.password() == null || req.password().length() < 8) {
-            throw BizException.badRequest("账号、姓名和至少 8 位口令必填");
+                || req.password() == null) {
+            throw BizException.badRequest("账号、姓名和口令必填");
         }
+        validatePassword(req.password());
         String id = req.id().trim();
         if (users.find(id).isPresent()) {
             throw BizException.conflict("USER_ALREADY_EXISTS", "账号已存在：" + id);
@@ -97,9 +110,7 @@ public class UserAdminService {
 
 
     public Map<String, Object> resetPassword(String id, String password) {
-        if (password == null || password.length() < 8) {
-            throw BizException.badRequest("口令至少 8 位");
-        }
+        validatePassword(password);
         users.find(id).orElseThrow(() -> BizException.notFound("账号不存在：" + id));
         users.setPassword(id, PasswordHasher.hash(password));
         int revokedSessions = tokens.revokeAccount(id);

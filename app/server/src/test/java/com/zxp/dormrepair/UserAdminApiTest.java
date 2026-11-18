@@ -185,6 +185,20 @@ class UserAdminApiTest {
     }
 
     @Test
+    @DisplayName("创建和重置口令拒绝短口令与常见弱口令")
+    void rejectsWeakPasswords() throws Exception {
+        String admin = login("A001", "dorm@2026");
+        Resp shortPw = send("POST", "/admin/users",
+                "{\"id\":\"W9010\",\"role\":\"WORKER\",\"name\":\"弱口令测试\",\"buildings\":[\"B7\"],\"password\":\"short1234\"}",
+                admin);
+        assertEquals(400, shortPw.status, shortPw.body);
+        Resp commonPw = send("POST", "/admin/users",
+                "{\"id\":\"W9010\",\"role\":\"WORKER\",\"name\":\"弱口令测试\",\"buildings\":[\"B7\"],\"password\":\"1234567890\"}",
+                admin);
+        assertEquals(400, commonPw.status, commonPw.body);
+    }
+
+    @Test
     @DisplayName("active 必须是布尔值")
     void activeMustBeBoolean() throws Exception {
         String admin = login("A001", "dorm@2026");
