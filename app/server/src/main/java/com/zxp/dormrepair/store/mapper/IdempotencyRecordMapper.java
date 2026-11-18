@@ -15,11 +15,25 @@ public interface IdempotencyRecordMapper extends BaseMapper<IdempotencyRecordRow
               (id, actor_type, actor_id, method, path, idempotency_key, request_hash,
                status, created_at)
             VALUES
-              (#{id}, #{actorType}, #{actorId}, #{method}, #{path}, #{idempotencyKey},
-               #{requestHash}, 'PROCESSING',
-               #{createdAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler})
+              (#{row.id}, #{row.actorType}, #{row.actorId}, #{row.method}, #{row.path}, #{row.idempotencyKey},
+               #{row.requestHash}, 'PROCESSING',
+               #{row.createdAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler})
             """)
-    int claim(IdempotencyRecordRow row);
+    int claim(@Param("row") IdempotencyRecordRow row, @Param("staleBefore") String staleBefore);
+
+    @Update("""
+            UPDATE t_idempotency_record
+               SET status = 'PROCESSING', request_hash = #{row.requestHash},
+                   response_status = NULL, response_body = NULL,
+                   created_at = #{row.createdAt,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler},
+                   completed_at = NULL
+             WHERE actor_type = #{row.actorType} AND actor_id = #{row.actorId}
+               AND method = #{row.method} AND path = #{row.path}
+               AND idempotency_key = #{row.idempotencyKey}
+               AND status = 'PROCESSING'
+               AND created_at < #{staleBefore,typeHandler=com.zxp.dormrepair.store.DateTimeStringTypeHandler}
+            """)
+    int takeOver(@Param("row") IdempotencyRecordRow row, @Param("staleBefore") String staleBefore);
 
     @Update("""
             UPDATE t_idempotency_record

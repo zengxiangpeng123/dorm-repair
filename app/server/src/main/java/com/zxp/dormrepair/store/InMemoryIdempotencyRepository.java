@@ -1,5 +1,6 @@
 package com.zxp.dormrepair.store;
 
+import com.zxp.dormrepair.common.TimeUtil;
 import com.zxp.dormrepair.domain.IdempotencyRecord;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,10 +18,25 @@ public class InMemoryIdempotencyRepository implements IdempotencyRepository {
     }
 
     @Override
-    public boolean claim(IdempotencyRecord record) {
+    public boolean claim(IdempotencyRecord record, String staleBefore) {
         String key = compound(record.actorType(), record.actorId(), record.method(), record.path(),
                 record.idempotencyKey());
-        return rows.putIfAbsent(key, record) == null;
+        var replaced = new java.util.concurrent.atomic.AtomicBoolean(false);
+        rows.compute(key, (k, current) -> {
+            if (current == null) {
+                replaced.set(true);
+                return record;
+            }
+            Long created = TimeUtil.epochMs(current.createdAt());
+            Long cutoff = TimeUtil.epochMs(staleBefore);
+            if ("PROCESSING".equals(current.status()) && created != null && cutoff != null
+                    && created < cutoff) {
+                replaced.set(true);
+                return record;
+            }
+            return current;
+        });
+        return replaced.get();
     }
 
     @Override

@@ -3,8 +3,12 @@ package com.zxp.dormrepair;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.zxp.dormrepair.common.BizException;
+import com.zxp.dormrepair.domain.Actor;
+import com.zxp.dormrepair.domain.IdempotencyRecord;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -380,6 +384,33 @@ class OrderFlowTest {
         Resp changed = call("POST", "/orders", changedBody, "student", "S001", "idem-submit-2");
         assertEquals(409, changed.status, changed.body);
         assertEquals("IDEMPOTENCY_KEY_REUSED", changed.error().get("code").asText());
+    }
+
+    @Test
+    @DisplayName("未过期的幂等占位仍阻止重复执行")
+    void freshIdempotencyClaimRejectsConcurrentRetry() {
+        var repository = new com.zxp.dormrepair.store.InMemoryIdempotencyRepository();
+        var service = new com.zxp.dormrepair.service.IdempotencyService(repository);
+        Actor actor = new Actor(com.zxp.dormrepair.statemachine.ActorType.STUDENT, "S001", "张同学");
+        var first = service.begin(actor, "POST", "/api/v1/orders", "fresh-key", "hash");
+        assertTrue(first.owner() != null);
+        BizException error = assertThrows(BizException.class,
+                () -> service.begin(actor, "POST", "/api/v1/orders", "fresh-key", "hash"));
+        assertEquals("IDEMPOTENCY_IN_PROGRESS", error.code());
+    }
+
+    @Test
+    @DisplayName("崩溃遗留的过期幂等占位可被安全接管")
+    void staleIdempotencyClaimCanBeTakenOver() {
+        var repository = new com.zxp.dormrepair.store.InMemoryIdempotencyRepository();
+        var service = new com.zxp.dormrepair.service.IdempotencyService(repository);
+        Actor actor = new Actor(com.zxp.dormrepair.statemachine.ActorType.STUDENT, "S001", "张同学");
+        var stale = new IdempotencyRecord("stale", actor.type().name(), actor.id(), "POST",
+                "/api/v1/orders", "stale-key", "hash", "PROCESSING", null, null,
+                "2020-01-01 00:00:00", null);
+        assertTrue(repository.claim(stale, "2020-01-01 00:10:00"));
+        var takeover = service.begin(actor, "POST", "/api/v1/orders", "stale-key", "hash");
+        assertTrue(takeover.owner() != null);
     }
 
     // ------------------------------------------------------------- 小工具

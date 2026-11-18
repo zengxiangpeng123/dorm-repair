@@ -18,6 +18,8 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class IdempotencyService {
     private final IdempotencyRepository records;
+    @org.springframework.beans.factory.annotation.Value("${app.idempotency.claim-timeout-minutes:10}")
+    private int claimTimeoutMinutes = 10;
 
     public IdempotencyService(IdempotencyRepository records) {
         this.records = records;
@@ -28,6 +30,8 @@ public class IdempotencyService {
         if (key == null || key.isBlank()) return null;
         String actorType = actor.type().name();
         String actorId = actor.id();
+        String staleBefore = TimeUtil.fmt(TimeUtil.nowMs()
+                - Math.max(1, claimTimeoutMinutes) * 60_000L);
         var found = records.find(actorType, actorId, method, path, key.trim());
         if (found.isPresent()) {
             IdempotencyRecord row = found.get();
@@ -36,13 +40,17 @@ public class IdempotencyService {
                         "同一个 Idempotency-Key 不能用于不同请求内容");
             }
             if ("COMPLETED".equals(row.status())) return new Claim(row, null);
-            throw BizException.conflict("IDEMPOTENCY_IN_PROGRESS",
-                    "相同请求正在处理中，请稍后重试");
+            Long created = TimeUtil.epochMs(row.createdAt());
+            Long cutoff = TimeUtil.epochMs(staleBefore);
+            if (created == null || cutoff == null || created >= cutoff) {
+                throw BizException.conflict("IDEMPOTENCY_IN_PROGRESS",
+                        "相同请求正在处理中，请稍后重试");
+            }
         }
         IdempotencyRecord claimed = new IdempotencyRecord(UUID.randomUUID().toString(), actorType,
                 actorId, method, path, key.trim(), requestHash, "PROCESSING", null, null,
                 TimeUtil.now(), null);
-        if (!records.claim(claimed)) {
+        if (!records.claim(claimed, staleBefore)) {
             throw BizException.conflict("IDEMPOTENCY_IN_PROGRESS",
                     "相同请求正在处理中，请稍后重试");
         }

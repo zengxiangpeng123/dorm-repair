@@ -25,7 +25,7 @@ public class MybatisIdempotencyRepository implements IdempotencyRepository {
     }
 
     @Override
-    public boolean claim(IdempotencyRecord record) {
+    public boolean claim(IdempotencyRecord record, String staleBefore) {
         IdempotencyRecordRow row = new IdempotencyRecordRow();
         row.setId(record.id());
         row.setActorType(record.actorType());
@@ -36,7 +36,8 @@ public class MybatisIdempotencyRepository implements IdempotencyRepository {
         row.setRequestHash(record.requestHash());
         row.setStatus("PROCESSING");
         row.setCreatedAt(record.createdAt());
-        return mapper.claim(row) == 1;
+        if (mapper.claim(row, staleBefore) == 1) return true;
+        return mapper.takeOver(row, staleBefore) == 1;
     }
 
     @Override

@@ -45,6 +45,8 @@ app:
     allow-header: ${APP_AUTH_ALLOW_HEADER:false}
   order:
     auto-assign: ${APP_ORDER_AUTO_ASSIGN:true}
+  idempotency:
+    claim-timeout-minutes: ${APP_IDEMPOTENCY_CLAIM_TIMEOUT_MINUTES:10}
   file:
     storage: ${APP_FILE_STORAGE:local}
     metadata: ${APP_FILE_METADATA:mysql}
