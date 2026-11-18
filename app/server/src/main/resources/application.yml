@@ -45,6 +45,8 @@ app:
       bucket: ${APP_FILE_S3_BUCKET:}
   ai:
     base-url: ${AI_SERVICE_URL:http://127.0.0.1:8001}
+    model: ${AI_MODEL:raccoon/sn-deepseek-v4-1-flash-1017}
+    provider: ${AI_PROVIDER:agent2api}
     timeout-ms: ${AI_TIMEOUT_MS:1500}
     review-timeout-ms: ${AI_REVIEW_TIMEOUT_MS:30000}
 

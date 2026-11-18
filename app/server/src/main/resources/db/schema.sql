@@ -213,6 +213,35 @@ CREATE TABLE IF NOT EXISTS t_file (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件元数据';
 
 -- ------------------------------------------------------------
+-- 5.2 AI 复核任务（只记录任务事实；结果应用由工单 CAS 决定）
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS t_ai_review_task (
+  id             VARCHAR(36)  NOT NULL,
+  order_no       VARCHAR(20)  NOT NULL,
+  order_version  INT          NOT NULL,
+  input_hash     CHAR(64)     NOT NULL,
+  model          VARCHAR(100) NOT NULL,
+  provider       VARCHAR(40)  NOT NULL,
+  status         VARCHAR(12)  NOT NULL COMMENT 'PENDING/RUNNING/SUCCEEDED/FALLBACK/FAILED/SUPERSEDED',
+  attempts       INT          NOT NULL DEFAULT 0,
+  requested_at   DATETIME     NOT NULL,
+  completed_at   DATETIME     NULL,
+  error_code     VARCHAR(40)  NULL,
+  error_message  VARCHAR(300) NULL,
+  category       VARCHAR(20)  NULL,
+  level          VARCHAR(10)  NULL,
+  confidence     DOUBLE       NULL,
+  basis          VARCHAR(300) NULL,
+  source         VARCHAR(20)  NULL,
+  latency_ms     BIGINT       NOT NULL DEFAULT 0,
+  applied        TINYINT(1)   NOT NULL DEFAULT 0,
+  applied_at     DATETIME     NULL,
+  PRIMARY KEY (id),
+  KEY idx_ai_review_order (order_no, requested_at),
+  KEY idx_ai_review_status (status, requested_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 复核任务审计';
+
+-- ------------------------------------------------------------
 -- 6 配件台账（老师要求第 5 张业务表：配件与领用）
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS t_part (

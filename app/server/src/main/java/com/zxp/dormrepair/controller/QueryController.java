@@ -69,6 +69,14 @@ public class QueryController {
         return ApiResponses.ok(query.reworkReviews());
     }
 
+    /** AI 复核审计记录；只给管理端。 */
+    @GetMapping("/admin/ai-reviews")
+    public Map<String, Object> aiReviews(@RequestParam(defaultValue = "50") int limit,
+                                         HttpServletRequest http) {
+        ActorResolver.require(ActorResolver.resolve(http), ActorType.ADMIN);
+        return ApiResponses.ok(query.aiReviewTasks(limit));
+    }
+
     /** 四类例外（只有管理端能看） */
     @GetMapping("/admin/exceptions")
     public Map<String, Object> exceptions(HttpServletRequest http) {

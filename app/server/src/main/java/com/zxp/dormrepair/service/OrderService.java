@@ -97,8 +97,8 @@ public class OrderService {
         // 模型在后台复核，回来把更准的类型和紧急程度写回去。三步都不碰工单状态。
         AiClient.Verdict v = isBlank(req.category())
                 ? ai.classifyFast(desc)
-                : new AiClient.Verdict(req.category(), isBlank(req.level()) ? "普通" : req.level(),
-                        1.0, "调用方指定类型，没走 AI", false, "MANUAL");
+                : AiClient.Verdict.manual(req.category(), isBlank(req.level()) ? "普通" : req.level(),
+                        "调用方指定类型，没走 AI");
         o.setCategory(v.category());
         o.setLevel(v.level());
         o.setLevelSource(v.fallback() ? "FALLBACK" : v.source());
@@ -115,10 +115,13 @@ public class OrderService {
             assign(o.getNo(), new TransitRequest(null, null, null, null, null, null,
                     null, null, null, null, null), Actor.system());
         }
+        WorkOrder created = store.require(o.getNo());
         if (isBlank(req.category())) {
-            review.review(o.getNo(), desc);   // 异步，立刻返回
+            // 任务版本必须取自所有建单内联动作完成后的最终快照；否则自动派工后的
+            // 版本变化会被误判成晚到结果，或让版本守卫失去意义。
+            review.review(created.getNo(), created.getVersion(), desc);   // 异步，立刻返回
         }
-        return OrderView.of(store.get(o.getNo()));
+        return OrderView.of(created);
     }
 
     // ------------------------------------------------------- 2 / 3 派工与到门

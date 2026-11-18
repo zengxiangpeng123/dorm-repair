@@ -9,6 +9,7 @@ import com.zxp.dormrepair.domain.WorkOrder;
 import com.zxp.dormrepair.dto.OrderView;
 import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
+import com.zxp.dormrepair.store.AiReviewTaskRepository;
 import com.zxp.dormrepair.store.ExceptionRecordRepository;
 import com.zxp.dormrepair.store.OrderRepository;
 import com.zxp.dormrepair.store.ReworkReviewRepository;
@@ -46,14 +47,17 @@ public class QueryService {
     private final ConfigService config;
     private final ReworkReviewRepository reviews;
     private final ExceptionRecordRepository exceptionRecords;
+    private final AiReviewTaskRepository aiTasks;
 
     public QueryService(OrderRepository store, ConfigService config,
                         ReworkReviewRepository reviews,
-                        ExceptionRecordRepository exceptionRecords) {
+                        ExceptionRecordRepository exceptionRecords,
+                        AiReviewTaskRepository aiTasks) {
         this.store = store;
         this.config = config;
         this.reviews = reviews;
         this.exceptionRecords = exceptionRecords;
+        this.aiTasks = aiTasks;
     }
 
     // ------------------------------------------------------------ 我的工单
@@ -183,6 +187,12 @@ public class QueryService {
             m.put("order", OrderView.of(o, r));
             items.add(m);
         }
+        return Map.of("items", items, "total", items.size());
+    }
+
+    /** 管理端查看 AI 复核审计；只读、最多 100 条。 */
+    public Map<String, Object> aiReviewTasks(int limit) {
+        var items = aiTasks.recent(limit);
         return Map.of("items", items, "total", items.size());
     }
 

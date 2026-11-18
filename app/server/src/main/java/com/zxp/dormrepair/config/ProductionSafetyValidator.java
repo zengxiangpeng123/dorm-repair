@@ -20,7 +20,9 @@ public class ProductionSafetyValidator {
             @Value("${spring.datasource.password:}") String password,
             @Value("${app.file.storage:local}") String fileStorage,
             @Value("${app.file.s3.bucket:}") String fileBucket,
-            @Value("${app.file.allow-legacy-demo-urls:false}") boolean legacyDemoPhotos) {
+            @Value("${app.file.allow-legacy-demo-urls:false}") boolean legacyDemoPhotos,
+            @Value("${app.ai.base-url:}") String aiBaseUrl,
+            @Value("${app.ai.model:}") String aiModel) {
         if (demo) {
             throw new IllegalStateException("生产环境禁止开启 app.demo");
         }
@@ -38,6 +40,12 @@ public class ProductionSafetyValidator {
         }
         if (legacyDemoPhotos) {
             throw new IllegalStateException("生产环境禁止接受 demo:// 照片");
+        }
+        if (aiBaseUrl.isBlank() || aiModel.isBlank()) {
+            throw new IllegalStateException("生产环境必须显式配置 AI 服务地址和模型");
+        }
+        if (aiBaseUrl.contains("127.0.0.1") || aiBaseUrl.contains("localhost")) {
+            throw new IllegalStateException("生产环境禁止使用本机 AI 服务地址");
         }
     }
 }

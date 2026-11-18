@@ -281,6 +281,35 @@
 
 `GET /admin/rework-reviews`（管理员）：返回 `data={items[],total}`。每项包含 `id,no,attemptNo,status,requestedBy,requestedAt,reason,reworkCount,building,floor,room,location,workerName,version,order:OrderView`。
 
+### 7.2.2 管理员 AI 复核审计
+
+`GET /admin/ai-reviews?limit=50`（管理员，只读）：返回 `data={items:AiReviewTaskView[],total:number}`，`limit` 范围 1–100。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | string | 复核任务 ID |
+| `orderNo` | string | 被复核工单号 |
+| `orderVersion` | integer | 发起复核时的工单版本 |
+| `inputHash` | string | 描述文本 SHA-256，避免复制敏感原文 |
+| `model` | string | 实际模型名 |
+| `provider` | string | 模型供应方标识 |
+| `status` | string | `PENDING/RUNNING/SUCCEEDED/FALLBACK/FAILED/SUPERSEDED` |
+| `attempts` | integer | 模型调用次数 |
+| `requestedAt` | string | 任务创建时间 |
+| `completedAt` | string/null | 任务结束时间 |
+| `errorCode` | string/null | 稳定错误码 |
+| `errorMessage` | string/null | 截断后的错误摘要 |
+| `category` | string/null | 模型返回或兜底类别 |
+| `level` | string/null | 模型返回或兜底级别 |
+| `confidence` | number/null | 模型置信度 |
+| `basis` | string/null | 判断依据 |
+| `source` | string/null | 结果来源 |
+| `latencyMs` | integer | 模型调用耗时 |
+| `applied` | boolean | 是否写回工单 |
+| `appliedAt` | string/null | 写回时间 |
+
+审计接口只供管理端排查模型失败、兜底、晚到结果与版本冲突，不得用于推进工单状态。
+
 ### 7.3 师傅待办 `GET /worker/todo`
 
 | 字段 | 类型 | 说明 |

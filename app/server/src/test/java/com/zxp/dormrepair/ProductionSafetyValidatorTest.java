@@ -13,19 +13,19 @@ class ProductionSafetyValidatorTest {
     @DisplayName("生产禁止演示模式、身份头和默认数据库口令")
     void rejectsUnsafeProductionConfiguration() {
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                true, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", false));
+                true, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, true, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", false));
+                false, true, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app", "root", "123456", "s3", "dorm-files", false));
+                false, false, "jdbc:mysql://db/app", "root", "123456", "s3", "dorm-files", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "", "", "", "s3", "dorm-files", false));
+                false, false, "", "", "", "s3", "dorm-files", false, "https://ai.example.com", "model-x"));
     }
 
     @Test
     @DisplayName("生产安全配置可以启动")
     void acceptsSafeProductionConfiguration() {
         assertDoesNotThrow(() -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", false));
+                false, false, "jdbc:mysql://db/app", "app", "strong-password", "s3", "dorm-files", false, "https://ai.example.com", "model-x"));
     }
 }

@@ -39,13 +39,19 @@ public class AiClient {
     private final RestClient fast;
     private final RestClient slow;
     private final String baseUrl;
+    private final String model;
+    private final String provider;
     private final int fastMs;
     private final int slowMs;
 
     public AiClient(@Value("${app.ai.base-url:http://127.0.0.1:8001}") String baseUrl,
+                    @Value("${app.ai.model:raccoon/sn-deepseek-v4-1-flash-1017}") String model,
+                    @Value("${app.ai.provider:agent2api}") String provider,
                     @Value("${app.ai.timeout-ms:1500}") int fastMs,
                     @Value("${app.ai.review-timeout-ms:30000}") int slowMs) {
         this.baseUrl = baseUrl;
+        this.model = model;
+        this.provider = provider;
         this.fastMs = fastMs;
         this.slowMs = slowMs;
         this.fast = build(baseUrl, fastMs);
@@ -59,9 +65,17 @@ public class AiClient {
         return RestClient.builder().baseUrl(baseUrl).requestFactory(f).build();
     }
 
-    /** 判断结果。fallback=true 表示没连上 AI，内容是兜底的。 */
+    /**
+     * 判断结果。fallback=true 表示没有采用模型结果；errorCode 用于审计，不进入状态机。
+     */
     public record Verdict(String category, String level, double confidence, String basis,
-                          boolean fallback, String source) {
+                          boolean fallback, String source, String model, int attempts,
+                          String errorCode, String errorMessage, long latencyMs) {
+
+        public static Verdict manual(String category, String level, String basis) {
+            return new Verdict(category, level, 1.0, basis, false, "MANUAL", null, 0,
+                    null, null, 0);
+        }
     }
 
     /** 提交那一步用：只跑规则，不等模型。 */
@@ -94,8 +108,13 @@ public class AiClient {
             String basis = str(body.get("basis"), who + "未给依据");
             // source 只用于日志：llm=真模型 / rule-gate=安全闸拦下没调模型 / rule-fast=调用方要求先给快的
             String remote = str(body.get("source"), "AI");
+            String remoteModel = str(body.get("model"), model);
+            int attempts = body.get("attempts") instanceof Number n ? n.intValue() : 1;
+            String errorCode = body.get("errorCode") == null ? null : String.valueOf(body.get("errorCode"));
+            String errorMessage = body.get("errorMessage") == null ? null : String.valueOf(body.get("errorMessage"));
             log.debug("AI 定级 {}ms -> {} {} {} [{}]", ms, category, level, confidence, remote);
-            return new Verdict(category, level, confidence, basis, false, "AI");
+            return new Verdict(category, level, confidence, basis, false, "AI", remoteModel,
+                    attempts, errorCode, errorMessage, ms);
         } catch (Exception e) {
             long ms = System.currentTimeMillis() - t0;
             log.warn("AI 定级不可用（{}ms，{}），走兜底：{}", ms, e.getClass().getSimpleName(),
@@ -131,7 +150,8 @@ public class AiClient {
             }
         }
         basis.append("（时间 ").append(TimeUtil.now()).append("）");
-        return new Verdict(FALLBACK_CATEGORY, level, 0.0, basis.toString(), true, "FALLBACK");
+        return new Verdict(FALLBACK_CATEGORY, level, 0.0, basis.toString(), true, "FALLBACK",
+                model, 0, "AI_UNAVAILABLE", why, 0);
     }
 
     /** 给 /health 与看板用：AI 在不在，别等到建单才发现。 */
@@ -139,6 +159,8 @@ public class AiClient {
         long t0 = System.currentTimeMillis();
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("baseUrl", baseUrl);
+        m.put("model", model);
+        m.put("provider", provider);
         m.put("timeoutMs", fastMs);
         m.put("reviewTimeoutMs", slowMs);
         try {
@@ -153,6 +175,14 @@ public class AiClient {
             m.put("error", e.getClass().getSimpleName());
         }
         return m;
+    }
+
+    public String model() {
+        return model;
+    }
+
+    public String provider() {
+        return provider;
     }
 
     private static String str(Object v, String dft) {

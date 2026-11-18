@@ -14,6 +14,7 @@ const orders = ref([])
 const cfg = ref(null)
 const meta = ref(null)
 const reviews = ref({ items: [], total: 0 })
+const aiReviews = ref({ items: [], total: 0 })
 const reviewSel = ref(null)
 const reviewDecision = ref('APPROVE')
 const reviewReason = ref('')
@@ -42,13 +43,14 @@ function manualCount (o) {
 
 async function load () {
   try {
-    const [d, e, o, c, m, rv] = await Promise.all([
+    const [d, e, o, c, m, rv, ar] = await Promise.all([
       adminApi.dashboard(),
       adminApi.exceptions(),
       adminApi.list({ pageSize: 200 }),
       adminApi.config(),
       adminApi.meta(),
-      adminApi.reworkReviews()
+      adminApi.reworkReviews(),
+      adminApi.aiReviews(50)
     ])
     dash.value = d
     ex.value = e
@@ -57,6 +59,7 @@ async function load () {
     cfgDraft.value = { budgetLine: c.budgetLine, verifyHours: c.verifyHours, archiveDays: c.archiveDays }
     meta.value = m
     reviews.value = rv || { items: [], total: 0 }
+    aiReviews.value = ar || { items: [], total: 0 }
     err.value = ''
   } catch (e2) {
     err.value = describeError(e2)
@@ -221,6 +224,34 @@ onMounted(load)
               <button class="dbtn sm primary" :disabled="busy === 'review-' + r.id" @click="openReview(r, 'APPROVE')">确认返修</button>
             </div>
           </div>
+        </section>
+
+        <section class="panel ai-audit-panel">
+          <header>
+            <b>AI 复核审计</b><span class="spacer" />
+            <span class="hint">最近 {{ aiReviews?.total || 0 }} 条 · 只读 · 不参与工单状态</span>
+          </header>
+          <div class="ai-audit-scroll">
+            <table class="dt ai-audit-table">
+              <thead>
+                <tr><th>单号</th><th>模型</th><th>状态</th><th class="r">尝试</th><th class="r">耗时</th><th>采用</th><th>错误码</th><th>完成时间</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="a in aiReviews?.items || []" :key="a.id">
+                  <td class="num">{{ a.orderNo }}<span class="tiny muted"> v{{ a.orderVersion }}</span></td>
+                  <td class="ai-model">{{ a.model }}</td>
+                  <td><span class="ai-status" :data-status="a.status">{{ a.status }}</span></td>
+                  <td class="r num">{{ a.attempts }}</td>
+                  <td class="r num">{{ a.latencyMs || 0 }} ms</td>
+                  <td>{{ a.applied ? '已写回' : '未写回' }}</td>
+                  <td class="num">{{ a.errorCode || '—' }}</td>
+                  <td class="num tiny">{{ a.completedAt ? String(a.completedAt).slice(5, 19) : '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-if="!(aiReviews?.items || []).length" class="review-empty">暂无 AI 复核记录</div>
+          </div>
+          <div class="panel-foot">模型失败或工单版本已变化时只记录审计事实，不覆盖新结果；AI 永不推进工单状态。</div>
         </section>
 
         <div class="strip">
@@ -475,6 +506,15 @@ onMounted(load)
 .foot-note.info { border-left: 3px solid #2563eb; }
 .link { border: 0; background: transparent; color: #1b4ed8; font-size: 11.5px; padding: 0; margin-left: 4px; cursor: pointer; }
 .review-panel { margin-bottom: 14px; }
+.ai-audit-panel { margin-bottom: 14px; }
+.ai-audit-scroll { overflow-x: auto; }
+.ai-audit-table { min-width: 860px; }
+.ai-model { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; }
+.ai-status { display: inline-block; padding: 1px 7px; border-radius: 5px; background: #f2f4f7; color: #475467; font-size: 10.5px; font-weight: 650; }
+.ai-status[data-status="SUCCEEDED"] { background: #ecfdf3; color: #067647; }
+.ai-status[data-status="FALLBACK"] { background: #fffaeb; color: #b54708; }
+.ai-status[data-status="FAILED"], .ai-status[data-status="SUPERSEDED"] { background: #fef3f2; color: #b42318; }
+.ai-status[data-status="RUNNING"] { background: #eff8ff; color: #175cd3; }
 .review-empty { padding: 18px 16px; color: var(--ink-3); font-size: 12px; }
 .review-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-top: 1px solid #f3f6fa; }
 .review-thumbs { margin-top: 8px; }

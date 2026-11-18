@@ -5,6 +5,7 @@ import com.zxp.dormrepair.domain.OrderEventLog;
 import com.zxp.dormrepair.domain.WorkOrder;
 import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
+import com.zxp.dormrepair.store.AiReviewTaskRepository;
 import com.zxp.dormrepair.store.ExceptionRecordRepository;
 import com.zxp.dormrepair.store.OrderRepository;
 import com.zxp.dormrepair.store.ReworkReviewRepository;
@@ -27,19 +28,22 @@ public class SeedService {
     private final ReworkReviewRepository reviews;
     private final ConfigService config;
     private final ExceptionRecordRepository exceptions;
+    private final AiReviewTaskRepository aiTasks;
 
     public SeedService(OrderRepository store, ReworkReviewRepository reviews, ConfigService config,
-                       ExceptionRecordRepository exceptions) {
+                       ExceptionRecordRepository exceptions, AiReviewTaskRepository aiTasks) {
         this.store = store;
         this.reviews = reviews;
         this.config = config;
         this.exceptions = exceptions;
+        this.aiTasks = aiTasks;
     }
 
     /** 清空后重灌 6 张单（覆盖 6 个状态）。返回灌了几张。 */
     public int reset() {
         exceptions.clear();
         reviews.clear();
+        aiTasks.clear();
         store.clear();
         return seed();
     }

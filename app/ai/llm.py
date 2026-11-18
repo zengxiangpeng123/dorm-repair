@@ -74,6 +74,7 @@ def _cfg() -> dict[str, Any]:
         "api_key": os.getenv("AI_API_KEY", "").strip(),
         "model": os.getenv("AI_MODEL", DEFAULT_MODEL),
         "timeout_s": float(os.getenv("AI_TIMEOUT_S", "8")),
+        "max_retries": max(0, min(int(os.getenv("AI_MAX_RETRIES", "1")), 3)),
     }
 
 
@@ -176,7 +177,8 @@ def classify(desc: str) -> dict[str, Any] | None:
     content = ""
     model = cfg["model"]
     try:
-        for attempt in (1, 2):
+        max_attempts = 1 + int(cfg.get("max_retries", 1))
+        for attempt in range(1, max_attempts + 1):
             content, model = _post(cfg, messages)
             verdict = _validate(_extract(content) or {})
             if verdict is not None:
@@ -187,19 +189,23 @@ def classify(desc: str) -> dict[str, Any] | None:
                     "attempts": attempt,
                 })
                 return verdict
-            if attempt == 1:
+            if attempt < max_attempts:
                 messages = messages + [{"role": "user", "content": REPAIR_PROMPT}]
         return {
             "category": None,
             "level": None,
             "confidence": 0.0,
-            "basis": f"模型连试两次都不合规：{content[:80]}",
+            "basis": f"模型连续 {max_attempts} 次输出不合规：{content[:80]}",
             "latencyMs": int((time.time() - t0) * 1000),
             "model": model,
             "invalid": True,
-            "attempts": 2,
+            "attempts": max_attempts,
+            "errorCode": "AI_INVALID_OUTPUT",
+            "errorMessage": content[:200],
         }
     except Exception as e:  # 超时、连不上、401、额度用完，一律当"没说话"
+        status = getattr(getattr(e, "response", None), "status_code", None)
+        error_code = classify_error(e, status)
         return {
             "category": None,
             "level": None,
@@ -209,7 +215,25 @@ def classify(desc: str) -> dict[str, Any] | None:
             "model": cfg["model"],
             "invalid": True,
             "error": str(e)[:200],
+            "errorCode": error_code,
+            "errorMessage": str(e)[:200],
         }
+
+
+def classify_error(exc: Exception, status: int | None = None) -> str:
+    """把供应商失败收敛成稳定错误码，供审计和告警使用。"""
+    if status in (401, 403):
+        return "AI_AUTH_FAILED"
+    if status == 429:
+        return "AI_RATE_LIMITED"
+    if status is not None and status >= 500:
+        return "AI_UPSTREAM_ERROR"
+    name = type(exc).__name__.lower()
+    if "timeout" in name:
+        return "AI_TIMEOUT"
+    if "connect" in name:
+        return "AI_CONNECT_FAILED"
+    return "AI_REQUEST_FAILED"
 
 
 def warmup() -> dict[str, Any]:

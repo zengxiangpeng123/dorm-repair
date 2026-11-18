@@ -3,6 +3,12 @@ app:
   demo: true
   order:
     auto-assign: false
+  ai:
+    base-url: http://127.0.0.1:9
+    model: test-model
+    provider: test-provider
+    timeout-ms: 200
+    review-timeout-ms: 1000
   file:
     storage: memory
     metadata: memory

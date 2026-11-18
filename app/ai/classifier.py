@@ -90,6 +90,9 @@ def classify(desc: str, fallback_category: str | None = None,
             "source": "rule-fallback",
             "model": (res or {}).get("model"),
             "latencyMs": (res or {}).get("latencyMs", 0),
+            "attempts": (res or {}).get("attempts", 0),
+            "errorCode": (res or {}).get("errorCode", "AI_INVALID_OUTPUT"),
+            "errorMessage": (res or {}).get("errorMessage", reason),
         })
         _cache_put(key, out)
         return out
@@ -114,6 +117,9 @@ def classify(desc: str, fallback_category: str | None = None,
         "source": "llm",
         "model": res.get("model"),
         "latencyMs": res.get("latencyMs", 0),
+        "attempts": res.get("attempts", 1),
+        "errorCode": None,
+        "errorMessage": None,
     }
     _cache_put(key, out)
     return out

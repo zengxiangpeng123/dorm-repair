@@ -29,7 +29,7 @@ import classifier
 import llm
 from rules import CATEGORIES, LEVELS, keyword_preview
 
-app = FastAPI(title="宿舍维修 AI 定级服务", version="1.1.0")
+app = FastAPI(title="宿舍维修 AI 定级服务", version="1.2.0")
 
 STARTED_AT = time.time()
 
@@ -50,6 +50,9 @@ class ClassifyResponse(BaseModel):
     source: str = "rule-only"
     model: Optional[str] = None
     latencyMs: int = 0
+    attempts: int = 0
+    errorCode: Optional[str] = None
+    errorMessage: Optional[str] = None
 
 
 @app.get("/health")
@@ -57,7 +60,7 @@ def health() -> dict:
     return {
         "status": "UP",
         "service": "dorm-repair-ai",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "rules": len(CATEGORIES),
         "levels": len(LEVELS),
         "classifier": classifier.stats(),
