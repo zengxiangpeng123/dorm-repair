@@ -4,6 +4,7 @@ const commands = [
   ['node', ['app/tests/acceptance/run.mjs']],
   ['node', ['app/tests/acceptance/security.mjs']],
   ['node', ['app/tests/acceptance/resilience.mjs']],
+  ['node', ['app/tests/acceptance/people.mjs']],
   ['node', ['app/tests/acceptance/load.mjs']],
   ['node', ['app/tests/check-three-apps.mjs']]
 ]

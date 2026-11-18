@@ -16,11 +16,12 @@ with real users and signed business acceptance.
 node app/tests/acceptance/run.mjs
 node app/tests/acceptance/security.mjs
 node app/tests/acceptance/resilience.mjs
+node app/tests/acceptance/people.mjs
 $env:LOAD_REQUESTS='100'; $env:LOAD_CONCURRENCY='10'; node app/tests/acceptance/load.mjs
 node app/tests/acceptance/run-all.mjs
 ```
 
-The scripts write `report.json`, `security-report.json`, `resilience-report.json`, and
-`load-report.json`. Load checks fail above 1% errors or P95 2000 ms. The AI outage drill
+The scripts write `report.json`, `security-report.json`, `resilience-report.json`,
+`people-report.json`, and `load-report.json`. Load checks fail above 1% errors or P95 2000 ms. The AI outage drill
 must be performed separately: stop the AI process, submit a real order, verify
 `levelSource=FALLBACK`, then restart AI and verify `/health`.
