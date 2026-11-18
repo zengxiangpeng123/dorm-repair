@@ -30,7 +30,9 @@ during the observation window.
 cd app/server && mvn -DskipTests package
 cd ../..
 cp deploy/.env.production.example deploy/.env.production
-# Fill secrets in deploy/.env.production before starting
+cp deploy/prometheus/alertmanager.example.yml deploy/prometheus/alertmanager.yml
+# Fill secrets and a real Alertmanager receiver before starting
+./deploy/scripts/preflight.sh
 docker compose --env-file deploy/.env.production -f deploy/docker-compose.yml up -d --build
 curl -k https://localhost/actuator/health/readiness
 ```
@@ -80,8 +82,9 @@ purged every 60 minutes. Configure with `APP_AUTH_LOGIN_MAX_FAILURES`,
 - Backups: see `backup/README.md`
 - Rollback: keep the previous image tag and database backup; do not drop new tables.
 
-Prometheus rules are loaded by default; `prometheus/alertmanager.example.yml` is a
-receiver template. Add an Alertmanager service and configure a real email/webhook/IM
-receiver, then send a test alert before production rollout. Production rollout remains
-blocked until HTTPS, monitoring, S3 access, backup restore, migrations, and rollback are
-exercised on the target environment.
+Prometheus is wired to the internal Alertmanager service. Copy
+`prometheus/alertmanager.example.yml` to `prometheus/alertmanager.yml`, configure a real
+email/webhook/IM receiver, and send a test alert before production rollout. The preflight
+script refuses placeholder receivers and missing TLS certificates. Production rollout
+remains blocked until HTTPS, monitoring, S3 access, backup restore, migrations, and
+rollback are exercised on the target environment.
