@@ -24,3 +24,8 @@ app/web/screens/*.tmp.png
 
 # 旧版 Node 实现的存档包很大，但它是交付物的一部分，故意入库
 !docs/99_存档/*.zip
+
+# Python
+__pycache__/
+.pytest_cache/
+*.pyc

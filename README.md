@@ -3,92 +3,112 @@
 一个能自己跑完的宿舍报修闭环：学生拍照提交 → 系统定级派工 → 师傅进楼维修 → 学生验收 → 归档。
 目标不是"做得像大厂系统"，而是**证明这条链不需要人催、不需要人批、每步都留痕**。
 
-现在这个项目是**能直接跑起来的**：`node app/server/index.js` 一条命令，浏览器打开 <http://localhost:5173/>，
-三端都在里面；数据落在本地 SQLite，零第三方依赖，断网也能跑。
+---
+
+## 现在到哪一步了（2026-11-18）
+
+| 里程碑 | 内容 | 状态 |
+|---|---|---|
+| M1 | Spring Boot 4 骨架 + 状态机内核 + 一条链 | ✅ 14 项测试 + 13 项脚本验收 |
+| M2 | MySQL 8 + MyBatis-Plus，10 张表，重启数据还在 | ✅ 16 项脚本验收 |
+| M3 | Python AI 定级服务，800ms 兜底，AI 挂了照样能建单 | ✅ 20 项脚本验收 + 7 项规则单测 |
+| M4 | Vue3 + Element Plus 页面（学生 4 / 师傅 4 / 管理 1 …） | ⬜ 下一步 |
+| M5 | 管理端补充、测试报告、CG01–CG14 交付文档 | ⬜ |
+
+**界面现在看哪儿**：`prototype\index.html`（双击就能开，11 页，零依赖假数据）。
+它按 V5.0 口径做的，视觉已定稿；M4 的 Vue 页照它的信息结构写，接真接口。
+
+`app\screens\` 里那 11 张图是上一版原生页面（已退役存档）的截图，只作视觉参照。
+
+---
+
+## 怎么跑起来
+
+三个进程：AI（Python 8000）→ 后端（Java 8080）→ 前端（M4 才有，Vue 5173）。
+
+**Windows：双击 `start.bat`**，它会开两个窗口（AI + 后端）并打开 `/api/v1/health`。
+
+手工等价：
+
+```powershell
+# 1 AI 定级服务
+cd app\ai
+D:\develop\python-envs\dorm-ai\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8000
+
+# 2 后端（先建库，见下一节）
+cd app\server
+mvn -q -DskipTests package
+java -jar target\dorm-repair-server-1.0.0.jar
+```
+
+| 想改什么 | 怎么改 |
+|---|---|
+| 端口 | `server.port`（后端 8080）、`--port`（AI 8000）、`PORT`（前端） |
+| 数据库 | 环境变量 `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`（默认 `localhost:3306/dorm_repair`，`root/123456`） |
+| 存储换内存 | `APP_STORE=memory`（只用于跑单测与临时演示，重启就没了） |
+| AI 不在本机 | `APP_AI_BASE_URL`（默认 `http://127.0.0.1:8000`）、`APP_AI_TIMEOUT_MS`（默认 800） |
+
+### 建库（只需一次）
+
+```powershell
+$tmp = Join-Path $env:TEMP 'dormdb'; New-Item -ItemType Directory -Force $tmp | Out-Null
+Copy-Item app\server\src\main\resources\db\schema.sql $tmp
+Copy-Item app\server\src\main\resources\db\data.sql  $tmp
+& 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe' -uroot -p123456 --default-character-set=utf8mb4 -e "source $tmp/schema.sql"
+& 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe' -uroot -p123456 --default-character-set=utf8mb4 -e "source $tmp/data.sql"
+```
+
+> `source` 打不开中文路径，所以先复制到 `%TEMP%` 再 source。
+
+重置演示数据：`POST /api/v1/demo/reset` → 清表 + 重灌 6 张样本单。
+
+---
+
+## 怎么证明它是对的
+
+| 要证明的事 | 一条命令 | 期望 |
+|---|---|---|
+| 9 状态 13 转移，96 种非法组合全拒，矩阵 10×13=130 | `cd app\server; mvn -q test` | `Tests run: 18, Failures: 0` |
+| 一条链真跑通（打真服务，不是 mock） | `pwsh -NoProfile -File app\server\tests\m1-chain.ps1` | `13 通过 / 0 失败` |
+| 重启之后数据还在（真 MySQL） | `pwsh -NoProfile -File app\server\tests\m2-mysql.ps1` | `16 通过 / 0 失败` |
+| AI 接上了；**杀掉 AI 之后建单仍成功**走兜底 | `pwsh -NoProfile -File app\server\tests\m3-ai.ps1` | `20 通过 / 0 失败` |
+| AI 规则本身（安全类定紧急、浸水风险算安全类…） | `cd app\ai; <venv>\python.exe -m pytest -q` | `7 passed` |
+| 原型状态机与后端一致（离线也算得对） | `node prototype/tests/selftest.js prototype` | `34 通过 / 0 失败` |
+
+看接口而不是跑脚本：
+
+- `GET /api/v1/state/matrix` —— 130 种组合哪些合法
+- `GET /api/v1/ai/health` —— AI 在不在、多少毫秒
+- `POST /api/v1/orders` + `POST /api/v1/orders/{no}/finish` —— 故意用错状态，看是不是 409 且 `allowed` 列出来
 
 ---
 
 ## 目录
 
 ```
-项目开发-fix\
-└─ 宿舍维修系统\                  ← 本项目全部内容都在这一个文件夹里
-   │
-   ├─ README.md                   本文件：怎么进、怎么跑、怎么证明
-   │
-   ├─ docs\                       文档（只放文档）
-   │  ├─ README.md                ★ 文档索引：每份文档各管什么、冲突时信谁
-   │  ├─ 01_需求\                 需求报告 / 闭环大纲(xmind) / 口径统一说明
-   │  ├─ 02_流程与状态\           流程图、状态机图（html 看细节，png 贴 PPT）
-   │  ├─ 03_系统设计\             SYS-003 接口契约
-   │  ├─ 04_项目管理\             流程计划 / 原型评审 / 代码实施计划 / 演示脚本
-   │  └─ 99_存档\                 上一版原件 + 交件打包（只读）
-   │
-   ├─ app\                        ★ 真项目（能跑）
-   │  ├─ server\                  后端：Node 原生 http + node:sqlite，零依赖
-   │  │  ├─ index.js              入口：起服务 + 静态托管 + 空库自动灌种子数据
-   │  │  ├─ state.js              ★ 9 状态 / 12 事件 / 13 转移（表驱动，唯一改状态的地方）
-   │  │  ├─ orders.js             12 条命令 + 8 个查询（业务逻辑）
-   │  │  ├─ api.js                路由 + 鉴权 + 乐观锁 + 统一错误体
-   │  │  ├─ db.js                 SQLite 七张表 + CAS 更新
-   │  │  ├─ timers.js             T1 验收超时 / T2 归档 两个计时器
-   │  │  ├─ ai.js                 演示用定级（词表 + 置信度，不联网）
-   │  │  ├─ seed.js               14 张单覆盖 9 个状态 + 11 个演示账号
-   │  │  └─ tests\api.test.js     17 组接口测试（真 HTTP，不是 mock）
-   │  ├─ web\                     前端：原生 HTML/CSS/JS，无框架无 CDN
-   │  │  ├─ index.html            三端入口（电脑页）
-   │  │  ├─ student\              手机 | 首页 / 报修 / 我的报修 / 工单详情
-   │  │  ├─ worker\               手机 | 工作台 / 楼内清单 / 单间作业 / 缺件登记
-   │  │  ├─ admin\                电脑 | 监测台
-   │  │  ├─ lab.html              电脑 | 状态机自检台（120 种组合当场试）
-   │  │  └─ assets\               ui.css（手机）/ desk.css（电脑）/ app.js（接口封装 + 组件）
-   │  ├─ screens\                 11 张真实运行截图（贴报告用）
-   │  └─ tests\  api.test.js（17 组接口）· smoke.js（24 项冒烟）· shoot-web.py（截图）
-   │
-   └─ prototype\                  可点击原型（假数据，双击即开，断网可用）
-      ├─ index.html / student\ / worker\ / admin\ / lab.html
-      ├─ tests\selftest.js         无头自测：34 条断言直接撞状态机（不需要浏览器）
-      ├─ data\seed.js              唯一一份假数据
-      ├─ screens\                  原型阶段 11 张截图
-      └─ reference\                原始 Stitch 导出，只读存档
+宿舍维修系统\
+├─ README.md                     本文件
+├─ start.bat                     双击起 AI + 后端
+├─ docs\                         文档（只放文档）
+│  ├─ README.md                  文档索引：每份各管什么、冲突信谁
+│  ├─ 01_需求\                   需求报告 / 闭环大纲 xmind / 口径统一说明
+│  ├─ 02_流程与状态\             流程图、状态机图（html 看细节，png 贴 PPT）
+│  ├─ 03_系统设计\               SYS-003 接口契约（语言中立，Java 照它实现）
+│  ├─ 04_项目管理\               流程计划 / 原型评审 / 代码实施计划 / 答辩脚本
+│  └─ 99_存档\                   上一版原件 + 旧 Node 实现 zip（只读）
+├─ prototype\                    ★ 原型（离线可跑，假数据，只当视觉与交互标准）
+│  ├─ index.html                 三端入口（桌面页）
+│  ├─ lab.html                   状态机自检台：130 种组合自己点
+│  ├─ student\ worker\ admin\    11 页
+│  └─ reference\stitch-12屏\     原始 AI 生成稿（只读，别改）
+├─ app\                          ★ 正式项目
+│  ├─ server\                    Spring Boot 4 + MyBatis-Plus + MySQL
+│  ├─ ai\                        Python + FastAPI 定级服务
+│  └─ screens\                   上一版界面截图（只作参照）
+└─ ..\rules\                     AI 开发规则 7 篇（技术栈 / 目录 / 口径 / 代码 / 测试 / 协作）
 ```
 
-## 怎么跑起来（双击就行）
-
-**Windows：双击 `start.bat`** —— 自动起服务、自动开浏览器，第一次跑会自己建库并灌 14 张样本单。
-关掉那个窗口就是停服务，数据留在 `app\server\data\app.db`。
-
-命令行等价于：
-
-```bash
-cd 宿舍维修系统
-node app/server/index.js        # 或： PORT=8080 DEMO=1 node app/server/index.js
-```
-
-然后浏览器打开 <http://localhost:5173/>。就这样，没有 `npm install`，没有构建，没有外网请求（**答辩断网也能跑**）。
-
-| 想改什么 | 怎么改 |
-|---|---|
-| 端口 | `PORT=8080 node app/server/index.js` |
-| 数据库文件 | `DB_FILE=data/my.db node app/server/index.js`（默认 `app/server/data/app.db`） |
-| 关掉演示工具 | 不加 `DEMO=1` 时 `/demo/*` 三个接口不注册（默认开着，方便演示） |
-
-演示账号点一下就登录，不用密码：学生 `S001`、师傅 `W0428`、督察 `A001`。
-
-学生提交时前端会带 `autoAssign: true`，**服务端自己以 system 身份派工**（本楼有当班师傅 → 已派工，没有 → 留在待派工）。
-客户端不持有 system 身份，也不需要点"派工"这个按钮——这就是"系统自动受理"的落地方式。
-
-## 怎么证明它是对的
-
-| 要证明的事 | 一条命令 / 一个页面 |
-|---|---|
-| 13 条转移能走、107 种组合当场 409 | 打开 `/lab.html`，选一张「已派工」的单点 FINISH（**409 是状态机拒绝，403 是身份不够**，按钮上就写着会是哪一种）；或 `node --no-warnings app/server/tests/api.test.js` → `pass 17 / fail 0` |
-| 非法转移**被拒之后单子一个字没变** | 测试里的 `snapshot()` 断言；自检台里点「会被拒的事件」看返回体 |
-| 两颗 7 天计时器互不干扰 | 管理端「两颗计时器」面板；或点「快进 7 天」看 T1 自动验收、T2 自动归档 |
-| 返修是新单 `-R1`、紧急度升一档 | 学生端在待验收单上点「还没修好」 |
-| 管理端平时是空的 | 管理端「例外待看」只出四类，其余一律不露 |
-| 原型状态机也一致（不依赖后端） | `node prototype/tests/selftest.js prototype` → `34 通过 / 0 失败` |
-| 所有页面都打得开、都连真接口、没有假数据 | `node --no-warnings app/tests/smoke.js` → `24 通过 / 0 失败` |
+---
 
 ## 三端各跑在哪（别搞错）
 
@@ -96,61 +116,57 @@ node app/server/index.js        # 或： PORT=8080 DEMO=1 node app/server/index.
 |---|---|---|---|
 | 学生端 | **手机**（430 宽竖屏） | 报修的学生 | 宿舍里、走廊上，扫码就进 |
 | 师傅端 | **手机**（430 宽竖屏） | 跑楼的维修师傅 | 站着、走着、在门口，一只手操作 |
-| 管理端 | **电脑**（桌面 1440，`assets/desk.css`） | 后勤维修部的督察/主任 | 办公室，看台账和例外 |
+| 管理端 | **电脑**（桌面 1440） | 后勤维修部的督察/主任 | 办公室，看台账和例外 |
 
-学生端和师傅端是手机页面，所以 `.stage` 固定 430 宽、底部浮动导航、按钮大一号；
-管理端是电脑页面，左侧深色导航 + 密集表格 + 鼠标 hover，不要做成手机壳。
-入口页 `index.html` 与自检台 `lab.html` 也是桌面页；入口页三张卡片上各标了设备（手机 / 手机 / 电脑）。
+学生端和师傅端固定 430 宽、底部浮动导航、按钮大一号；管理端是左侧深色导航 + 密集表格 + 鼠标 hover，**不要做成手机壳**。
+
+---
 
 ## 三条铁律
 
-1. **`prototype/reference/` 只读。** 原始 Stitch 导出一律不动，改坏了能回头对照，答辩被问"你们改了什么"时它就是证据。
-2. **原型用假数据，app 用真数据库，两者不混。** 原型是给人看交互的，真实现在 `app/`。
+1. **`prototype/` 只读物证。** 原型零依赖可双击跑，是"改过不止一版"的证据；新功能只进 `app/`，不许把原型的逻辑复制过去。
+2. **原型用假数据，`app/` 用真数据库，两者不混。**
 3. **文档只放 `docs/`，代码只放 `prototype/` 和 `app/`。** 交作业时能单独打包。
+
+---
 
 ## 口径标准
 
-工单怎么流转，按这个顺序取，冲突时以前者为准：
+工单怎么流转，冲突时按这个顺序取：
 
 1. `SYS-004 状态机设计`（课程目录里的外部标准，**9 状态 / 13 转移**）
 2. [闭环大纲 xmind](docs/01_需求/宿舍维修%20·%20项目完整闭环-V5.0.xmind)（业务闭环）
 3. [状态机图](docs/02_流程与状态/工单状态机图-V5.0.html) / [流程图](docs/02_流程与状态/宿舍维修流程图-V5.0.html)（图化，可能有笔误，不是源头）
 
-代码里对这张表的唯一实现是 `app/server/state.js`（前端 `prototype/assets/app.js` 有一份等价实现，用于离线原型）。
-页面里没有任何 `status = ...` 赋值，改状态只能走 `S.next()` / `App.fire()`。
+代码里对这张表的唯一实现是 `app/server/.../statemachine/TransitionTable.java`；
+原型 `prototype/assets/app.js` 有一份等价实现，只用于离线演示。
+`status` 只能由 `OrderStateService.transit()` 改，service 里不许出现 `setStatus(...)`。
 
-## 当前状态
+---
 
-| 阶段 | 状态 |
-|---|---|
-| P0 口径冻结 | ✅ 9 状态 / 13 转移 / 四项已冻结决定 |
-| P1 接口契约 | ✅ V1.0 已产出（SYS-003，784 行），实现与它对齐 |
-| P2 原型 9 页 | ✅ 完成（学生 4 手机 / 师傅 4 手机 / 管理 1 电脑），含自检台 + 34 条无头自测 |
-| P3 前端 demo | ✅ 完成（`app/web` 11 页全接真接口，截图见 `app/screens`） |
-| P4 后端 demo | ✅ 完成（`app/server` 12 条命令 + 8 个查询，17 组接口测试全绿） |
-| P5 交付 | ✅ README / 演示脚本 / 截图 / 提交记录齐 |
-
-### 这套东西能证明什么 / 不能证明什么
+## 这套东西能证明什么 / 不能证明什么
 
 能证明（测试 + 手点都验过）：
 
-- 一条链自己走完：提交 → 派工 → 到门打卡 → 完工 → 验收/超时自动验收 → 归档；
-- 非法转移**当场**被拒（409），且**被拒后状态一个字没变**；
-- 两颗 7 天计时器各算各的：T1 起点 `finishAt`、T2 起点 `signAt`，快进 8 天两件事分别发生；
-- 返修生成 `-R1` 新单、指回原单、紧急度升一档；返修单验收通过时原单级联关闭；
-- 楼栋级打卡 = 一次点击背后 N 条单级 `ARRIVE`，师傅不生成本、状态机语义不破；
-- 例外清单只出约定那四类（数据对不上 / 超预算采购 / 反复返修 / 学生申请撤销）；
-- 超预算那笔账**花过就留着**：配件到货、单子回队列之后，这条记录仍在清单里，一直到归档——不然事后抽查对不上账。
+- 一条链自己走完：提交 → 派工 → 到门打卡 → 完工 → 验收 → 归档；
+- 非法转移**当场**被拒（409），且**被拒后状态一个字没变**（`updateCas` 受影响行数≠1 → 409，测试里逐条断言）；
+- 版本冲突（两个人同时点）→ `409 VERSION_CONFLICT`「状态已变化，请刷新」；
+- AI 挂了不影响学生报修：800ms 超时 → 兜底档 + `levelSource=FALLBACK`，且兜底也认安全类词；
+- 数据真落 MySQL：杀进程重启，单子、事件、照片都还在（`m2-mysql.ps1` 第 11-13 项）；
+- 例外清单只出约定那四类；超预算那笔账**花过就留着**，配件到货后仍在清单里直到归档。
 
 仍不能证明（诚实写在前面）：
 
-- 真实并发压力（测试只覆盖单请求级别的乐观锁冲突，没做压测）；
-- 真实 AI 定级（`ai.js` 是词表 + 置信度规则，不联网、不训练）；
-- 真实图片上传（照片是 `demo://photo/...` 占位串，没接对象存储）；
-- 多楼栋多班级的真实组织树（种子数据只有 B7/B8 两栋）。
+- 真实并发压力：只覆盖单请求级乐观锁，没做压测；
+- 真模型：AI 是规则 + 置信度，不联网不训练（接口形状按模型留，换实现只改 `rules.classify()`）；
+- 真实上传：照片是 `demo://` 占位串，没接对象存储；
+- 多楼栋组织树：样本只有 B7/B8 两栋；
+- 界面：M4 才做，现在能看的是原型。
 
-## 两处与 SYS-004 的差异（都写在代码注释里）
+---
 
-- **G-01** 返修单验收通过时原单 `返修中 → 已关闭`，这条边状态机里没有 → 按**级联副作用**处理（事件 `ORIGIN_CLOSED`，不占 13 条转移名额，`state.js` 的 `CASCADES`）。
-- **G-02** 师傅进楼后学生申请撤销、管理员批准作废，需要 `维修中 → 已取消`，但这条在禁止清单里 → 需**变更单 #001**；未批准前 `POST /orders/{no}/admin-cancel` 一律返回 `501`（`changeRequest: 'CR-001'`），管理端按钮点下去会看到这条提示。
-- **G-03** 零人工完成率有两套口径：宽松口径（该单没有人类"推进状态"的事件，学生提交/师傅打卡不算）/ 严格口径（全部事件 `manual=0`，结构性恒为 0）。管理端两个都显示，默认用宽松口径 —— 这条待评审定稿。
+## 三处与 SYS-004 的差异（都写在代码注释里）
+
+- **G-01** 返修单验收通过时原单 `返修中 → 已关闭`，13 条转移里没有这条边 → 按**级联副作用**处理（事件 `ORIGIN_CLOSED`，不占名额）。M1 还没实现（返修单生成 `-R1` 也还欠着）。
+- **G-02** 师傅进楼后学生申请撤销、管理员批准作废，需要 `维修中 → 已取消`，而这条在禁止清单里 → 需**变更单 #001**；未批准前 `POST /orders/{no}/admin-cancel` 一律 `501`（`changeRequest: CR-001`）。
+- **G-03** 零人工完成率有两套口径：宽松（这张单没有人类"推进状态"的事件）/ 严格（全部事件 `manual=0`，结构性恒 0）。待评审定稿。

@@ -6,6 +6,7 @@ import com.zxp.dormrepair.statemachine.OrderEvent;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.statemachine.StateMachine;
 import com.zxp.dormrepair.statemachine.TransitionTable;
+import com.zxp.dormrepair.service.AiClient;
 import com.zxp.dormrepair.service.SeedService;
 import com.zxp.dormrepair.store.OrderRepository;
 import java.util.ArrayList;
@@ -26,10 +27,12 @@ public class MetaController {
 
     private final OrderRepository store;
     private final SeedService seeder;
+    private final AiClient ai;
 
-    public MetaController(OrderRepository store, SeedService seeder) {
+    public MetaController(OrderRepository store, SeedService seeder, AiClient ai) {
         this.store = store;
         this.seeder = seeder;
+        this.ai = ai;
     }
 
     @GetMapping("/health")
@@ -80,6 +83,12 @@ public class MetaController {
                     "trigger", TransitionTable.triggerOf(ev).stream().map(ActorType::name).toList()));
         }
         return ApiResponses.ok(Map.of("items", items, "total", items.size()));
+    }
+
+    /** AI 在不在。别等学生提报修了才发现定级服务挂了。 */
+    @GetMapping("/ai/health")
+    public Map<String, Object> aiHealth() {
+        return ApiResponses.ok(ai.health());
     }
 
     /** 演示用：清空再重灌一套演示数据（内存库和 MySQL 同一个动作）。 */

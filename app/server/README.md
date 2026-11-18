@@ -1,6 +1,6 @@
 # app/server —— 正式项目后端（Spring Boot 4）
 
-M1 已完成：状态机内核 + 一条链 + 13 条命令骨架。M2 已完成：MySQL 8 + MyBatis-Plus 仓储，重启数据还在。M3 接 Python AI，M4 配 Vue 前端。
+M1 已完成：状态机内核 + 一条链 + 13 条命令骨架。M2 已完成：MySQL 8 + MyBatis-Plus 仓储，重启数据还在。M3 已完成：调 Python 定级服务，800ms 超时兜底，AI 挂了照样能建单。M4 配 Vue 前端。
 
 ## 怎么跑
 
@@ -18,12 +18,13 @@ java -jar target/dorm-repair-server-1.0.0.jar
 ## 怎么证明它对
 
 ```bash
-mvn -q test                                    # 14 项：7 项白盒状态机 + 7 项黑盒接口（内存仓库，不碰数据库）
+mvn -q test                                    # 18 项：7 白盒状态机 + 7 黑盒接口 + 4 AI 兜底
 pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：打真服务，跑一条链 + 该拒的都拒
 pwsh -NoProfile -File tests/m2-mysql.ps1       # 16 项：打真库，含"杀进程重启后数据还在"
+pwsh -NoProfile -File tests/m3-ai.ps1          # 20 项：AI 接上了 + 杀掉 AI 仍能建单
 ```
 
-期望：`Tests run: 14, Failures: 0`、`结果：13 通过 / 0 失败`、`结果：16 通过 / 0 失败`。
+期望：`Tests run: 18, Failures: 0`、`13 通过 / 0 失败`、`16 通过 / 0 失败`、`20 通过 / 0 失败`。
 
 ## 数据库（M2）
 
@@ -61,6 +62,7 @@ Copy-Item src\main\resources\db\data.sql  $tmp
 | GET | `/api/v1/orders?status=ACTIVE\|DONE\|ALL\|<状态>` | 列表 |
 | GET | `/api/v1/orders/{no}` | 详情（含 allowed 下一个能推的事件） |
 | GET | `/api/v1/orders/{no}/events` | 全链路事件 |
+| GET | `/api/v1/ai/health` | AI 在不在、延迟多少毫秒 |
 | GET | `/api/v1/meta` | 9 状态、13 事件、阈值、五类故障、四时段 |
 | GET | `/api/v1/state/matrix` | 10 × 13 = 130 种组合，合法 13 |
 | GET | `/api/v1/state/transitions` | 13 条合法转移清单 |
@@ -94,7 +96,7 @@ src/main/java/com/zxp/dormrepair/
 
 ## 还没做（按里程碑往下排）
 
-- M3：Python AI 服务 `/classify`，800ms 超时兜底，AI 挂了照样能建单
+- M4 之前的欠账：`-R1` 返修单生成、两颗 7 天计时器定时任务（M1 里只有 t1/t2 的算法没有定时扫描）、登录鉴权、`REPAIRING→CANCELLED` 501
 - M4：Vue3 + Element Plus 11 页
 - M5：管理端 + 自检台 + 测试报告与 CG01–CG14 文档
 - 一直欠着：`-R1` 返修单生成（现在验收不通过只把原单转返修中）、两颗 7 天计时器的定时任务、登录鉴权、`REPAIRING→CANCELLED`（变更单 #001 未批，将返回 501）

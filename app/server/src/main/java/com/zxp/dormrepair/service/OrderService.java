@@ -24,10 +24,12 @@ public class OrderService {
 
     private final OrderRepository store;
     private final OrderStateService state;
+    private final AiClient ai;
 
-    public OrderService(OrderRepository store, OrderStateService state) {
+    public OrderService(OrderRepository store, OrderStateService state, AiClient ai) {
         this.store = store;
         this.state = state;
+        this.ai = ai;
     }
 
     // ---------------------------------------------------------------- 1 建单
@@ -55,10 +57,15 @@ public class OrderService {
         o.setDescription(desc);
         o.setVisitWindow(isBlank(req.window()) ? "全天（08:00-22:00）" : req.window());
         o.setPhotosBefore(req.photosBefore());
-        o.setCategory(isBlank(req.category()) ? "给排水" : req.category());
-        o.setLevelSource("DEFAULT");
-        o.setLevel("普通");
-        o.setAiBasis("M1 还没接 AI（M3 接），先按普通定级");
+        // 定级：AI 说了算，AI 不在就兜底，绝不因为 AI 挂了拦住学生的单
+        AiClient.Verdict v = isBlank(req.category())
+                ? ai.classify(desc)
+                : new AiClient.Verdict(req.category(), isBlank(req.level()) ? "普通" : req.level(),
+                        1.0, "调用方指定类型，没走 AI", false, "MANUAL");
+        o.setCategory(v.category());
+        o.setLevel(v.level());
+        o.setLevelSource(v.fallback() ? "FALLBACK" : v.source());
+        o.setAiBasis(v.basis());
         o.setCreatedAt(at);
         o.setStatusAt(at);
         o.getEvents().add(new OrderEventLog(store.nextEventSeq(), at, OrderEvent.SUBMIT,

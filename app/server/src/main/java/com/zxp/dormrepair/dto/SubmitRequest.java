@@ -13,6 +13,7 @@ public record SubmitRequest(
         String window,
         List<String> photosBefore,
         String category,
+        String level,
         String studentId,
         String studentName) {
 }

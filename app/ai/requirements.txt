@@ -1,0 +1,6 @@
+fastapi==0.163.1
+uvicorn==0.54.0
+pydantic==2.14.3
+# 测试用
+pytest==9.2.0
+httpx==0.28.1
