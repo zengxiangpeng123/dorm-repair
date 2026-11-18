@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: dorm_repair
+      MYSQL_DATABASE: ${DB_NAME:?DB_NAME required}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD required}
       MYSQL_USER: ${DB_USER:?DB_USER required}
       MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
