@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /** S3 兼容对象存储（MinIO / OSS S3 接口 / AWS S3）。桶必须保持私有。 */
@@ -79,7 +80,8 @@ public class S3FileStorage implements FileStorage {
     @Override
     public void put(String objectKey, InputStream input, long contentLength, String contentType) {
         client.putObject(PutObjectRequest.builder().bucket(bucket).key(objectKey)
-                        .contentType(contentType).contentLength(contentLength).build(),
+                        .contentType(contentType).contentLength(contentLength)
+                        .acl(ObjectCannedACL.PRIVATE).build(),
                 RequestBody.fromInputStream(input, contentLength));
     }
 
