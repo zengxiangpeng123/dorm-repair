@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.zxp.dormrepair.common.BizException;
 import com.zxp.dormrepair.domain.Actor;
 import com.zxp.dormrepair.domain.IdempotencyRecord;
+import com.zxp.dormrepair.domain.WorkOrder;
+import com.zxp.dormrepair.statemachine.OrderStatus;
+import com.zxp.dormrepair.store.OrderRepository;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -19,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -38,6 +42,8 @@ class OrderFlowTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired OrderRepository store;
 
     private String base;
 
@@ -384,6 +390,15 @@ class OrderFlowTest {
         Resp changed = call("POST", "/orders", changedBody, "student", "S001", "idem-submit-2");
         assertEquals(409, changed.status, changed.body);
         assertEquals("IDEMPOTENCY_KEY_REUSED", changed.error().get("code").asText());
+    }
+
+    @Test
+    @DisplayName("T1/T2 定时器只查询待验收和已完成工单")
+    void timerCandidatesExcludeClosedOrders() {
+        var statuses = store.findTimerCandidates().stream()
+                .map(WorkOrder::getStatus).collect(java.util.stream.Collectors.toSet());
+        assertTrue(statuses.stream().allMatch(s -> s == OrderStatus.VERIFYING || s == OrderStatus.DONE));
+        assertTrue(statuses.contains(OrderStatus.VERIFYING));
     }
 
     @Test

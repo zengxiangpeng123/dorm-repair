@@ -59,6 +59,14 @@ public class OrderStore implements OrderRepository {
         return out;
     }
 
+    @Override
+    public List<WorkOrder> findTimerCandidates() {
+        return all().stream()
+                .filter(o -> o.getStatus() == com.zxp.dormrepair.statemachine.OrderStatus.VERIFYING
+                        || o.getStatus() == com.zxp.dormrepair.statemachine.OrderStatus.DONE)
+                .toList();
+    }
+
     public void save(WorkOrder o) {
         byNo.put(o.getNo(), o);
     }

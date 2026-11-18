@@ -68,7 +68,7 @@ public class TimerService {
         List<String> archived = new ArrayList<>();
         List<String> failed = new ArrayList<>();
 
-        for (WorkOrder o : store.all()) {
+        for (WorkOrder o : store.findTimerCandidates()) {
             if (o.getStatus() == OrderStatus.VERIFYING) {
                 if (reviews.hasPending(o.getNo())) {
                     continue;

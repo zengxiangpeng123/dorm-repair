@@ -21,6 +21,9 @@ public interface OrderRepository {
     /** 全部工单，按创建时间倒序。 */
     List<WorkOrder> all();
 
+    /** 定时器专用：只返回仍可能到期的待验收与已完成工单。 */
+    List<WorkOrder> findTimerCandidates();
+
     /** 新单入库（含照片）。 */
     void save(WorkOrder o);
 

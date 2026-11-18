@@ -72,6 +72,15 @@ public class MybatisOrderRepository implements OrderRepository {
     }
 
     @Override
+    public List<WorkOrder> findTimerCandidates() {
+        List<WorkOrder> list = orders.selectList(Wrappers.<WorkOrder>query()
+                .in("status", "VERIFYING", "DONE")
+                .orderByAsc("created_at"));
+        list.forEach(this::fill);
+        return list;
+    }
+
+    @Override
     @Transactional
     public void save(WorkOrder o) {
         orders.insert(o);
