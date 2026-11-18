@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 后台的 AI 复核。
@@ -69,8 +71,21 @@ public class AiReviewService {
     /** 显式传入任务快照版本；调用方必须在所有同步建单动作完成后取值。 */
     public void review(String no, int orderVersion, String desc) {
         String inputHash = sha256(desc == null ? "" : desc);
-        AiReviewTask task = tasks.create(no, orderVersion, inputHash, ai.model(), ai.provider());
-        pool.submit(() -> runTask(task, desc));
+        Runnable submit = () -> {
+            AiReviewTask task = tasks.create(no, orderVersion, inputHash, ai.model(), ai.provider());
+            pool.submit(() -> runTask(task, desc));
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()
+                && TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    submit.run();
+                }
+            });
+        } else {
+            submit.run();
+        }
     }
 
     /** 同步执行一次已创建任务，供后台线程和确定性测试共用。 */

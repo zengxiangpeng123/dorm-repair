@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.mock.web.MockMultipartFile;
 
 @SpringBootTest(properties = "app.order.auto-assign=false")
@@ -172,6 +173,31 @@ class AiReviewAuditTest {
         assertEquals("AI_TIMEOUT", saved.errorCode());
         assertFalse(saved.applied());
         assertEquals("普通", store.require(order.getNo()).getLevel());
+    }
+
+    @Test
+    @DisplayName("事务未提交时不创建 AI 复核任务，提交后才投递")
+    void reviewWaitsForTransactionCommit() {
+        when(ai.model()).thenReturn("model-x");
+        when(ai.provider()).thenReturn("provider-x");
+        when(ai.classify(org.mockito.ArgumentMatchers.anyString())).thenReturn(
+                new AiClient.Verdict("门窗家具", "普通", 0.9, "模型", false, "AI",
+                        "model-x", 1, null, null, 1));
+
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            reviews.review("TX-PENDING", 1, "门把手松动");
+            assertEquals(java.util.Optional.empty(), tasks.latest("TX-PENDING"));
+            for (var sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCommit();
+            }
+            AiReviewTask task = tasks.latest("TX-PENDING").orElseThrow();
+            assertEquals(AiReviewTaskStatus.PENDING, task.status());
+        } finally {
+            TransactionSynchronizationManager.setActualTransactionActive(false);
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     private WorkOrder submit(String desc) {
