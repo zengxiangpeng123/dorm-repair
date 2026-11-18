@@ -52,11 +52,11 @@ public class MybatisUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<UserAccount> findWorkerForBuilding(String buildingId) {
+    public Optional<UserAccount> findWorkerForBuilding(String buildingId, String team) {
         if (buildingId == null || buildingId.isBlank()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(mapper.findWorkerForBuilding(buildingId))
+        return Optional.ofNullable(mapper.findWorkerForBuilding(buildingId, team))
                 .map(MybatisUserRepository::toAccount);
     }
 

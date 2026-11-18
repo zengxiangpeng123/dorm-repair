@@ -16,7 +16,8 @@ public interface UserRepository {
 
     long countByRole(com.zxp.dormrepair.statemachine.ActorType role);
 
-    Optional<UserAccount> findWorkerForBuilding(String buildingId);
+    /** 自动派工候选：同时限定服务楼栋、启用状态和可选承接班组。 */
+    Optional<UserAccount> findWorkerForBuilding(String buildingId, String team);
 
     /** 指定师傅派工时校验其服务范围，避免跨楼栋误派。 */
     boolean servesBuilding(String workerId, String buildingId);

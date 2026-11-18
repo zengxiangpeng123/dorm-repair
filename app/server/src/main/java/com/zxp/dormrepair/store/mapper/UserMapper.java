@@ -19,11 +19,13 @@ public interface UserMapper extends BaseMapper<UserRow> {
                    w.phone, w.password_hash, w.active, w.created_at
             FROM t_worker w
             JOIN t_worker_building wb ON wb.worker_id = w.id
-            WHERE wb.building_id = #{buildingId} AND w.active = 1
+            WHERE wb.building_id = #{buildingId}
+              AND w.active = 1
+              AND (#{team} IS NULL OR #{team} = '' OR w.team = #{team})
             ORDER BY wb.is_primary DESC, w.id ASC
             LIMIT 1
             """)
-    UserRow findWorkerForBuilding(@Param("buildingId") String buildingId);
+    UserRow findWorkerForBuilding(@Param("buildingId") String buildingId, @Param("team") String team);
 
     /** 登录响应里的师傅主责楼栋；只取 is_primary=1，避免把多楼栋支持误当成单一默认楼栋。 */
     @Select("""

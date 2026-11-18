@@ -49,10 +49,15 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<UserAccount> findWorkerForBuilding(String buildingId) {
+    public Optional<UserAccount> findWorkerForBuilding(String buildingId, String team) {
+        java.util.Set<String> served = workerBuildings.entrySet().stream()
+                .filter(e -> e.getValue().contains(buildingId))
+                .map(java.util.Map.Entry::getKey)
+                .collect(java.util.stream.Collectors.toSet());
         return users.values().stream()
                 .filter(u -> u.role() == ActorType.WORKER && buildingId != null
-                        && buildingId.equals(u.building()) && u.active())
+                        && (buildingId.equals(u.building()) || served.contains(u.id())) && u.active()
+                        && (team == null || team.isBlank() || team.equals(u.team())))
                 .sorted((a, b) -> a.id().compareTo(b.id()))
                 .findFirst();
     }
@@ -60,8 +65,10 @@ public class InMemoryUserRepository implements UserRepository {
     @Override
     public boolean servesBuilding(String workerId, String buildingId) {
         UserAccount worker = users.get(workerId);
-        return worker != null && worker.role() == ActorType.WORKER
-                && worker.active() && buildingId != null && buildingId.equals(worker.building());
+        java.util.List<String> served = workerBuildings.get(workerId);
+        return worker != null && worker.role() == ActorType.WORKER && worker.active()
+                && buildingId != null
+                && (buildingId.equals(worker.building()) || (served != null && served.contains(buildingId)));
     }
 
     @Override
@@ -72,6 +79,7 @@ public class InMemoryUserRepository implements UserRepository {
     /** 测试专用：模拟生产空库，避免依赖演示账号。 */
     public void clear() {
         users.clear();
+        workerBuildings.clear();
     }
 
     @Override

@@ -130,10 +130,20 @@ public class OrderService {
     public OrderView assign(String no, TransitRequest req, Actor actor) {
         WorkOrder cur = store.require(no);
         UserAccount worker;
+        String assignmentBasis;
         if (isBlank(req.workerId())) {
-            worker = users.findWorkerForBuilding(cur.getBuilding())
+            String requiredTeam = teamForCategory(cur.getCategory());
+            worker = users.findWorkerForBuilding(cur.getBuilding(), requiredTeam)
+                    .or(() -> requiredTeam == null
+                            ? java.util.Optional.empty()
+                            : users.findWorkerForBuilding(cur.getBuilding(), null))
                     .orElseThrow(() -> BizException.precondition(
                             "本楼栋当前没有可派师傅", "NO_WORKER_AVAILABLE"));
+            assignmentBasis = requiredTeam == null
+                    ? "按楼栋主责派工"
+                    : requiredTeam.equals(worker.team())
+                            ? "按" + cur.getCategory() + "匹配" + requiredTeam
+                            : "本楼栋暂无" + requiredTeam + "，按楼栋主责兜底";
         } else {
             worker = users.find(req.workerId())
                     .filter(u -> u.role() == ActorType.WORKER && u.active())
@@ -142,10 +152,12 @@ public class OrderService {
             if (!users.servesBuilding(worker.id(), cur.getBuilding())) {
                 throw BizException.precondition("该师傅不服务本楼栋：" + worker.id(), "WORKER_BUILDING_MISMATCH");
             }
+            assignmentBasis = "管理员指定师傅";
         }
         String workerName = isBlank(req.workerName()) ? worker.name() : req.workerName();
         String workerId = worker.id();
-        return OrderView.of(state.transit(no, OrderEvent.ASSIGN, actor, "派给 " + workerName,
+        return OrderView.of(state.transit(no, OrderEvent.ASSIGN, actor,
+                "派给 " + workerName + "（" + assignmentBasis + "）",
                 req.version(), o -> {
                     o.setWorkerId(workerId);
                     o.setWorkerName(workerName);
@@ -597,6 +609,18 @@ public class OrderService {
         if (event.changesStatus()) {
             StateMachine.next(store.require(no).getStatus(), event);
         }
+    }
+
+    /** 五类故障到现有班组的唯一映射；未知类别保留楼栋兜底，不臆造工种。 */
+    static String teamForCategory(String category) {
+        if (category == null) {
+            return null;
+        }
+        return switch (category.trim()) {
+            case "给排水", "电气", "电器" -> "水电班";
+            case "门窗家具", "网络" -> "综合班";
+            default -> null;
+        };
     }
 
     private static boolean isBlank(String s) {
