@@ -40,6 +40,8 @@ fi
 
 s3_endpoint="$(grep -E '^APP_FILE_S3_ENDPOINT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 case "$s3_endpoint" in https://*) ;; *) fail "APP_FILE_S3_ENDPOINT must use HTTPS" ;; esac
+grep -q '^APP_STORE=mysql$' "$ENV_FILE" || fail "APP_STORE must be mysql in production"
+grep -q '^APP_FILE_METADATA=mysql$' "$ENV_FILE" || fail "APP_FILE_METADATA must be mysql in production"
 grep -q '^DB_USE_SSL=true' "$ENV_FILE" || fail "DB_USE_SSL must be true in production"
 grep -q '^DB_SSL_VERIFY_SERVER_CERTIFICATE=true' "$ENV_FILE" || fail "DB_SSL_VERIFY_SERVER_CERTIFICATE must be true in production"
 

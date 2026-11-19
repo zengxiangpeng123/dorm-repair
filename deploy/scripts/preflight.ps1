@@ -27,6 +27,8 @@ if (($bootstrap | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count 
 }
 if ($bootstrap[2] -and $bootstrap[2].Length -lt 12) { Fail 'BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters' }
 if ($values['APP_FILE_S3_ENDPOINT'] -notmatch '^https://') { Fail 'APP_FILE_S3_ENDPOINT must use HTTPS' }
+if ($values['APP_STORE'] -ne 'mysql') { Fail 'APP_STORE must be mysql in production' }
+if ($values['APP_FILE_METADATA'] -ne 'mysql') { Fail 'APP_FILE_METADATA must be mysql in production' }
 if ($values['DB_USE_SSL'] -ne 'true') { Fail 'DB_USE_SSL must be true in production' }
 if ($values['DB_SSL_VERIFY_SERVER_CERTIFICATE'] -ne 'true') { Fail 'DB_SSL_VERIFY_SERVER_CERTIFICATE must be true in production' }
 $mysql = Get-Command mysql -ErrorAction SilentlyContinue
