@@ -21,6 +21,11 @@ user=$DB_USER
 password=$DB_PASSWORD
 EOF
 gzip -t "$1"
+existing_tables="$(mysql --defaults-extra-file="$CNF" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$DB_NAME' AND TABLE_TYPE='BASE TABLE'")"
+if [ "${existing_tables:-0}" -ne 0 ] && [ "${RESTORE_ALLOW_NONEMPTY:-0}" != "1" ]; then
+  echo "refusing restore: target database contains ${existing_tables} base tables; use an empty database or set RESTORE_ALLOW_NONEMPTY=1 for an intentional overwrite" >&2
+  exit 1
+fi
 TMP_SQL="$(mktemp)"
 trap 'rm -f "$CNF" "$TMP_SQL"' EXIT INT TERM
 gunzip -c "$1" > "$TMP_SQL"

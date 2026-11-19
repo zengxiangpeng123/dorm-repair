@@ -11,6 +11,9 @@ export DB_HOST=mysql DB_USER=dorm_app DB_PASSWORD='...' DB_NAME=dorm_repair
 RESTORE_CONFIRM=dorm_repair ./restore.sh /backup/dorm_repair-YYYYMMDD-HHMMSS.sql.gz
 ```
 
+Restore refuses a non-empty target database by default. Use a freshly created database
+for drills; only set `RESTORE_ALLOW_NONEMPTY=1` for a deliberate overwrite after a backup.
+
 Run a restore drill against a separate database before production. Keep at least 14 daily
 backups, encrypt the backup bucket, and record the restore time and row counts. The restore
 command re-runs `verify.sh`; verification checks core table counts plus orphan event/photo
