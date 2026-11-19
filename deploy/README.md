@@ -43,7 +43,8 @@ cp deploy/prometheus/alertmanager.example.yml deploy/prometheus/alertmanager.yml
 # Fill PUBLIC_HOST, secrets and a real Alertmanager receiver before starting
 ./deploy/scripts/preflight.sh
 docker compose --env-file deploy/.env.production -f deploy/docker-compose.yml up -d --build
-curl --resolve "$PUBLIC_HOST:443:127.0.0.1" "https://$PUBLIC_HOST/actuator/health/readiness"
+docker compose --env-file deploy/.env.production -f deploy/docker-compose.yml ps
+# Health probes are container-internal and intentionally not exposed through Nginx.
 ```
 
 `.env.production` is used for Compose interpolation and is explicitly injected into the
@@ -106,9 +107,9 @@ directly exposed backend, because a caller could forge the header and rotate the
 
 ## Operations
 
-- Liveness/readiness: `/actuator/health/liveness`, `/actuator/health/readiness`
+- Liveness/readiness: container-internal `/actuator/health/liveness` and `/actuator/health/readiness`
 - Metrics: internal `/actuator/prometheus` and `/metrics`
-- Prometheus: internal service on port 9090; metrics endpoints are not exposed by Nginx
+- Prometheus: internal service on port 9090; health and metrics endpoints are not exposed by Nginx
 - Backups: see `backup/README.md`
 - Rollback: keep the previous image tag and database backup; do not drop new tables.
 
