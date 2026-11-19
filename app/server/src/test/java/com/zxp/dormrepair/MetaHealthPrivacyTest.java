@@ -23,6 +23,21 @@ class MetaHealthPrivacyTest {
     @LocalServerPort int port;
 
     @Test
+    @DisplayName("公开字典接口可匿名读取，且不暴露工单数量")
+    void publicMetadataDoesNotExposeOrderCounts() throws Exception {
+        for (String path : java.util.List.of("/api/v1/meta", "/api/v1/state/matrix",
+                "/api/v1/state/transitions")) {
+            HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+                    .timeout(Duration.ofSeconds(10)).GET().build();
+            HttpResponse<String> response = HTTP.send(request,
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            assertTrue(response.statusCode() == 200, path + " -> " + response.statusCode());
+            assertFalse(response.body().contains("\"orders\""), path + " -> " + response.body());
+            assertFalse(response.body().contains("\"password\""), path + " -> " + response.body());
+        }
+    }
+
+    @Test
     @DisplayName("生产健康接口不暴露工单数量")
     void productionHealthDoesNotExposeOrderCount() throws Exception {
         HttpRequest request = HttpRequest.newBuilder(

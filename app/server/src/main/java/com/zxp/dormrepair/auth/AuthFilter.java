@@ -32,6 +32,9 @@ public class AuthFilter extends OncePerRequestFilter {
     private static final Set<String> PUBLIC = Set.of(
             "/api/v1/auth/login",
             "/api/v1/health",
+            "/api/v1/meta",
+            "/api/v1/state/matrix",
+            "/api/v1/state/transitions",
             "/actuator/health",
             "/actuator/health/liveness",
             "/actuator/health/readiness",
