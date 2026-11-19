@@ -17,3 +17,11 @@ Production migration and backup credentials are separate from the runtime applic
 account. Configure `MIGRATION_DB_USER` / `MIGRATION_DB_PASSWORD` for DDL changes and
 `BACKUP_DB_USER` / `BACKUP_DB_PASSWORD` for dumps; `preflight` rejects reusing the runtime
 `DB_USER` for either privileged operation.
+
+## AI gateway probe
+
+`preflight.sh` and `preflight.ps1` call the matching `check-ai-gateway` script before
+database checks. The probe requires the fixed model
+`raccoon/sn-deepseek-v4-1-flash-1017`, sends one minimal `/chat/completions` request,
+confirms the gateway echoes that model, and confirms an invalid key receives HTTP 401/403.
+Credentials are read from the environment or production env file and are never printed.

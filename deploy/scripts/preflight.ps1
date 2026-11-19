@@ -35,6 +35,16 @@ if ($values['DB_USE_SSL'] -ne 'true') { Fail 'DB_USE_SSL must be true in product
 if ($values['DB_SSL_VERIFY_SERVER_CERTIFICATE'] -ne 'true') { Fail 'DB_SSL_VERIFY_SERVER_CERTIFICATE must be true in production' }
 if ($values['BACKUP_DB_USER'] -eq $values['DB_USER']) { Fail 'BACKUP_DB_USER must be a dedicated backup account, not the runtime DB_USER' }
 if ($values['MIGRATION_DB_USER'] -eq $values['DB_USER'] -or $values['MIGRATION_DB_USER'] -eq $values['BACKUP_DB_USER']) { Fail 'MIGRATION_DB_USER must be distinct from DB_USER and BACKUP_DB_USER' }
+$expectedModel = 'raccoon/sn-deepseek-v4-1-flash-1017'
+if ($values['AI_MODEL'] -ne $expectedModel) { Fail "AI_MODEL must be $expectedModel" }
+Write-Host 'checking AI gateway (live request)'
+$aiProbe = Join-Path $PSScriptRoot 'check-ai-gateway.ps1'
+if (!(Test-Path $aiProbe)) { Fail 'missing deploy/scripts/check-ai-gateway.ps1' }
+try {
+    & $aiProbe -BaseUrl $values['AI_BASE_URL'] -Model $values['AI_MODEL'] -ApiKey $values['AI_API_KEY'] -TimeoutSeconds 60
+} catch {
+    Fail $_.Exception.Message
+}
 $mysql = Get-Command mysql -ErrorAction SilentlyContinue
 if (-not $mysql) { Fail 'mysql client is required to verify the production schema' }
 $dbHost = if ($values['DB_HOST']) { $values['DB_HOST'] } else { '127.0.0.1' }

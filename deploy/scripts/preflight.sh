@@ -54,6 +54,14 @@ backup_user="$(grep -E '^BACKUP_DB_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
 [ "$db_user" != "$backup_user" ] || fail "BACKUP_DB_USER must be a dedicated backup account, not the runtime DB_USER"
 migration_user="$(grep -E '^MIGRATION_DB_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 [ "$migration_user" != "$db_user" ] && [ "$migration_user" != "$backup_user" ] || fail "MIGRATION_DB_USER must be distinct from DB_USER and BACKUP_DB_USER"
+expected_model="raccoon/sn-deepseek-v4-1-flash-1017"
+ai_model="$(grep -E '^AI_MODEL=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+[ "$ai_model" = "$expected_model" ] || fail "AI_MODEL must be $expected_model"
+ai_base_url="$(grep -E '^AI_BASE_URL=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+ai_api_key="$(grep -E '^AI_API_KEY=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+echo "checking AI gateway (live request)"
+AI_BASE_URL="$ai_base_url" AI_MODEL="$ai_model" AI_API_KEY="$ai_api_key" \
+  "$ROOT/deploy/scripts/check-ai-gateway.sh"
 
 echo "checking database schema (read-only)"
 command -v mysql >/dev/null 2>&1 || fail "mysql client is required to verify the production schema"

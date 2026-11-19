@@ -9,6 +9,7 @@ secrets, S3, migrations, and restore drills are verified on the target host.
 - A private S3-compatible bucket and a least-privilege credential or workload IAM role
 - TLS certificate and key in `deploy/certs/tls.crt` and `deploy/certs/tls.key`
 - A real DNS name in `PUBLIC_HOST`; it must match the certificate and is the only Host accepted by Nginx
+- A reachable OpenAI-compatible AI gateway with `AI_BASE_URL`, `AI_MODEL=raccoon/sn-deepseek-v4-1-flash-1017`, and a valid `AI_API_KEY`; preflight performs one live request and one invalid-key rejection
 - `deploy/.env.production` copied from `.env.production.example` and filled from a secret manager
 
 ## First administrator
