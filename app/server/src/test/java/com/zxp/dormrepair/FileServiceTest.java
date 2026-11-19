@@ -83,6 +83,27 @@ class FileServiceTest {
     }
 
     @Test
+    @DisplayName("已绑定照片元数据同样由工单访问权限控制")
+    void boundPhotoMetadataUsesOrderVisibility() throws Exception {
+        var repository = new InMemoryFileRepository();
+        var service = new FileService(new InMemoryFileStorage(), repository);
+        FileRecord bound = service.upload(png("bound-meta.png"), student, "BEFORE");
+        repository.bind(bound.id(), "BX20261119002", "BEFORE");
+        var request = new MockHttpServletRequest();
+        request.setAttribute(com.zxp.dormrepair.auth.AuthFilter.ATTR, other);
+        var orders = org.mockito.Mockito.mock(com.zxp.dormrepair.service.OrderService.class);
+        org.mockito.Mockito.when(orders.detailForActor("BX20261119002", other))
+                .thenThrow(com.zxp.dormrepair.common.BizException.forbidden("不能查看不属于你的工单"));
+        var controller = new com.zxp.dormrepair.controller.FileController(service, orders);
+
+        var e = org.junit.jupiter.api.Assertions.assertThrows(
+                com.zxp.dormrepair.common.BizException.class,
+                () -> controller.metadata(bound.id(), request));
+
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, e.status());
+    }
+
+    @Test
     @DisplayName("已绑定照片由工单访问权限控制")
     void boundPhotoUsesOrderVisibility() throws Exception {
         var repository = new InMemoryFileRepository();

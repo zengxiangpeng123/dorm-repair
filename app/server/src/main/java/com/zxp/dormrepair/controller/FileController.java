@@ -62,9 +62,7 @@ public class FileController {
         Actor actor = (Actor) http.getAttribute(AuthFilter.ATTR);
         if (actor == null) throw BizException.unauthorized("请先登录");
         FileRecord f = files.require(id);
-        if (f.orderNo() == null && !actor.id().equals(f.uploadedBy()) && actor.type() != ActorType.ADMIN) {
-            throw BizException.forbidden("不能读取别人的未绑定文件");
-        }
+        requireCanRead(f, actor);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("id", f.id());
         out.put("mime", f.mime());
@@ -79,13 +77,7 @@ public class FileController {
         Actor actor = (Actor) http.getAttribute(AuthFilter.ATTR);
         if (actor == null) throw BizException.unauthorized("请先登录");
         FileRecord f = files.require(id);
-        if (f.orderNo() == null) {
-            if (!actor.id().equals(f.uploadedBy()) && actor.type() != ActorType.ADMIN) {
-                throw BizException.forbidden("不能读取别人的未绑定文件");
-            }
-        } else {
-            orders.detailForActor(f.orderNo(), actor);
-        }
+        requireCanRead(f, actor);
         var download = files.download(id);
         long length = download.object().contentLength();
         if (length <= 0) {
@@ -109,5 +101,16 @@ public class FileController {
                 .header(HttpHeaders.CACHE_CONTROL, "private, no-store, max-age=0")
                 .header("Pragma", "no-cache")
                 .body(body);
+    }
+
+    /** 未绑定文件只给上传者/管理员；已绑定文件继承对应工单的可见范围。 */
+    private void requireCanRead(FileRecord file, Actor actor) {
+        if (file.orderNo() == null) {
+            if (!actor.id().equals(file.uploadedBy()) && actor.type() != ActorType.ADMIN) {
+                throw BizException.forbidden("不能读取别人的未绑定文件");
+            }
+            return;
+        }
+        orders.detailForActor(file.orderNo(), actor);
     }
 }
