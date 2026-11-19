@@ -20,7 +20,7 @@ class BootstrapAdminInitializerTest {
         var initializer = new BootstrapAdminInitializer(users, "A9001", "生产管理员",
                 "Strong-Admin-Pass-2026");
 
-        initializer.run(null);
+        initializer.afterSingletonsInstantiated();
 
         var admin = users.find("A9001").orElseThrow();
         assertEquals(ActorType.ADMIN, admin.role());
@@ -36,7 +36,7 @@ class BootstrapAdminInitializerTest {
         var initializer = new BootstrapAdminInitializer(users, "A9001", "生产管理员",
                 "Strong-Admin-Pass-2026");
 
-        initializer.run(null);
+        initializer.afterSingletonsInstantiated();
 
         assertEquals(existing, users.find("A001").orElseThrow());
         assertTrue(users.find("A9001").isEmpty());

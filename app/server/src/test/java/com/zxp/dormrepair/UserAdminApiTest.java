@@ -139,7 +139,8 @@ class UserAdminApiTest {
                 com.zxp.dormrepair.auth.PasswordHasher.demoHash()));
         var service = new com.zxp.dormrepair.service.UserAdminService(users,
                 new com.zxp.dormrepair.auth.TokenStore(
-                        new com.zxp.dormrepair.auth.InMemoryAuthSessionRepository(), users));
+                        new com.zxp.dormrepair.auth.InMemoryAuthSessionRepository(), users),
+                new com.zxp.dormrepair.service.BuildingCatalogService("memory", null, null));
         var lastActive = org.junit.jupiter.api.Assertions.assertThrows(
                 com.zxp.dormrepair.common.BizException.class,
                 () -> service.setActive("A7001", false, "A9999"));
@@ -158,7 +159,8 @@ class UserAdminApiTest {
                 "管理员二", null, null, null, null, true, hash));
         var service = new com.zxp.dormrepair.service.UserAdminService(users,
                 new com.zxp.dormrepair.auth.TokenStore(
-                        new com.zxp.dormrepair.auth.InMemoryAuthSessionRepository(), users));
+                        new com.zxp.dormrepair.auth.InMemoryAuthSessionRepository(), users),
+                new com.zxp.dormrepair.service.BuildingCatalogService("memory", null, null));
         var start = new java.util.concurrent.CountDownLatch(1);
         var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
         try {
@@ -198,6 +200,22 @@ class UserAdminApiTest {
         assertEquals(400, commonPw.status, commonPw.body);
     }
 
+    @Test
+    @DisplayName("创建学生或师傅时拒绝不存在的楼栋")
+    void rejectsUnknownBuildingForPersonnel() throws Exception {
+        String admin = login("A001", "dorm@2026");
+        Resp student = send("POST", "/admin/users",
+                "{\"id\":\"S9011\",\"role\":\"STUDENT\",\"name\":\"未知楼栋学生\",\"building\":\"B999\",\"room\":\"101\",\"password\":\"Strong-Student-2026\"}",
+                admin);
+        assertEquals(400, student.status, student.body);
+        assertTrue(student.body.contains("楼栋不存在"), student.body);
+
+        Resp worker = send("POST", "/admin/users",
+                "{\"id\":\"W9011\",\"role\":\"WORKER\",\"name\":\"未知楼栋师傅\",\"buildings\":[\"B7\",\"B999\"],\"password\":\"Strong-Worker-2026\"}",
+                admin);
+        assertEquals(400, worker.status, worker.body);
+        assertTrue(worker.body.contains("楼栋不存在"), worker.body);
+    }
     @Test
     @DisplayName("active 必须是布尔值")
     void activeMustBeBoolean() throws Exception {

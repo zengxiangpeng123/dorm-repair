@@ -83,20 +83,20 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 
 | 要证明的事 | 一条命令 | 期望 |
 |---|---|---|
-| 9 状态 14 转移，状态机与业务闭环回归 | `cd app\server; mvn -q test` | `Tests run: 111, Failures: 0` |
+| 9 状态 14 转移，状态机与业务闭环回归 | `cd app\server; mvn -q test` | `Tests run: 132, Failures: 0, Errors: 0（2 skipped）` |
 | 一条链真跑通（打真服务，不是 mock） | `pwsh -NoProfile -File app\server\tests\m1-chain.ps1` | `13 通过 / 0 失败` |
 | 重启之后数据还在（真 MySQL） | `pwsh -NoProfile -File app\server\tests\m2-mysql.ps1` | `16 通过 / 0 失败` |
 | AI 接上了；**杀掉 AI 之后建单仍成功**走兜底 | `pwsh -NoProfile -File app\server\tests\m3-ai.ps1` | `20 通过 / 0 失败` |
 | 新审查链 R1/R2、反复返修例外、最终关闭整条链 | `pwsh -NoProfile -File app\server\tests\m4-rework.ps1` | `26 通过 / 0 失败` |
 | 真 Bearer Token、三角色权限、system 令牌与越权 | `pwsh -NoProfile -File app\server\tests\m5-auth.ps1` | `36 通过 / 0 失败` |
-| AI 规则、分类器与 LLM 兜底 | `cd app\ai; <venv>\python.exe -m pytest -q` | `29 passed` |
+| AI 规则、分类器与 LLM 兜底 | `cd app\ai; <venv>\python.exe -m pytest -q` | `31 passed` |
 | 前端状态词、五步进度与倒计时 | `cd app\web; npm run test:unit` | `8 passed` |
 | 原型状态机与后端一致（离线也算得对） | `node prototype/tests/selftest.js prototype` | `34 通过 / 0 失败` |
 
 看接口而不是跑脚本：
 
 - `GET /api/v1/state/matrix` —— 140 种组合哪些合法
-- `GET /api/v1/ai/health` —— AI 在不在、多少毫秒
+- `GET /api/v1/ai/health` —— AI 服务、LLM 模式与模型匹配状态
 - `POST /api/v1/orders` + `POST /api/v1/orders/{no}/finish` —— 故意用错状态，看是不是 409 且 `allowed` 列出来
 
 ---
@@ -179,7 +179,7 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 
 仍不能证明（诚实写在前面）：
 
-- 真实并发压力：只覆盖单请求级乐观锁，没做压测；
+- 本地已完成 200 请求、并发 20 的读压测（P95 270.36 ms、错误率 0）；目标环境容量、持续压测与真实试点仍未完成；
 - 真模型：已接入 `raccoon/sn-deepseek-v4-1-flash-1017`，模型限流/超时/非法输出时自动退回规则；
 - 真实上传：上传接口、私有文件读取、S3 兼容存储和孤儿清理已实现，生产桶尚未部署；
 - 多楼栋组织树：样本只有 B7/B8 两栋；
@@ -192,4 +192,4 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 
 - **G-01** 返修单验收通过时原单 `返修中 → 已关闭`，14 条转移里没有这条边 → 按**级联副作用**处理（事件 `ORIGIN_CLOSED`，不占名额）。返修单生成与级联关闭已实现。
 - **G-02** 师傅进楼后学生可提交撤销申请，管理员通过 `POST /orders/{no}/admin-cancel` 批准后进入已取消；该入口要求存在学生申请并填写决定原因，已按正式业务接口实现。
-- **G-03** 零人工完成率有两套口径：宽松（这张单没有人类"推进状态"的事件）/ 严格（全部事件 `manual=0`，结构性恒 0）。待评审定稿。
+- **G-03** 主指标为无管理员介入完成率：已完成/已关闭工单中没有 ADMIN 角色事件的占比；`strictZero` 仅作事件级诊断，不与主流程目标混用。

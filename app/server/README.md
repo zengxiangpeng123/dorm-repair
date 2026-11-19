@@ -26,7 +26,7 @@ pwsh -NoProfile -File tests/m4-rework.ps1      # 26 项：兼容返修 + 新审�
 pwsh -NoProfile -File tests/m5-auth.ps1        # 36 项：真 Bearer Token 和角色权限
 ```
 
-期望：`Tests run: 111, Failures: 0`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
+期望：`Tests run: 132, Failures: 0, Errors: 0（2 skipped）`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
 
 ## 数据库（M2）
 
@@ -67,8 +67,8 @@ Copy-Item src\main\resources\db\data.sql  $tmp
 | GET | `/api/v1/orders/{no}` | 详情（含 allowed 下一个能推的事件） |
 | GET | `/api/v1/orders/{no}/events` | 全链路事件 |
 | GET | `/api/v1/ai/health` | AI 在不在、延迟多少毫秒 |
-| GET | `/api/v1/meta` | 9 状态、13 事件、阈值、五类故障、四时段 |
-| GET | `/api/v1/state/matrix` | 10 × 13 = 140 种组合，合法 14 |
+| GET | `/api/v1/meta` | 9 状态、14 事件、阈值、五类故障、四时段 |
+| GET | `/api/v1/state/matrix` | 10 × 14 = 140 种组合，合法 14 |
 | GET | `/api/v1/state/transitions` | 14 条合法转移清单 |
 | GET | `/api/v1/admin/rework-reviews` | 管理员待审返修队列 |
 | POST | `/api/v1/demo/reset` | 清空 + 重灌 11 张演示单 |
@@ -102,7 +102,7 @@ src/main/java/com/zxp/dormrepair/
 ## 当前完成状态
 
 - 三角色分表、Bearer 登录、按楼栋派工、返修审查 R1/R2、反复返修例外、T1/T2 和 12 页 Vue UI 已验收。
-- 旧 `/reject` 只保留兼容；新 UI 使用 `/rework-request` 与 `/rework-review`。
+- 旧 `/reject` 已返回 410 并关闭，不再作为兼容生成路径；新 UI 使用 `/rework-request` 与 `/rework-review`。
 - 后续增强：真实 S3/MinIO 部署验证、生产容量与生命周期演练。
 - M5：管理端 + 自检台 + 测试报告与 CG01–CG14 文档
 - Bearer 登录、分角色人员表和会话撤销已实现；`REPAIRING→CANCELLED` 已作为管理员撤销决定接口实现，要求先有学生撤销申请。

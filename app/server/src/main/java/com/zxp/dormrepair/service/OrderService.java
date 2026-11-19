@@ -44,6 +44,7 @@ public class OrderService {
     private final UserRepository users;
     private final ExceptionRecordRepository exceptions;
     private final FileRepository files;
+    private final BuildingCatalogService buildings;
     private final boolean autoAssign;
     private final boolean legacyDemoPhotos;
 
@@ -51,6 +52,7 @@ public class OrderService {
                         AiReviewService review, ConfigService config,
                         ReworkReviewRepository reviews, UserRepository users,
                         ExceptionRecordRepository exceptions, FileRepository files,
+                        BuildingCatalogService buildings,
                         @org.springframework.beans.factory.annotation.Value("${app.order.auto-assign:true}") boolean autoAssign,
                         @org.springframework.beans.factory.annotation.Value("${app.file.allow-legacy-demo-urls:false}") boolean legacyDemoPhotos) {
         this.store = store;
@@ -62,6 +64,7 @@ public class OrderService {
         this.users = users;
         this.exceptions = exceptions;
         this.files = files;
+        this.buildings = buildings;
         this.autoAssign = autoAssign;
         this.legacyDemoPhotos = legacyDemoPhotos;
     }
@@ -80,12 +83,18 @@ public class OrderService {
             throw BizException.precondition("描述至少 4 个字，不然师傅看不懂", "DESC_TOO_SHORT");
         }
 
+        String building = isBlank(req.building()) ? "B7" : req.building().trim();
+        boolean knownBuilding = buildings.all().stream()
+                .anyMatch(b -> building.equals(String.valueOf(b.get("id"))));
+        if (!knownBuilding) {
+            throw BizException.precondition("楼栋不存在：" + building, "BUILDING_NOT_FOUND");
+        }
         WorkOrder o = new WorkOrder();
         o.setNo(store.nextNo());
         o.setVersion(1);
         o.setStatus(StateMachine.onCreation(OrderEvent.SUBMIT));
         String at = TimeUtil.now();
-        o.setBuilding(isBlank(req.building()) ? "B7" : req.building());
+        o.setBuilding(building);
         o.setFloor(req.floor() == null ? 4 : req.floor());
         o.setRoom(isBlank(req.room()) ? "402" : req.room());
         o.setStudentId(actor.id());

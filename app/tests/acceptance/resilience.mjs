@@ -17,7 +17,12 @@ const token = await login(process.env.ACCEPTANCE_STUDENT || 'S001', process.env.
 const admin = await login(process.env.ACCEPTANCE_ADMIN || 'A001', process.env.ACCEPTANCE_ADMIN_PASSWORD || 'dorm@2026')
 const aiHealth = await fetch(base + '/ai/health', { headers: { Authorization: 'Bearer ' + token } })
 const aiBody = await aiHealth.json()
-check('AI 健康端点可观测', aiHealth.ok && aiBody.data && 'up' in aiBody.data, JSON.stringify(aiBody.data))
+const ai = aiBody.data || {}
+const expectedModel = process.env.ACCEPTANCE_AI_MODEL || 'raccoon/sn-deepseek-v4-1-flash-1017'
+check('AI 健康端点可观测', aiHealth.ok && aiBody.data && 'up' in ai, JSON.stringify(ai))
+check('AI 使用正式模型且已启用 LLM', ai.up === true && ai.llmEnabled === true && ai.llmReady === true
+  && ai.mode === 'llm' && ai.remoteModel === expectedModel && ai.modelMatched === true,
+  `up=${ai.up} mode=${ai.mode} llmEnabled=${ai.llmEnabled} remoteModel=${ai.remoteModel} warning=${ai.warning || ''}`)
 const dbOrders = await fetch(base + '/orders?status=ALL', { headers: { Authorization: 'Bearer ' + admin } })
 check('数据库读取可用', dbOrders.ok, 'orders status=' + dbOrders.status)
 const readiness = await fetch(root + '/actuator/health/readiness')

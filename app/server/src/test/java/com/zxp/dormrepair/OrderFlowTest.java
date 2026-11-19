@@ -92,6 +92,18 @@ class OrderFlowTest {
     }
 
     @Test
+    @DisplayName("建单拒绝不存在的楼栋，避免产生不可派工工单")
+    void rejectsUnknownBuilding() throws Exception {
+        Resp r = call("POST", "/orders", """
+                {"building":"B999","floor":1,"room":"101",
+                 "desc":"窗户把手松动关不严",
+                 "window":"全天（08:00-22:00）","photosBefore":["demo://b1.jpg"]}
+                """, "student", "S001");
+        assertEquals(422, r.status, r.body.toString());
+        assertEquals("BUILDING_NOT_FOUND", r.error().get("reason").asText());
+    }
+
+    @Test
     @DisplayName("旧 reject 已停用，必须走申请与管理员审查")
     void reworkAndCascade() throws Exception {
         String no = pending().get("no").asText();

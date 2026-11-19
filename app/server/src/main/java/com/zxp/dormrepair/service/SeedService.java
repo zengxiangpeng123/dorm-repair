@@ -151,7 +151,7 @@ public class SeedService {
         add(o8, OrderEvent.ASSIGN, "SYSTEM", "system", "系统自动派工", 0, 4260, "派给 王海涛（综合班）");
         add(o8, OrderEvent.ARRIVE, "WORKER", "W0512", "王海涛", 1, 4210, "到门打卡");
         add(o8, OrderEvent.FINISH, "WORKER", "W0512", "王海涛", 1, 4180, "换了锁芯，门能开了");
-        add(o8, OrderEvent.REJECT, "STUDENT", "S003", "王同学", 1, 4140, "锁芯还是涩，拧着费劲");
+        add(o8, OrderEvent.REJECT, "ADMIN", "A001", "王主任", 1, 4140, "审查确认锁芯维修质量不合格，批准返修");
         o8.setArriveAt(TimeUtil.agoMinutes(4210));
         o8.setFinishAt(TimeUtil.agoMinutes(4180));
         o8.setPhotosAfter(new ArrayList<>(List.of("demo://after/211.jpg")));
@@ -168,7 +168,7 @@ public class SeedService {
         add(o9, OrderEvent.ASSIGN, "SYSTEM", "system", "系统自动派工", 0, 4080, "派给 王海涛（综合班）");
         add(o9, OrderEvent.ARRIVE, "WORKER", "W0512", "王海涛", 1, 4040, "到门打卡");
         add(o9, OrderEvent.FINISH, "WORKER", "W0512", "王海涛", 1, 4010, "整个锁体换了");
-        add(o9, OrderEvent.REJECT, "STUDENT", "S003", "王同学", 1, 3960, "门能锁但反锁卡住");
+        add(o9, OrderEvent.REJECT, "ADMIN", "A001", "王主任", 1, 3960, "审查确认反锁故障仍未修复，批准返修");
         o9.setArriveAt(TimeUtil.agoMinutes(4040));
         o9.setFinishAt(TimeUtil.agoMinutes(4010));
         o9.setPhotosAfter(new ArrayList<>(List.of("demo://after/211-r1.jpg")));

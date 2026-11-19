@@ -55,3 +55,7 @@ app/worker-web/.build-tmp/
 app/tests/acceptance/*-report.json
 app/tests/acceptance/report.json
 app/tests/acceptance/screenshots/
+
+# Local document render QA and extracted review text
+.doc-qa/
+.doc-review-text.json

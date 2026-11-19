@@ -393,13 +393,13 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 | `GET /meta` | `statuses,events,transitions,categories,levels,windows,budgetLine,verifyHours,archiveDays,brand,version,buildings,noShowReasons,finishTags,cancelReasons,exceptionKinds` |
 | `GET /state/matrix` | `rows,rowCount,eventCount,total,legal` |
 | `GET /state/transitions` | `items,total`；item 为 `{from,event,eventLabel,to,trigger[]}` |
-| `GET /ai/health` | `baseUrl,timeoutMs,reviewTimeoutMs,up,latencyMs,remote?` 或 `error?` |
+| `GET /ai/health` | `baseUrl,model,provider,timeoutMs,reviewTimeoutMs,up,mode,llmEnabled,remoteModel,modelMatched,llmReady,latencyMs,remote?,warning?,error?` |
 | `POST /demo/advance?hours=` | `at,autoAccepted[],archived[],failed[],advancedHours` |
 | `POST /demo/reset` | `deleted,seeded,orders` |
 
 `/meta` 的 `statuses[]` 为 `{code,label,terminal}`；`events[]` 为 `{code,label,trigger[]}`；`buildings[]` 为 `{id,name,floors[]}`；`exceptionKinds[]` 为 `{code,label}`。
 
-`/state/matrix` 的 `rows[]` 为 `{from,cells[]}`，`cells[]` 为 `{event,to,legal}`。
+`/state/matrix` 的 `rows[]` 为 `{from,cells[]}`，`cells[]` 为 `{event,to,legal}`。\n\n`GET /ai/health` 的 `up=true` 只表示 Python 服务可达；只有 `mode=llm`、`llmEnabled=true`、`remoteModel` 与后端 `model` 一致且 `llmReady=true`，才表示正式模型链路就绪。规则模式、缺少密钥或模型不一致都必须告警，不能把“服务在线”当作“AI 可用”。
 
 ## 九、权限与错误映射
 

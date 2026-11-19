@@ -125,7 +125,7 @@ def new_doc(title_footer):
 
 
 def h1(doc, text):
-    p = doc.add_paragraph()
+    p = doc.add_paragraph(style="Heading 1")
     p.paragraph_format.space_before = Pt(16)
     p.paragraph_format.space_after = Pt(8)
     p.paragraph_format.keep_with_next = True
@@ -145,7 +145,7 @@ def h1(doc, text):
 
 
 def h2(doc, text):
-    p = doc.add_paragraph()
+    p = doc.add_paragraph(style="Heading 2")
     p.paragraph_format.space_before = Pt(10)
     p.paragraph_format.space_after = Pt(4)
     p.paragraph_format.keep_with_next = True
@@ -155,7 +155,7 @@ def h2(doc, text):
 
 
 def h3(doc, text):
-    p = doc.add_paragraph()
+    p = doc.add_paragraph(style="Heading 3")
     p.paragraph_format.space_before = Pt(7)
     p.paragraph_format.space_after = Pt(2)
     p.paragraph_format.keep_with_next = True
@@ -281,16 +281,26 @@ def cover(doc, org, code, title, sub, meta_pairs):
     doc.add_page_break()
 
 
-def toc_placeholder(doc, items, note="目次：以下条目在 Word 里可用「引用 → 目录」自动生成；本文件已按章节顺序列出。"):
-    """目录页。不插入真域（改动后要手刷），给条目清单更稳。"""
+def toc_placeholder(doc, items, note="目次由 Word 根据标题级别自动生成；导出 PDF 前更新整个目录域。"):
+    """插入真正的 TOC 域。生成器不手填页码，Word 打开和导出时负责更新。"""
     h1(doc, "目　录")
     p(doc, note, indent=False, size=9.5)
-    for it in items:
-        par = doc.add_paragraph()
-        par.paragraph_format.space_after = Pt(3)
-        par.paragraph_format.left_indent = Cm(0.4)
-        r = par.add_run(it)
-        cnfont(r, SONG, 10.5, color=INK)
+    par = doc.add_paragraph()
+    run = par.add_run()
+    begin = OxmlElement("w:fldChar")
+    begin.set(qn("w:fldCharType"), "begin")
+    begin.set(qn("w:dirty"), "true")
+    instruction = OxmlElement("w:instrText")
+    instruction.set(qn("xml:space"), "preserve")
+    instruction.text = ' TOC \\o "1-3" \\h \\z \\u '
+    separate = OxmlElement("w:fldChar")
+    separate.set(qn("w:fldCharType"), "separate")
+    hint = OxmlElement("w:t")
+    hint.text = "打开 Word 后更新目录"
+    end = OxmlElement("w:fldChar")
+    end.set(qn("w:fldCharType"), "end")
+    for element in (begin, instruction, separate, hint, end):
+        run._r.append(element)
     doc.add_page_break()
 
 

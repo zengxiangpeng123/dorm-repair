@@ -86,6 +86,9 @@ public class ProductionSafetyValidator {
         if (aiBaseUrl.isBlank() || aiModel.isBlank()) {
             throw new IllegalStateException("生产环境必须显式配置 AI 服务地址和模型");
         }
+        if (!"raccoon/sn-deepseek-v4-1-flash-1017".equals(aiModel)) {
+            throw new IllegalStateException("生产环境 AI 模型必须是 raccoon/sn-deepseek-v4-1-flash-1017");
+        }
         if (aiBaseUrl.contains("127.0.0.1") || aiBaseUrl.contains("localhost")) {
             throw new IllegalStateException("生产环境禁止使用本机 AI 服务地址");
         }

@@ -46,6 +46,7 @@ class ReworkReviewTest {
     @Autowired TimerService timers;
     @Autowired QueryService queries;
     @Autowired ExceptionRecordRepository exceptionRecords;
+    @Autowired com.zxp.dormrepair.auth.UserRepository users;
 
     @BeforeEach
     void reset() {
@@ -218,7 +219,7 @@ class ReworkReviewTest {
     void auditEventsStayOutsideMatrix() {
         assertEquals(Set.of(ActorType.STUDENT), TransitionTable.triggerOf(OrderEvent.REWORK_REQUEST));
         assertEquals(Set.of(ActorType.ADMIN), TransitionTable.triggerOf(OrderEvent.REWORK_REJECTED));
-        assertTrue(TransitionTable.triggerOf(OrderEvent.REJECT).contains(ActorType.ADMIN));
+        assertEquals(Set.of(ActorType.ADMIN), TransitionTable.triggerOf(OrderEvent.REJECT));
         assertEquals(false, OrderEvent.REWORK_REQUEST.changesStatus());
         assertEquals(14, StateMachine.matrix().get("eventCount"));
         assertEquals(14, StateMachine.matrix().get("legal"));
@@ -228,10 +229,12 @@ class ReworkReviewTest {
     @Test
     @DisplayName("无可用楼栋师傅时返回 422，不硬编码 W0428")
     void noWorkerLeavesPending() {
-        Actor student = actor(ActorType.STUDENT, "S001", "张同学");
-        OrderView submitted = orders.submit(new SubmitRequest("B9", 1, "101",
-                "水管一直滴水，需要维修", "全天", List.of("demo://b9.jpg"),
+        users.setActive("W0512", false);
+        Actor student = actor(ActorType.STUDENT, "S003", "王同学");
+        OrderView submitted = orders.submit(new SubmitRequest("B8", 2, "205",
+                "水管一直滴水，需要维修", "全天", List.of("demo://b8.jpg"),
                 null, null, null, null, null), student);
+        assertEquals(OrderStatus.PENDING, store.require(submitted.no()).getStatus());
         BizException e = assertThrows(BizException.class,
                 () -> orders.assign(submitted.no(), new TransitRequest(null, null, null, null, null,
                         null, null, null, null, null, null), Actor.system()));

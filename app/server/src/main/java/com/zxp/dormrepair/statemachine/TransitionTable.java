@@ -61,7 +61,7 @@ public final class TransitionTable {
         t.put(OrderEvent.NEED_PARTS, EnumSet.of(ActorType.WORKER));
         t.put(OrderEvent.PARTS_ARRIVED, EnumSet.of(ActorType.SYSTEM, ActorType.ADMIN));
         t.put(OrderEvent.ACCEPT, EnumSet.of(ActorType.STUDENT));
-        t.put(OrderEvent.REJECT, EnumSet.of(ActorType.STUDENT, ActorType.ADMIN));
+        t.put(OrderEvent.REJECT, EnumSet.of(ActorType.ADMIN));
         t.put(OrderEvent.AUTO_ACCEPT, EnumSet.of(ActorType.SYSTEM));
         t.put(OrderEvent.ARCHIVE, EnumSet.of(ActorType.SYSTEM));
         t.put(OrderEvent.CANCEL, EnumSet.of(ActorType.STUDENT));

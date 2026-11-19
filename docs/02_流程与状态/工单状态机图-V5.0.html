@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="宿舍维修 V5.0 工单状态机：9 个状态、13 条合法转移、两个 7 天计时器；管理端例外不占状态位">
-<title>宿舍维修工单状态机 V5.0｜9 状态 · 13 转移</title>
+<meta name="description" content="宿舍维修 V5.0 工单状态机：9 个状态、14 条合法转移、两个 7 天计时器；管理端例外不占状态位">
+<title>宿舍维修工单状态机 V5.0｜9 状态 · 14 转移</title>
 <style>
   :root {
     color-scheme: light;
@@ -126,17 +126,17 @@
 <body>
 <div class="sheet">
   <h1>工单状态机 V5.0（宿舍维修 · 9 个状态）</h1>
-  <p class="lede">这张图只回答一个问题：<b>一张单能停在哪几个位置，靠什么事件挪。没有「看情况」的分支</b>。口径按「项目完整闭环」对齐——大纲里出现过的状态一个不少，<b>9 个状态、13 条合法转移、两个互不相干的 7 天计时器</b>。闭嘴的边（被拒绝的转移）不画进图里，单独列在下方。管理端的例外<b>不是状态</b>，而是挂在某条边上的标记；唯一由人决定的转移是「批准撤销」。</p>
+  <p class="lede">这张图只回答一个问题：<b>一张单能停在哪几个位置，靠什么事件挪。没有「看情况」的分支</b>。口径按「项目完整闭环」对齐——大纲里出现过的状态一个不少，<b>9 个状态、14 条合法转移、两个互不相干的 7 天计时器</b>。闭嘴的边（被拒绝的转移）不画进图里，单独列在下方。管理端的例外<b>不是状态</b>，而是挂在某条边上的标记；唯一由人决定的转移是「批准撤销」。</p>
   <div class="meta">
     <span class="hot">9 个状态</span>
-    <span>13 条合法转移</span>
+    <span>14 条合法转移</span>
     <span>两条终态：已关闭 / 已取消</span>
     <span>回流都回「待派工」</span>
     <span>T1 验收超时 · T2 归档</span>
     <span>撤销只到「进楼」为止</span>
   </div>
 
-  <svg class="flow" viewBox="0 0 1440 880" role="img" aria-label="宿舍维修 V5.0 工单状态机：9 个状态与 13 条合法转移">
+  <svg class="flow" viewBox="0 0 1440 880" role="img" aria-label="宿舍维修 V5.0 工单状态机：9 个状态与 14 条合法转移">
     <defs>
       <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
     </defs>
@@ -230,7 +230,7 @@
 
     <!-- 验收不通过：待验收 → 返修中 -->
     <path class="edge exc" d="M 760 488 L 920 488" marker-end="url(#ar)"/>
-    <text class="elab hot" x="830" y="476" text-anchor="middle">验收不通过（学生）</text>
+    <text class="elab hot" x="830" y="476" text-anchor="middle">返修审查通过（管理员）</text>
 
     <!-- 生成 -R1：返修中 → 待派工 -->
     <path class="edge exc" d="M 1160 488 L 1330 488 L 1330 112 L 760 112" marker-end="url(#ar)"/>
@@ -244,6 +244,10 @@
     <path class="edge void" d="M 520 240 L 440 240 L 440 412 L 260 412 L 260 400" marker-end="url(#ar)"/>
     <text class="elab red" x="360" y="430" text-anchor="middle">撤销（师傅还没进楼）</text>
 
+    <!-- 维修中撤销：学生申请，管理员批准 -->
+    <path class="edge void" d="M 520 368 L 420 368 L 420 460 L 260 460 L 260 400" marker-end="url(#ar)"/>
+    <text class="elab red" x="390" y="484" text-anchor="middle">批准撤销（管理员 · 已有学生申请）</text>
+
     <!-- T1：待验收 → 已完成 -->
     <path class="edge timer" d="M 520 512 L 400 512 L 400 632 L 520 632" marker-end="url(#ar)"/>
     <text class="elab cool" x="300" y="560" text-anchor="middle">T1 · 7 天未响应 → 自动验收</text>
@@ -256,7 +260,7 @@
 
   <div class="cards">
     <div class="card span2">
-      <h2>合法转移（13 条 · 触发方只有三方：学生 / 师傅 / 系统）</h2>
+      <h2>合法转移（14 条 · 触发方：学生 / 师傅 / 管理员 / 系统）</h2>
       <table class="t">
         <tr>
           <th style="width:4%">#</th><th style="width:14%">事件</th><th style="width:9%">触发方</th>
@@ -270,11 +274,12 @@
         <tr><td>6</td><td><code>NEED_PARTS</code></td><td>师傅</td><td><code>维修中</code> → <code>待配件</code></td><td>缺件名 + 金额 + 预计日期</td><td>预算内自动下单；超预算挂 ②</td></tr>
         <tr><td>7</td><td><code>PARTS_ARRIVED</code></td><td>系统 / 管理员</td><td><code>待配件</code> → <code>待派工</code></td><td>—</td><td>保留原 <code>level</code>、重新排队</td></tr>
         <tr><td>8</td><td><code>ACCEPT</code></td><td>学生</td><td><code>待验收</code> → <code>已完成</code></td><td>—</td><td>写 <code>signAt</code>，<b>T2 开始计时</b>；若是返修单则同时关掉原单</td></tr>
-        <tr><td>9</td><td><code>REJECT</code></td><td>学生</td><td><code>待验收</code> → <code>返修中</code></td><td>填不通过原因</td><td>生成 <code>-R1</code> 新单、原单挂起、紧急度升一档；第 2 次挂 ③</td></tr>
+        <tr><td>9</td><td><code>REJECT</code></td><td>管理员</td><td><code>待验收</code> → <code>返修中</code></td><td>填不通过原因</td><td>生成 <code>-R1</code> 新单、原单挂起、紧急度升一档；第 2 次挂 ③</td></tr>
         <tr><td>10</td><td><code>AUTO_ACCEPT</code></td><td>系统</td><td><code>待验收</code> → <code>已完成</code></td><td><b>T1 满 168 小时</b></td><td>写 <code>signAt</code>，<code>manual=0</code>，事件标「学生 7 天未响应」</td></tr>
         <tr><td>11</td><td><code>ARCHIVE</code></td><td>系统</td><td><code>已完成</code> → <code>已关闭</code></td><td><b>T2 满 7 天</b></td><td>转只读，进归档与看板</td></tr>
         <tr><td>12</td><td><code>CANCEL</code></td><td>学生</td><td><code>待派工</code> → <code>已取消</code></td><td>师傅还没接单</td><td>工单作废，不进统计</td></tr>
         <tr><td>13</td><td><code>CANCEL</code></td><td>学生</td><td><code>已派工</code> → <code>已取消</code></td><td>师傅还没进楼（未打卡）</td><td>清 <code>workerId</code>，从该师傅待办中移除</td></tr>
+        <tr><td>14</td><td><code>ADMIN_CANCEL</code></td><td>管理员</td><td><code>维修中</code> → <code>已取消</code></td><td>学生已申请撤销，管理员填写决定原因</td><td>记录批准人、决定原因，保留完整历史</td></tr>
       </table>
     </div>
 
@@ -287,10 +292,10 @@
         <li><code>维修中</code> → <code>已完成</code>：跳过学生验收</li>
         <li><code>待配件</code> → <code>已完成</code>：缺件没换上就结单</li>
         <li><code>待验收</code> → <code>待派工</code>：只能退成返修单，不能凭空回队</li>
-        <li><code>维修中</code> → <code>已取消</code>：师傅已进楼，学生只能<b>申请</b>，由管理员决定</li>
+        <li><code>维修中</code> + <code>CANCEL</code>：学生不能直接撤销，只能<b>申请</b>，由管理员通过 <code>ADMIN_CANCEL</code> 决定</li>
         <li><code>待验收</code> → <code>已取消</code>：活已干完，只能验收或退回返修</li>
         <li>终态（<code>已关闭</code> / <code>已取消</code>）→ 任意：需要就重新报修</li>
-        <li>非本单师傅执行 <code>ARRIVE</code> / <code>FINISH</code>，非本人执行 <code>ACCEPT</code> / <code>REJECT</code>：越权</li>
+        <li>非本单师傅执行 <code>ARRIVE</code> / <code>FINISH</code>，非本人执行 <code>ACCEPT</code>，或非管理员执行 <code>REJECT</code>：越权</li>
       </ul>
     </div>
 
@@ -306,14 +311,14 @@
     </div>
 
     <div class="card">
-      <h2>唯一由人决定的转移：批准撤销</h2>
+      <h2>需要管理员判断的转移：返修审查与批准撤销</h2>
       <p>学生撤销的边界不是技术限制，是成本：</p>
       <ul>
         <li><code>待派工</code> / <code>已派工</code>（未打卡）→ <b>学生自己点撤销</b>，零成本，走 <code>CANCEL</code></li>
         <li><code>维修中</code>（已进楼）→ <b>只能申请</b>，进管理端例外处理台，由管理员决定作废或补偿师傅</li>
         <li><code>待验收</code> 及之后 → <b>不能撤销</b>，只能验收或退回返修</li>
       </ul>
-      <p>分界线就是<b>「进楼打卡」</b>：打卡前师傅还没出发，打卡后人已经在楼里。这也是全图唯一一处「管理员能改工单状态」的地方。</p>
+      <p>分界线就是<b>「进楼打卡」</b>：打卡前师傅还没出发，打卡后人已经在楼里。管理员只能通过返修审查 `REJECT` 和维修中撤销 `ADMIN_CANCEL` 改变状态，不能任意编辑工单。</p>
     </div>
 
     <div class="card good">
@@ -346,7 +351,7 @@
     </div>
   </div>
 
-  <footer>V5.0 · 状态与事件命名对齐 SYS-004《状态机设计》· 9 状态 / 13 转移 · 闭环大纲列了 8 个状态、未涉撤销，本图按系统已实现的 9 个补全，不改大纲任何一条</footer>
+  <footer>V5.0 · 状态与事件命名对齐 SYS-004《状态机设计》· 9 状态 / 14 转移 · 闭环大纲列了 8 个状态、未涉撤销，本图按系统已实现的 9 个补全，不改大纲任何一条</footer>
 </div>
 </body>
 </html>

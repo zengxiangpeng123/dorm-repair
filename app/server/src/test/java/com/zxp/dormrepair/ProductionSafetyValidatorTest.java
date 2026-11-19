@@ -19,29 +19,29 @@ class ProductionSafetyValidatorTest {
                 false, false, "mysql", "mysql",
                 "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password",
                 "s3", "dorm-files", s3Endpoint, access, secret, session, false,
-                aiBaseUrl, "model-x");
+                aiBaseUrl, "raccoon/sn-deepseek-v4-1-flash-1017");
     }
 
     @Test
     @DisplayName("生产禁止演示模式、身份头、默认口令和本机 AI")
     void rejectsUnsafeProductionConfiguration() {
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                true, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
+                true, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, true, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, true, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "root", "123456", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "root", "123456", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "mysql", "mysql", "", "", "", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, false, "mysql", "mysql", "", "", "", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
                 false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "local", "", "", "", "", "", false,
-                "https://ai.example.com", "model-x"));
+                "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
                 false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", true,
-                "https://ai.example.com", "model-x"));
+                "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
                 false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
-                "http://127.0.0.1:8001", "model-x"));
+                "http://127.0.0.1:8001", "raccoon/sn-deepseek-v4-1-flash-1017"));
     }
 
     @Test
@@ -51,12 +51,12 @@ class ProductionSafetyValidatorTest {
                 false, false, "memory", "mysql",
                 "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password",
                 "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
-                "https://ai.example.com", "model-x"));
+                "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
                 false, false, "mysql", "memory",
                 "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password",
                 "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
-                "https://ai.example.com", "model-x"));
+                "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
     }
 
     @Test
@@ -65,9 +65,18 @@ class ProductionSafetyValidatorTest {
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
                 false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=false",
                 "app", "strong-password", "s3", "dorm-files", "https://s3.example.com",
-                "", "", "", false, "https://ai.example.com", "model-x"));
+                "", "", "", false, "https://ai.example.com", "raccoon/sn-deepseek-v4-1-flash-1017"));
     }
 
+    @Test
+    @DisplayName("生产 AI 模型必须是正式联调模型")
+    void rejectsUnexpectedAiModel() {
+        assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
+                false, false, "mysql", "mysql",
+                "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password",
+                "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
+                "https://ai.example.com", "model-x"));
+    }
     @Test
     @DisplayName("生产 S3 endpoint 必须使用 HTTPS")
     void rejectsInsecureS3Endpoint() {

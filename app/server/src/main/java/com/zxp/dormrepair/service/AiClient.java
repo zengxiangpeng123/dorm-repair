@@ -154,7 +154,8 @@ public class AiClient {
                 model, 0, "AI_UNAVAILABLE", why, 0);
     }
 
-    /** 给 /health 与看板用：AI 在不在，别等到建单才发现。 */
+    /** 给 /health 与看板用：不仅服务在线，还要确认 LLM 模式、密钥和模型配置都真正生效。 */
+    @SuppressWarnings("unchecked")
     public Map<String, Object> health() {
         long t0 = System.currentTimeMillis();
         Map<String, Object> m = new LinkedHashMap<>();
@@ -164,13 +165,29 @@ public class AiClient {
         m.put("timeoutMs", fastMs);
         m.put("reviewTimeoutMs", slowMs);
         try {
-            @SuppressWarnings("rawtypes")
-            Map body = fast.get().uri("/health").retrieve().body(Map.class);
+            Map<String, Object> body = fast.get().uri("/health").retrieve().body(Map.class);
             m.put("up", true);
             m.put("latencyMs", System.currentTimeMillis() - t0);
             m.put("remote", body);
+            Map<String, Object> classifier = body == null ? Map.of()
+                    : body.get("classifier") instanceof Map<?, ?> c
+                    ? (Map<String, Object>) c : Map.of();
+            String mode = str(classifier.get("mode"), "");
+            boolean llmEnabled = Boolean.TRUE.equals(classifier.get("llmEnabled"));
+            String remoteModel = str(classifier.get("model"), "");
+            m.put("mode", mode);
+            m.put("llmEnabled", llmEnabled);
+            m.put("remoteModel", remoteModel);
+            m.put("modelMatched", model.equals(remoteModel));
+            m.put("llmReady", llmEnabled && model.equals(remoteModel));
+            if (!llmEnabled) {
+                m.put("warning", "AI service is not running in LLM mode with an API key");
+            } else if (!model.equals(remoteModel)) {
+                m.put("warning", "AI service model does not match the backend model");
+            }
         } catch (Exception e) {
             m.put("up", false);
+            m.put("llmReady", false);
             m.put("latencyMs", System.currentTimeMillis() - t0);
             m.put("error", e.getClass().getSimpleName());
         }

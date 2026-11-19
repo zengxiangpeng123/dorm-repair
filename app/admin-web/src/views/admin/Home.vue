@@ -296,8 +296,8 @@ onMounted(load)
           <div>
             <div class="num">{{ dash ? Math.round((dash.zeroManual?.rate ?? 0) * 100) : '—' }}%</div>
             <div class="k">
-              零人工完成率（{{ dash?.zeroManual?.zero ?? 0 }}/{{ dash?.zeroManual?.total ?? 0 }} 张）
-              <span class="hint-inline">严格口径 {{ dash ? Math.round((dash.strictZero?.rate ?? 0) * 100) : '—' }}%</span>
+              无管理员介入完成率（{{ dash?.zeroManual?.zero ?? 0 }}/{{ dash?.zeroManual?.total ?? 0 }} 张）
+              <span class="hint-inline">事件级诊断 {{ dash ? Math.round((dash.strictZero?.rate ?? 0) * 100) : '—' }}%</span>
             </div>
           </div>
         </div>

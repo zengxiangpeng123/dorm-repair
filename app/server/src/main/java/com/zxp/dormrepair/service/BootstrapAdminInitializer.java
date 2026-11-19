@@ -7,8 +7,8 @@ import com.zxp.dormrepair.statemachine.ActorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * 账号、姓名和口令必须由部署方显式注入；不写默认口令，不覆盖已有管理员。
  */
 @Component
-public class BootstrapAdminInitializer implements ApplicationRunner {
+public class BootstrapAdminInitializer implements SmartInitializingSingleton {
 
     private static final Logger log = LoggerFactory.getLogger(BootstrapAdminInitializer.class);
 
@@ -35,8 +35,9 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
         this.password = password;
     }
 
+    /** 在端口开放前完成首次管理员检查，避免初始化失败后出现短暂可用窗口。 */
     @Override
-    public void run(ApplicationArguments args) {
+    public void afterSingletonsInstantiated() {
         if (users.countByRole(ActorType.ADMIN) > 0) {
             return;
         }

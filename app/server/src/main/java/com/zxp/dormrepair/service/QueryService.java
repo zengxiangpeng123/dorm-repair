@@ -271,7 +271,7 @@ public class QueryService {
         return m;
     }
 
-    /** 看板。零人工两套口径都算，并在 basis 里写清怎么算的 —— 免得评审时被问住。 */
+    /** 看板。主指标是无管理员介入完成率，另保留事件级诊断指标并写清统计边界。 */
     public Map<String, Object> dashboard() {
         List<WorkOrder> all = store.all();
         List<WorkOrder> done = all.stream()
@@ -279,7 +279,7 @@ public class QueryService {
                 .toList();
 
         int strict = (int) done.stream().filter(this::allManualZero).count();
-        int loose = (int) done.stream().filter(this::noAdminTouch).count();
+        int noAdmin = (int) done.stream().filter(this::noAdminTouch).count();
 
         long fixSum = 0; int fixN = 0;
         for (WorkOrder o : all) {
@@ -331,13 +331,13 @@ public class QueryService {
         m.put("avgFixMinutes", fixN == 0 ? 0 : Math.round((double) fixSum / fixN / 60000));
         m.put("reworkRate", all.isEmpty() ? 0 : Math.round(reworkN * 100.0 / all.size()) / 100.0);
         m.put("zeroManual", Map.of(
-                "zero", loose, "total", done.size(),
-                "rate", done.isEmpty() ? 0 : Math.round(loose * 100.0 / done.size()) / 100.0,
-                "basis", "宽松口径：管理端一次都没碰过这张单（没有管理员事件、派工也不是人工）"));
+                "zero", noAdmin, "total", done.size(),
+                "rate", done.isEmpty() ? 0 : Math.round(noAdmin * 100.0 / done.size()) / 100.0,
+                "basis", "无管理员介入完成率：已完成/已关闭工单中，没有 ADMIN 角色事件的占比；学生提交/验收和师傅到场/完工是必要人工动作，不扣减"));
         m.put("strictZero", Map.of(
                 "zero", strict, "total", done.size(),
                 "rate", done.isEmpty() ? 0 : Math.round(strict * 100.0 / done.size()) / 100.0,
-                "basis", "严格口径：这张单所有事件 manual=0（学生提交、师傅打卡都算 manual=1，所以通常恒为 0）"));
+                "basis", "事件级诊断：全部事件 manual=0 的占比；学生提交/验收、师傅到场/完工及管理员操作均记 manual=1，通常恒为 0，不作为主流程目标"));
         m.put("byBuilding", byBuilding);
         m.put("timers", timers);
         m.put("config", config.all());

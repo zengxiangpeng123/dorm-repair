@@ -5,14 +5,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /** 启动时确认数据库已执行当前版本迁移，缺表或缺关键列则拒绝带病启动。 */
 @Component
-public class DatabaseSchemaGuard implements ApplicationRunner {
+public class DatabaseSchemaGuard implements SmartInitializingSingleton {
 
     private static final List<TableSchema> REQUIRED_SCHEMA = List.of(
             table("t_student", "id", "name", "phone", "building_id", "room", "password_hash", "active", "created_at", "updated_at"),
@@ -47,8 +47,12 @@ public class DatabaseSchemaGuard implements ApplicationRunner {
         this.enabled = "mysql".equalsIgnoreCase(store);
     }
 
+    /**
+     * 在 Web 服务器开始接收请求之前校验结构。ApplicationRunner 发生在端口开放之后，
+     * 会让错误配置出现一段“健康端点已可用、随后进程退出”的假就绪窗口。
+     */
     @Override
-    public void run(ApplicationArguments args) {
+    public void afterSingletonsInstantiated() {
         if (!enabled) {
             return;
         }

@@ -12,6 +12,7 @@ import com.zxp.dormrepair.statemachine.StateMachine;
 import com.zxp.dormrepair.statemachine.TransitionTable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 白盒单测：状态机本身。 老师要求「至少一个模块的详细白盒单测」，这个模块就是它。
  *
- * <p>14 条合法边一条一条点名，117 条非法组合一条一条拒，谁改坏了这里立刻红。
+ * <p>14 条合法边一条一条点名，104 条非法组合（9 个已有状态的单测子集）一条一条拒，谁改坏了这里立刻红。
  */
 class StateMachineTest {
 
@@ -56,13 +57,13 @@ class StateMachineTest {
     }
 
     @Test
-    @DisplayName("转移表正好 14 条，管理员撤销审批复用 CANCEL 边")
+    @DisplayName("转移表正好 14 条，维修中撤销使用 ADMIN_CANCEL")
     void tableSizeIsThirteen() {
         assertEquals(14, TransitionTable.list().size());
     }
 
     @Test
-    @DisplayName("96 条非法组合全部 409，且带着 allowed 列表（级联事件不在其中）")
+    @DisplayName("104 条非法组合全部 409，且带着 allowed 列表（级联事件不在其中）")
     void illegalCombinations() {
         int illegal = 0;
         for (OrderEvent ev : TransitionTable.EVENTS) {
@@ -88,7 +89,7 @@ class StateMachineTest {
     }
 
     @Test
-    @DisplayName("矩阵：10 行（含 NEW）× 13 事件，合法 14")
+    @DisplayName("矩阵：10 行（含 NEW）× 14 事件 = 140 格，合法 14")
     void matrix() {
         Map<String, Object> m = StateMachine.matrix();
         assertEquals(10, m.get("rowCount"));
@@ -98,13 +99,18 @@ class StateMachineTest {
     }
 
     @Test
-    @DisplayName("谁能推哪条事件：CANCEL 允许学生与管理员，PARTS_ARRIVED 没有师傅")
+    @DisplayName("谁能推哪条事件：CANCEL 仅学生，REJECT 仅管理员")
     void triggers() {
         assertEquals(List.of(ActorType.STUDENT), List.copyOf(TransitionTable.triggerOf(OrderEvent.CANCEL)));
         assertEquals(List.of(ActorType.ADMIN), List.copyOf(TransitionTable.triggerOf(OrderEvent.ADMIN_CANCEL)));
         assertTrue(TransitionTable.triggerOf(OrderEvent.PARTS_ARRIVED).contains(ActorType.ADMIN));
         assertTrue(!TransitionTable.triggerOf(OrderEvent.PARTS_ARRIVED).contains(ActorType.WORKER));
         assertTrue(!TransitionTable.triggerOf(OrderEvent.ASSIGN).contains(ActorType.STUDENT));
+
+        assertEquals(Set.of(ActorType.ADMIN), TransitionTable.triggerOf(OrderEvent.REJECT));
+        BizException studentRework = assertThrows(BizException.class,
+                () -> StateMachine.assertCanTrigger(OrderEvent.REJECT, ActorType.STUDENT));
+        assertEquals(403, studentRework.status().value());
 
         BizException e = assertThrows(BizException.class,
                 () -> StateMachine.assertCanTrigger(OrderEvent.ASSIGN, ActorType.STUDENT));

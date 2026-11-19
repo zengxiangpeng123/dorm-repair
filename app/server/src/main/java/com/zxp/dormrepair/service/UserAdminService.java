@@ -30,10 +30,25 @@ public class UserAdminService {
 
     private final UserRepository users;
     private final TokenStore tokens;
+    private final BuildingCatalogService buildings;
 
-    public UserAdminService(UserRepository users, TokenStore tokens) {
+    public UserAdminService(UserRepository users, TokenStore tokens,
+                            BuildingCatalogService buildings) {
         this.users = users;
         this.tokens = tokens;
+        this.buildings = buildings;
+    }
+
+    /** 只接受目录中存在的楼栋；防止人员归属写入不可派工、不可看板的位置。 */
+    private void requireKnownBuilding(String buildingId) {
+        if (buildingId == null || buildingId.isBlank()) {
+            return;
+        }
+        boolean known = buildings.all().stream()
+                .anyMatch(b -> buildingId.equals(String.valueOf(b.get("id"))));
+        if (!known) {
+            throw BizException.badRequest("楼栋不存在：" + buildingId);
+        }
     }
 
     public Map<String, Object> list() {
@@ -65,6 +80,7 @@ public class UserAdminService {
                 || req.room() == null || req.room().isBlank())) {
             throw BizException.badRequest("学生必须填写楼栋和房间");
         }
+        requireKnownBuilding(building);
         if (role == ActorType.WORKER && (req.buildings() == null || req.buildings().isEmpty())
                 && (building == null || building.isBlank())) {
             throw BizException.badRequest("师傅必须填写至少一个服务楼栋");
@@ -72,9 +88,10 @@ public class UserAdminService {
         UserAccount account = new UserAccount(id, role, req.name().trim(), req.team(),
                 building, req.room(), req.phone(), true, PasswordHasher.hash(req.password()));
         if (role == ActorType.WORKER) {
-            List<String> buildings = req.buildings() == null || req.buildings().isEmpty()
-                    ? List.of(building) : req.buildings();
-            users.insertWorkerWithBuildings(account, buildings);
+            List<String> workerBuildings = req.buildings() == null || req.buildings().isEmpty()
+                    ? List.of(building) : req.buildings().stream().map(String::trim).distinct().toList();
+            workerBuildings.forEach(this::requireKnownBuilding);
+            users.insertWorkerWithBuildings(account, workerBuildings);
         } else {
             users.insert(account);
         }

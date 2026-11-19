@@ -83,6 +83,62 @@ class AiFallbackTest {
     }
 
     @Test
+    @DisplayName("AI 服务在线但运行规则模式时，健康检查必须标记未就绪")
+    void healthRejectsRuleOnlyMode() throws Exception {
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(
+                new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/health", exchange -> {
+            byte[] body = """
+                    {"status":"UP","classifier":{"mode":"rules","llmEnabled":false,"model":"raccoon/sn-deepseek-v4-1-flash-1017"}}
+                    """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            AiClient client = new AiClient("http://127.0.0.1:" + server.getAddress().getPort(),
+                    "raccoon/sn-deepseek-v4-1-flash-1017", "provider", 1000, 1000);
+            java.util.Map<String, Object> health = client.health();
+            assertEquals(Boolean.TRUE, health.get("up"));
+            assertEquals(Boolean.FALSE, health.get("llmEnabled"));
+            assertEquals(Boolean.FALSE, health.get("llmReady"));
+            assertEquals("rules", health.get("mode"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    @DisplayName("AI 服务模型与后端不一致时，健康检查必须标记未就绪")
+    void healthRejectsModelMismatch() throws Exception {
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(
+                new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/health", exchange -> {
+            byte[] body = """
+                    {"status":"UP","classifier":{"mode":"llm","llmEnabled":true,"model":"other-model"}}
+                    """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            AiClient client = new AiClient("http://127.0.0.1:" + server.getAddress().getPort(),
+                    "raccoon/sn-deepseek-v4-1-flash-1017", "provider", 1000, 1000);
+            java.util.Map<String, Object> health = client.health();
+            assertEquals(Boolean.TRUE, health.get("up"));
+            assertEquals(Boolean.TRUE, health.get("llmEnabled"));
+            assertEquals(Boolean.FALSE, health.get("modelMatched"));
+            assertEquals(Boolean.FALSE, health.get("llmReady"));
+            assertEquals("other-model", health.get("remoteModel"));
+        } finally {
+            server.stop(0);
+        }
+    }
+    @Test
     @DisplayName("AiClient.fallback 是纯函数：不联网也能验")
     void fallbackUnit() {
         AiClient c = new AiClient("http://127.0.0.1:9", "test-model", "test-provider", 200, 200);
