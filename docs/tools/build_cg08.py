@@ -27,6 +27,7 @@ REQUIRED = (
     "app/ai/llm.py",
     "docs/06_再次改进计划/README.md",
     "docs/07_审查文件夹/项目文档综合审查报告.md",
+    "docs/07_审查文件夹/整改执行记录.md",
     "docs/tools/build_docs.py",
     "docs/tools/build_extras.py",
     "deploy/docker-compose.yml",

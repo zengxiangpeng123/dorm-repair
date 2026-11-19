@@ -71,10 +71,10 @@ def cg01():
         ("团队成员数", "1 人主开发（其他成员信息待登记）"),
         ("指导教师", "（待填写）"),
         ("课程 / 学期", "人机协同的软件工程项目实训 / （待填写）"),
-        ("技术栈", "Spring Boot 4 + MySQL 8 + MyBatis-Plus；Vue 3 + Element Plus；Python FastAPI + 规则定级"),
-        ("代码规模", "后端 22 个类；三个独立前端应用与共享契约；AI 3 个文件；三端测试 18 + 30 + 3 段脚本"),
+        ("技术栈", "Spring Boot 4 + MySQL 8 + MyBatis-Plus；Vue 3 + Element Plus；Python FastAPI + 规则闸门与真实模型复核"),
+        ("代码规模", "Spring Boot 后端、三个独立前端与共享契约、FastAPI；Java 132、pytest 31、原型 34、业务验收 13 项"),
         ("仓库", "GitHub `zengxiangpeng123/dorm-repair` 的 `main` 分支，基线随发布标签冻结"),
-        ("提交日期", "2026-11-18"),
+        ("提交日期", "2026-11-19（生成与复核日期；实际提交日期以用户确认为准）"),
     ]
     r = 3
     for k, v in info:
@@ -202,8 +202,8 @@ def cg13():
     cover(doc, ORG, "CG13-RFL-001", "个人体会",
           "宿舍维修系统 V5.0　（待填写后提交，不得雷同）",
           [["文档编号", "CG13-RFL-001"],
-           ["版本 / 日期", "V1.0　2026-11-18"],
-           ["姓名 / 学号", "（待填：姓名 学号）"],
+           ["版本 / 日期", "V1.1　2026-11-19"],
+           ["姓名 / 学号", "（待填写：姓名 学号）"],
            ["承担角色", "（待填写：实际角色；一人可承担多个角色）"]])
 
     h1(doc, "一　我在这门课里做了什么")
@@ -315,7 +315,7 @@ def cg11():
     r.font.color.rgb = RGBColor(0xC7, 0xD6, 0xEA)
     tb3 = s.shapes.add_textbox(Inches(1.0), Inches(5.6), Inches(11.3), Inches(0.5))
     r3 = tb3.text_frame.paragraphs[0].add_run()
-    r3.text = "组号组名　项目经理　2026-11-18"
+    r3.text = "组号组名（待填写）　项目经理（待填写）　2026-11-19"
     r3.font.size = Pt(14)
     r3.font.color.rgb = RGBColor(0xFF, 0x5A, 0x1F)
 
@@ -385,7 +385,7 @@ def cg11():
     body(s, ["文档 8 份（CG02–CG07、CG09、CG10）+ 登记表与打分表 2 份",
              "源代码包 CG08（后端 / 前端 / AI / 原型 / 文档）",
              "总结汇报 CG11、路演海报 CG12、个人体会 CG13",
-             "全部文档带封面、目录占位、页眉页脚与页码"])
+             "正式 Word 文档带封面、自动目录、页眉页脚与页码；PDF 同步导出"])
 
     # 12 结尾
     s = prs.slides.add_slide(blank)

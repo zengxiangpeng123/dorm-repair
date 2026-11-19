@@ -103,6 +103,17 @@ require(DELIVERY / "CG10-用户使用说明手册.docx",
         ["Bearer Token", "dorm@2026", "5174", "5175", "seeded=11"])
 require(DELIVERY / "CG11-总结汇报.pptx", read(DELIVERY / "CG11-总结汇报.pptx"),
         ["14 条合法转移", "140", "132", "ADMIN_CANCEL"])
+require(DELIVERY / "CG02-开发计划与配置管理说明书.docx",
+        read(DELIVERY / "CG02-开发计划与配置管理说明书.docx"),
+        ["本地整改完成，待提交复核", "main", "ADMIN_CANCEL"])
+require(DELIVERY / "CG06-构造规格说明书.docx",
+        read(DELIVERY / "CG06-构造规格说明书.docx"), ["Tests run: 132"])
+require(DELIVERY / "CG11-总结汇报.pptx", read(DELIVERY / "CG11-总结汇报.pptx"), ["自动目录"])
+reject(DELIVERY / "CG11-总结汇报.pptx", read(DELIVERY / "CG11-总结汇报.pptx"), ["目录占位"])
+require(DOCS / "07_审查文件夹" / "整改执行记录.md",
+        read(DOCS / "07_审查文件夹" / "整改执行记录.md"), ["132 tests", "13/13", "LEGACY_REJECT_DISABLED", "尚需真实输入或外部验收"])
+require(DOCS / "README.md", read(DOCS / "README.md"),
+        ["05_交付文档", "06_再次改进计划", "07_审查文件夹", "REVIEW-FIX-001"])
 
 cg14 = DELIVERY / "CG14-项目经理打分表.xlsx"
 text = read(cg14)
@@ -126,7 +137,8 @@ else:
         for name in (
             "app/student-web/package.json", "app/worker-web/package.json", "app/admin-web/package.json",
             "app/server/pom.xml", "app/ai/llm.py", "docs/06_再次改进计划/README.md",
-            "docs/07_审查文件夹/项目文档综合审查报告.md", "deploy/docker-compose.yml",
+            "docs/07_审查文件夹/项目文档综合审查报告.md", "docs/07_审查文件夹/整改执行记录.md",
+            "deploy/docker-compose.yml",
             "app/server/src/main/resources/db/schema.sql",
         ):
             if name not in names:

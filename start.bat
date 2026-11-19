@@ -7,9 +7,11 @@ echo ------------------------------------------------------------
 echo   后端  http://localhost:8082/api/v1/health
 echo   自检  http://localhost:8082/api/v1/state/matrix
 echo   AI    http://localhost:8001/health
-echo   前端  cd app\web ^&^& npm run dev  ->  http://localhost:5173
+echo   学生端 cd app\student-web ^&^& npm run dev  ->  http://localhost:5173/student/
+echo   师傅端 cd app\worker-web  ^&^& npm run dev  ->  http://localhost:5174/worker/
+echo   管理端 cd app\admin-web   ^&^& npm run dev  ->  http://localhost:5175/admin/
 echo ------------------------------------------------------------
-echo   会开两个黑窗口：一个 AI，一个后端。关掉窗口就是停服务。
+echo   AI/后端由本脚本启动；三个前端需另开三个终端。关掉窗口就是停服务。
 echo   数据库：MySQL 8 的 dorm_repair 库（root/123456）
 echo   演示模式：set APP_DEMO=true 后才可重置/快进演示数据
 echo ============================================================

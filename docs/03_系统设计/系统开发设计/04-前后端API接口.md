@@ -5,7 +5,7 @@
 | 文档编号 | DEV-04 |
 | 版本 | V1.3 |
 | 状态 | ✅ 已实现并完成联调、鉴权与回归 |
-| 更新日期 | 2026-11-18 |
+| 更新日期 | 2026-11-19 |
 | 基础路径 | `/api/v1` |
 | 服务地址 | `http://localhost:8082` |
 | 上游依据 | `SYS-003_接口契约.md`、`SYS-005_系统设计说明书.md`（V1.2 审查轮次基线） |
@@ -412,7 +412,7 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 | 非法状态 | 409 | `STATE_CONFLICT` + `from/event/allowed/reason=NOT_ALLOWED` |
 | 版本冲突 | 409 | `VERSION_CONFLICT` + `expectVersion/gotVersion/allowed` |
 | 照片/原因/金额/日期缺失 | 422 | `PRECONDITION_FAILED` + `reason` |
-| 未批准变更单 | 501 | `NOT_IMPLEMENTED` + `changeRequest=CR-001` |
+| 其他尚未实现的扩展能力 | 501 | `NOT_IMPLEMENTED`；维修中撤销使用正式 `ADMIN_CANCEL`，不返回 501 |
 | 服务端异常 | 500 | `INTERNAL_ERROR` |
 
 常见 422 `reason`：`PHOTO_REQUIRED`、`DESC_TOO_SHORT`、`PHOTO_AFTER_REQUIRED`、`PARTS_NAME_REQUIRED`、`PARTS_AMOUNT_REQUIRED`、`PARTS_ETA_REQUIRED`、`SIGNER_REQUIRED`、`REASON_REQUIRED`、`CANCEL_REQUEST_ONLY_IN_REPAIRING`、`T1_NOT_DUE`、`T2_NOT_DUE`、`NO_WORKER_AVAILABLE`。
