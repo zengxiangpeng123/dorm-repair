@@ -221,9 +221,22 @@ public class OrderController {
     }
 
     @GetMapping("/orders/{no}/events")
-    public Map<String, Object> events(@PathVariable String no, HttpServletRequest http) {
-        List<OrderEventLog> log = orders.detailForActor(no, actor(http)).events();
-        return ApiResponses.ok(Map.of("items", log, "total", log.size()));
+    public Map<String, Object> events(@PathVariable String no,
+                                      @RequestParam(defaultValue = "1") int page,
+                                      @RequestParam(defaultValue = "50") int pageSize,
+                                      HttpServletRequest http) {
+        List<OrderEventLog> all = orders.detailForActor(no, actor(http)).events();
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(pageSize, 200));
+        int from = Math.min(all.size(), (safePage - 1) * safeSize);
+        int to = Math.min(all.size(), from + safeSize);
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("items", all.subList(from, to));
+        out.put("total", all.size());
+        out.put("page", safePage);
+        out.put("pageSize", safeSize);
+        out.put("hasMore", (long) safePage * safeSize < all.size());
+        return ApiResponses.ok(out);
     }
 
     private static Actor actor(HttpServletRequest http) {

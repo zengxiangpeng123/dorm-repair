@@ -255,6 +255,27 @@ class OrderFlowTest {
     }
 
     @Test
+    @DisplayName("事件流按 page/pageSize 分页并返回真实总数")
+    void eventStreamPaginates() throws Exception {
+        JsonNode list = call("GET", "/orders?page=1&pageSize=200", null, "admin", "A001").data();
+        String no = null;
+        for (JsonNode item : list.get("items")) {
+            if (item.get("events").size() >= 2) {
+                no = item.get("no").asText();
+                break;
+            }
+        }
+        assertNotNull(no, "seed 中应至少有两条事件的工单");
+        JsonNode page = call("GET", "/orders/" + no + "/events?page=2&pageSize=2",
+                null, "admin", "A001").data();
+
+        assertTrue(page.get("total").asInt() >= 2, page.toString());
+        assertTrue(page.get("items").size() <= 2, page.toString());
+        assertEquals(2, page.get("page").asInt());
+        assertEquals(2, page.get("pageSize").asInt());
+    }
+
+    @Test
     @DisplayName("管理端工单列表按 page/pageSize 分页并返回总数")
     void adminListPaginates() throws Exception {
         JsonNode first = call("GET", "/orders?page=1&pageSize=2", null, "admin", "A001").data();

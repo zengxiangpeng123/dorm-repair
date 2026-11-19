@@ -23,7 +23,7 @@ export const ordersApi = {
 
   list: (params) => api.get('/orders', params),
   detail: (no) => api.get(`/orders/${no}`),
-  events: (no) => api.get(`/orders/${no}/events`),
+  events: (no, params = {}) => api.get(`/orders/${no}/events`, params),
 
   submit: (body, opts) => api.post('/orders', body, opts),
   assign: (no, body, opts) => api.post(`/orders/${no}/assign`, body, opts),

@@ -80,7 +80,7 @@ T '返修单已完成' ($ac.json.data.status -eq 'DONE') $ac.json.data.status
 $o2 = Api 'GET' "/orders/$no" $null @('student', 'S001')
 T '原单已关闭' ($o2.json.data.status -eq 'CLOSED') $o2.json.data.status
 T '原单 closedAt 有值' ([bool]$o2.json.data.closedAt) $o2.json.data.closedAt
-$ev = Api 'GET' "/orders/$no/events" $null @('student', 'S001')
+$ev = Api 'GET' "/orders/$no/events?page=1&pageSize=200" $null @('student', 'S001')
 $last = $ev.json.data.items[-1]
 T '原单末事件是 ORIGIN_CLOSED' ($last.event -eq 'ORIGIN_CLOSED') $last.event
 T '级联事件 manual=1（算人的动作）' ($last.manual -eq 1) $last.manual
