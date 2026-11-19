@@ -21,6 +21,8 @@ timeout /t 3 >nul
 start "" http://localhost:8082/api/v1/health
 
 if "%APP_DEMO%"=="" set APP_DEMO=true
+if "%DB_USER%"=="" set DB_USER=root
+if "%DB_PASSWORD%"=="" set DB_PASSWORD=123456
 cd /d "%~dp0app\server"
 if not exist "target\dorm-repair-server-1.0.0.jar" (
   echo 第一次跑，先打包……

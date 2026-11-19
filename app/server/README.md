@@ -11,7 +11,7 @@ java -jar target/dorm-repair-server-1.0.0.jar
 ```
 
 - 端口 **8082**（`server.port`，改它别改代码）
-- 默认连本机 MySQL：`dorm_repair` 库，`root/123456`，可用环境变量改：`DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`
+- 本地开发可用 `start.bat`（会显式设置 `root/123456`）；直接运行 JAR 时必须提供 `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`，应用不再内置数据库口令默认值。
 - **`APP_STORE=mysql`（默认）走数据库，`APP_STORE=memory` 走内存**（内存只用来跑单测和临时演示，重启就没了）
 - 环境：JDK 17、Maven、Spring Boot 4.0.9、Spring Framework 7.0.10、MyBatis-Plus 3.5.18.1、MySQL 8.0.41
 

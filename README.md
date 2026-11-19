@@ -46,7 +46,7 @@ java -jar target\dorm-repair-server-1.0.0.jar
 | 想改什么 | 怎么改 |
 |---|---|
 | 端口 | `server.port`（后端 8082）、`--port`（AI 8001）、`PORT`（前端） |
-| 数据库 | 环境变量 `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`（默认 `localhost:3306/dorm_repair`，`root/123456`） |
+| 数据库 | 环境变量 `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`（`start.bat` 为本机开发显式设置 `root/123456`；直接运行 JAR 必须显式配置） |
 | 存储换内存 | `APP_STORE=memory`（只用于跑单测与临时演示，重启就没了） |
 | AI 不在本机 | `AI_SERVICE_URL`（默认 `http://127.0.0.1:8001`）、`AI_TIMEOUT_MS`（默认 1500）、`AI_REVIEW_TIMEOUT_MS`（默认 30000） |
 
