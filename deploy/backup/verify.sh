@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 : "${DB_HOST:?DB_HOST required}"
-: "${DB_USER:?DB_USER required}"
-: "${DB_PASSWORD:?DB_PASSWORD required}"
+: "${BACKUP_DB_USER:=${DB_USER:?DB_USER or BACKUP_DB_USER required}}"
+: "${BACKUP_DB_PASSWORD:=${DB_PASSWORD:?DB_PASSWORD or BACKUP_DB_PASSWORD required}}"
 : "${DB_NAME:=dorm_repair}"
 CNF="$(mktemp)"
 cleanup() { rm -f "$CNF"; }
@@ -11,8 +11,8 @@ chmod 600 "$CNF"
 cat > "$CNF" <<EOF
 [client]
 host=$DB_HOST
-user=$DB_USER
-password=$DB_PASSWORD
+user=$BACKUP_DB_USER
+password=$BACKUP_DB_PASSWORD
 EOF
 tables="$(mysql --defaults-extra-file="$CNF" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME' AND table_type='BASE TABLE'" "$DB_NAME")"
 orders="$(mysql --defaults-extra-file="$CNF" -N "$DB_NAME" -e "SELECT COUNT(*) FROM t_work_order")"

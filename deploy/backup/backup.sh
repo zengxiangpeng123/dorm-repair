@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 : "${DB_HOST:?DB_HOST required}"
-: "${DB_USER:?DB_USER required}"
-: "${DB_PASSWORD:?DB_PASSWORD required}"
+: "${BACKUP_DB_USER:=${DB_USER:?DB_USER or BACKUP_DB_USER required}}"
+: "${BACKUP_DB_PASSWORD:=${DB_PASSWORD:?DB_PASSWORD or BACKUP_DB_PASSWORD required}}"
 : "${DB_NAME:=dorm_repair}"
 BACKUP_DIR="${BACKUP_DIR:-/backup}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -15,8 +15,8 @@ chmod 600 "$CNF"
 cat > "$CNF" <<EOF
 [client]
 host=$DB_HOST
-user=$DB_USER
-password=$DB_PASSWORD
+user=$BACKUP_DB_USER
+password=$BACKUP_DB_PASSWORD
 EOF
 DUMP_FILE="$BACKUP_DIR/${DB_NAME}-$STAMP.sql.gz"
 if ! mysqldump --defaults-extra-file="$CNF" --single-transaction --routines --triggers --set-gtid-purged=OFF "$DB_NAME" | gzip > "$DUMP_FILE"; then

@@ -5,11 +5,16 @@ versioned bucket and lifecycle policy; this directory does not pretend that a da
 dump also backs up S3 objects.
 
 ```bash
-export DB_HOST=mysql DB_USER=dorm_app DB_PASSWORD='...' DB_NAME=dorm_repair
+# Use a dedicated backup account with SELECT/SHOW VIEW/LOCK TABLES/RELOAD/EVENT/TRIGGER.
+export DB_HOST=mysql BACKUP_DB_USER=dorm_backup BACKUP_DB_PASSWORD='...' DB_NAME=dorm_repair
 ./backup.sh
 ./verify.sh
 RESTORE_CONFIRM=dorm_repair ./restore.sh /backup/dorm_repair-YYYYMMDD-HHMMSS.sql.gz
 ```
+
+The backup tools use `BACKUP_DB_USER` / `BACKUP_DB_PASSWORD` when set and fall back to
+`DB_USER` / `DB_PASSWORD` only for local drills. Do not use the restricted runtime account
+for production backups.
 
 Restore refuses a non-empty target database by default. Use a freshly created database
 for drills; only set `RESTORE_ALLOW_NONEMPTY=1` for a deliberate overwrite after a backup.

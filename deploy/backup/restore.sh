@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 : "${DB_HOST:?DB_HOST required}"
-: "${DB_USER:?DB_USER required}"
-: "${DB_PASSWORD:?DB_PASSWORD required}"
+: "${BACKUP_DB_USER:=${DB_USER:?DB_USER or BACKUP_DB_USER required}}"
+: "${BACKUP_DB_PASSWORD:=${DB_PASSWORD:?DB_PASSWORD or BACKUP_DB_PASSWORD required}}"
 : "${DB_NAME:=dorm_repair}"
 : "${1:?usage: restore.sh <backup.sql.gz>}"
 test -f "$1"
@@ -17,8 +17,8 @@ chmod 600 "$CNF"
 cat > "$CNF" <<EOF
 [client]
 host=$DB_HOST
-user=$DB_USER
-password=$DB_PASSWORD
+user=$BACKUP_DB_USER
+password=$BACKUP_DB_PASSWORD
 EOF
 gzip -t "$1"
 existing_tables="$(mysql --defaults-extra-file="$CNF" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$DB_NAME' AND TABLE_TYPE='BASE TABLE'")"
