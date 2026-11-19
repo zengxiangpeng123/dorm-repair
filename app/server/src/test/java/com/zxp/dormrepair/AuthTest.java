@@ -32,7 +32,7 @@ import tools.jackson.databind.ObjectMapper;
  * 不登录就是进不来。别的用例还开着它是为了少写 8 处登录代码，不是因为线上能这么用。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"app.auth.allow-header=false", "app.demo=true"})
+        properties = {"app.auth.allow-header=false", "app.auth.trust-forwarded-for=true", "app.demo=true"})
 class AuthTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -119,6 +119,60 @@ class AuthTest {
                 com.zxp.dormrepair.common.BizException.class,
                 () -> throttle.check("S004", "10.0.0.8"));
         assertEquals("LOGIN_RATE_LIMITED", error.code());
+    }
+
+    @Test
+    @DisplayName("仅信任代理时使用其覆盖写入的客户端地址作为限流来源")
+    void trustedProxyUsesForwardedClientAddress() {
+        var auth = org.mockito.Mockito.mock(com.zxp.dormrepair.auth.AuthService.class);
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setRemoteAddr("172.18.0.2");
+        request.addHeader("X-Forwarded-For", "203.0.113.7");
+
+        var trusted = new com.zxp.dormrepair.controller.AuthController(auth, true, true);
+        var untrusted = new com.zxp.dormrepair.controller.AuthController(auth, true, false);
+
+        assertEquals("203.0.113.7", trusted.clientAddress(request));
+        assertEquals("172.18.0.2", untrusted.clientAddress(request));
+    }
+
+    @Test
+    @DisplayName("伪造代理头或非法地址时退回直连地址，不能轮换限流键")
+    void malformedForwardedAddressFallsBackToPeer() {
+        var auth = org.mockito.Mockito.mock(com.zxp.dormrepair.auth.AuthService.class);
+        var trusted = new com.zxp.dormrepair.controller.AuthController(auth, true, true);
+
+        var malformed = new org.springframework.mock.web.MockHttpServletRequest();
+        malformed.setRemoteAddr("172.18.0.2");
+        malformed.addHeader("X-Forwarded-For", "203.0.113.7, not-an-ip");
+        assertEquals("172.18.0.2", trusted.clientAddress(malformed));
+
+        var appended = new org.springframework.mock.web.MockHttpServletRequest();
+        appended.setRemoteAddr("172.18.0.2");
+        appended.addHeader("X-Forwarded-For", "198.51.100.9, 203.0.113.7");
+        assertEquals("203.0.113.7", trusted.clientAddress(appended));
+
+        var ipv6 = new org.springframework.mock.web.MockHttpServletRequest();
+        ipv6.setRemoteAddr("172.18.0.2");
+        ipv6.addHeader("X-Forwarded-For", "2001:db8::7");
+        assertEquals("2001:db8::7", trusted.clientAddress(ipv6));
+    }
+
+    @Test
+    @DisplayName("不同代理来源分别计数，不会共享同一个登录限流桶")
+    void forwardedSourcesHaveIndependentThrottleBuckets() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            Resp r = sendWithForwardedFor("POST", "/auth/login",
+                    "{\"account\":\"S001\",\"password\":\"nope\"}", null, "203.0.113.7");
+            assertEquals(401, r.status, r.body);
+        }
+        Resp blocked = sendWithForwardedFor("POST", "/auth/login",
+                "{\"account\":\"S001\",\"password\":\"dorm@2026\"}", null, "203.0.113.7");
+        assertEquals(429, blocked.status, blocked.body);
+
+        Resp otherSource = sendWithForwardedFor("POST", "/auth/login",
+                "{\"account\":\"S001\",\"password\":\"dorm@2026\"}", null, "203.0.113.8");
+        assertEquals(200, otherSource.status, otherSource.body);
     }
 
     @Test
@@ -294,6 +348,25 @@ class AuthTest {
     private Resp send(String method, String path, String body, String token) throws Exception {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + path))
                 .timeout(Duration.ofSeconds(15));
+        if (token != null) {
+            b.header("Authorization", "Bearer " + token);
+        }
+        if (body == null) {
+            b.method(method, HttpRequest.BodyPublishers.noBody());
+        } else {
+            b.header("Content-Type", "application/json; charset=utf-8");
+            b.method(method, HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
+        }
+        HttpResponse<String> r = HTTP.send(b.build(),
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        return new Resp(r.statusCode(), r.body());
+    }
+
+    private Resp sendWithForwardedFor(String method, String path, String body, String token,
+                                      String clientAddress) throws Exception {
+        HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + path))
+                .timeout(Duration.ofSeconds(15))
+                .header("X-Forwarded-For", clientAddress);
         if (token != null) {
             b.header("Authorization", "Bearer " + token);
         }

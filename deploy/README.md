@@ -98,6 +98,11 @@ Expired and revoked sessions are purged every 60 minutes. Configure with `APP_AU
 `APP_AUTH_LOGIN_BLOCK_MINUTES`, `APP_AUTH_SESSION_CLEANUP_MINUTES`,
 `APP_AUTH_MAX_ACTIVE_SESSIONS`, and `APP_AUTH_TTL_HOURS`.
 
+Set `APP_AUTH_TRUST_FORWARDED_FOR=true` only when the backend cannot be reached except
+through the bundled Nginx proxy. The proxy replaces `X-Forwarded-For` with the actual peer
+address; the application reads that single address for throttling. Never enable this on a
+directly exposed backend, because a caller could forge the header and rotate the limiter key.
+
 ## Operations
 
 - Liveness/readiness: `/actuator/health/liveness`, `/actuator/health/readiness`

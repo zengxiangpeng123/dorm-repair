@@ -5,7 +5,6 @@ server:
     threads:
       max: ${SERVER_MAX_THREADS:200}
     max-connections: ${SERVER_MAX_CONNECTIONS:8192}
-  forward-headers-strategy: framework
 
 spring:
   application:
@@ -45,6 +44,7 @@ app:
     session-cleanup-minutes: ${APP_AUTH_SESSION_CLEANUP_MINUTES:60}
     # 仅测试脚本允许 X-Actor-*；生产 profile 会拒绝该开关。
     allow-header: ${APP_AUTH_ALLOW_HEADER:false}
+    trust-forwarded-for: ${APP_AUTH_TRUST_FORWARDED_FOR:false}
   order:
     auto-assign: ${APP_ORDER_AUTO_ASSIGN:true}
   idempotency:
