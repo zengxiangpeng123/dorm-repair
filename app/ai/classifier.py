@@ -94,7 +94,7 @@ def classify(desc: str, fallback_category: str | None = None,
             "errorCode": (res or {}).get("errorCode", "AI_INVALID_OUTPUT"),
             "errorMessage": (res or {}).get("errorMessage", reason),
         })
-        _cache_put(key, out)
+        # 失败结果不缓存：供应商限流/超时恢复后，同一描述应能重新获得模型结果。
         return out
 
     # 3 合并：类型用模型的，紧急取高的

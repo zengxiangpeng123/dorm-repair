@@ -94,3 +94,29 @@ def test_cache_hits_once(monkeypatch):
     classifier.classify("网口没反应")
     classifier.classify("网口没反应")
     assert len(calls) == 1
+
+def test_fallback_is_not_cached_after_provider_recovers(monkeypatch):
+    """一次限流不能被缓存成永久结果；供应商恢复后应重新询问模型。"""
+    calls = []
+
+    def stub(desc):
+        calls.append(desc)
+        if len(calls) == 1:
+            return {
+                "category": None, "level": None, "confidence": 0.0,
+                "basis": "模型不可用：限流", "invalid": True, "attempts": 1,
+                "model": "stub", "latencyMs": 10, "errorCode": "AI_RATE_LIMITED",
+                "errorMessage": "429",
+            }
+        return _ok("门窗家具", "较急")
+
+    monkeypatch.setattr(llm, "enabled", lambda: True)
+    monkeypatch.setattr(llm, "classify", stub)
+    classifier._CACHE.clear()
+
+    first = classifier.classify("窗户关不严")
+    second = classifier.classify("窗户关不严")
+
+    assert first["source"] == "rule-fallback"
+    assert second["source"] == "llm"
+    assert len(calls) == 2

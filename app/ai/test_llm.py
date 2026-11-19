@@ -83,3 +83,66 @@ def test_default_model_is_production_model(monkeypatch):
     monkeypatch.delenv("AI_MODEL", raising=False)
     assert llm.DEFAULT_MODEL == "raccoon/sn-deepseek-v4-1-flash-1017"
     assert llm._cfg()["model"] == "raccoon/sn-deepseek-v4-1-flash-1017"
+
+def test_provider_status_maps_to_stable_error_code():
+    assert llm.classify_error(RuntimeError("auth"), 401) == "AI_AUTH_FAILED"
+    assert llm.classify_error(RuntimeError("forbidden"), 403) == "AI_AUTH_FAILED"
+    assert llm.classify_error(RuntimeError("quota"), 429) == "AI_RATE_LIMITED"
+    assert llm.classify_error(RuntimeError("upstream"), 503) == "AI_UPSTREAM_ERROR"
+
+
+def test_transport_errors_map_to_timeout_and_connect_codes():
+    assert llm.classify_error(TimeoutError("timed out")) == "AI_TIMEOUT"
+    assert llm.classify_error(ConnectionError("connect refused")) == "AI_CONNECT_FAILED"
+    assert llm.classify_error(RuntimeError("other")) == "AI_REQUEST_FAILED"
+
+
+def test_http_429_is_invalid_and_falls_back(monkeypatch):
+    """供应商限流必须落稳定错误码，不能把异常抛到分类器。"""
+    _enable(monkeypatch)
+    import httpx
+    request = httpx.Request("POST", "http://model.local/chat/completions")
+    response = httpx.Response(429, request=request)
+    error = httpx.HTTPStatusError("too many requests", request=request, response=response)
+    monkeypatch.setattr(llm, "_post", lambda cfg, messages: (_ for _ in ()).throw(error))
+
+    out = llm.classify("洗手台下面有点渗水")
+
+    assert out["invalid"] is True
+    assert out["errorCode"] == "AI_RATE_LIMITED"
+    assert out["category"] is None
+
+
+def test_http_500_is_invalid_and_falls_back(monkeypatch):
+    _enable(monkeypatch)
+    import httpx
+    request = httpx.Request("POST", "http://model.local/chat/completions")
+    response = httpx.Response(503, request=request)
+    error = httpx.HTTPStatusError("upstream down", request=request, response=response)
+    monkeypatch.setattr(llm, "_post", lambda cfg, messages: (_ for _ in ()).throw(error))
+
+    out = llm.classify("窗户关不严")
+
+    assert out["invalid"] is True
+    assert out["errorCode"] == "AI_UPSTREAM_ERROR"
+
+
+def test_classifier_keeps_rule_result_when_provider_is_rate_limited(monkeypatch):
+    """分类器对外必须继续可用：模型限流只影响来源，不阻断报修。"""
+    import classifier
+    _enable(monkeypatch)
+    classifier._CACHE.clear()
+    monkeypatch.setattr(llm, "classify", lambda desc: {
+        "category": None, "level": None, "confidence": 0.0,
+        "basis": "模型不可用：限流", "invalid": True, "attempts": 1,
+        "model": "fake-model", "latencyMs": 10, "errorCode": "AI_RATE_LIMITED",
+        "errorMessage": "429",
+    })
+
+    out = classifier.classify("窗户关不严，晚上漏风")
+
+    assert out["fallback"] is True
+    assert out["source"] == "rule-fallback"
+    assert out["category"]
+    assert out["level"]
+    assert out["errorCode"] == "AI_RATE_LIMITED"

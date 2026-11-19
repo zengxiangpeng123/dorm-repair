@@ -11,7 +11,7 @@
 |---|---|---|
 | M1 | Spring Boot 4 骨架 + 状态机内核 + 一条链 | ✅ JUnit 110 项 + 验收套件 |
 | M2 | MySQL 8 + MyBatis-Plus，三端人员分表与迁移版本管理 | ✅ 新库 21 表（含迁移记录表）、旧库迁移与重复执行验收 |
-| M3 | Python AI 定级服务，规则闸门与模型兜底 | ✅ 真实模型联调 + 23 项 pytest |
+| M3 | Python AI 定级服务，规则闸门与模型兜底 | ✅ 真实模型联调 + 29 项 pytest |
 | M4 | 学生、师傅、管理端三个独立 Vue 应用 | ✅ 三端构建与隔离检查通过 |
 | M5 | Bearer Token、返修审查、真实文件、幂等与生产运维配置 | 🟡 本地预验收通过，目标环境待部署 |
 
@@ -89,7 +89,7 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 | AI 接上了；**杀掉 AI 之后建单仍成功**走兜底 | `pwsh -NoProfile -File app\server\tests\m3-ai.ps1` | `20 通过 / 0 失败` |
 | 新审查链 R1/R2、反复返修例外、最终关闭整条链 | `pwsh -NoProfile -File app\server\tests\m4-rework.ps1` | `26 通过 / 0 失败` |
 | 真 Bearer Token、三角色权限、system 令牌与越权 | `pwsh -NoProfile -File app\server\tests\m5-auth.ps1` | `36 通过 / 0 失败` |
-| AI 规则、分类器与 LLM 兜底 | `cd app\ai; <venv>\python.exe -m pytest -q` | `23 passed` |
+| AI 规则、分类器与 LLM 兜底 | `cd app\ai; <venv>\python.exe -m pytest -q` | `29 passed` |
 | 前端状态词、五步进度与倒计时 | `cd app\web; npm run test:unit` | `8 passed` |
 | 原型状态机与后端一致（离线也算得对） | `node prototype/tests/selftest.js prototype` | `34 通过 / 0 失败` |
 
