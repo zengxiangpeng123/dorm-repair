@@ -15,7 +15,7 @@ fail() { echo "preflight: $*" >&2; exit 1; }
 grep -q 'alert.example.com' "$ALERT_FILE" && fail "replace the example Alertmanager receiver"
 
 required=(
-  DB_ROOT_PASSWORD DB_USER DB_PASSWORD DB_NAME
+  PUBLIC_HOST DB_ROOT_PASSWORD DB_USER DB_PASSWORD DB_NAME
   APP_FILE_S3_ENDPOINT APP_FILE_S3_BUCKET
   AI_BASE_URL AI_MODEL AI_API_KEY
 )
@@ -38,6 +38,11 @@ if [ -n "${bootstrap_values[2]}" ] && [ "${#bootstrap_values[2]}" -lt 12 ]; then
   fail "BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters"
 fi
 
+public_host="$(grep -E '^PUBLIC_HOST=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+case "$public_host" in
+  *example.com|*example.org|*example.net|localhost|*[[:space:]/]*) fail "PUBLIC_HOST must be a real public DNS hostname without scheme, path, or whitespace" ;;
+esac
+printf '%s' "$public_host" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$' || fail "PUBLIC_HOST must be a valid DNS hostname"
 s3_endpoint="$(grep -E '^APP_FILE_S3_ENDPOINT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 case "$s3_endpoint" in https://*) ;; *) fail "APP_FILE_S3_ENDPOINT must use HTTPS" ;; esac
 grep -q '^APP_STORE=mysql$' "$ENV_FILE" || fail "APP_STORE must be mysql in production"

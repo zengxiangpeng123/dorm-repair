@@ -15,7 +15,7 @@ $values = @{}
 Get-Content $envPath | ForEach-Object {
     if ($_ -match '^([A-Z0-9_]+)=(.*)$') { $values[$matches[1]] = $matches[2] }
 }
-$required = @('DB_ROOT_PASSWORD','DB_USER','DB_PASSWORD','DB_NAME','APP_FILE_S3_ENDPOINT','APP_FILE_S3_BUCKET','AI_BASE_URL','AI_MODEL','AI_API_KEY')
+$required = @('PUBLIC_HOST','DB_ROOT_PASSWORD','DB_USER','DB_PASSWORD','DB_NAME','APP_FILE_S3_ENDPOINT','APP_FILE_S3_BUCKET','AI_BASE_URL','AI_MODEL','AI_API_KEY')
 foreach ($key in $required) {
     $value = $values[$key]
     if ([string]::IsNullOrWhiteSpace($value)) { Fail "$key is empty" }
@@ -26,6 +26,8 @@ if (($bootstrap | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count 
     Fail 'BOOTSTRAP_ADMIN_* must be all set for first start or all empty after initialization'
 }
 if ($bootstrap[2] -and $bootstrap[2].Length -lt 12) { Fail 'BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters' }
+if ($values['PUBLIC_HOST'] -match 'example\.(com|org|net)|localhost|\s|/') { Fail 'PUBLIC_HOST must be a real public DNS hostname without scheme, path, or whitespace' }
+if ($values['PUBLIC_HOST'] -notmatch '^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$') { Fail 'PUBLIC_HOST must be a valid DNS hostname' }
 if ($values['APP_FILE_S3_ENDPOINT'] -notmatch '^https://') { Fail 'APP_FILE_S3_ENDPOINT must use HTTPS' }
 if ($values['APP_STORE'] -ne 'mysql') { Fail 'APP_STORE must be mysql in production' }
 if ($values['APP_FILE_METADATA'] -ne 'mysql') { Fail 'APP_FILE_METADATA must be mysql in production' }

@@ -135,6 +135,8 @@ services:
       context: ..
       dockerfile: deploy/web/Dockerfile
     restart: unless-stopped
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?PUBLIC_HOST required}
     ports:
       - "80:80"
       - "443:443"

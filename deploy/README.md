@@ -8,6 +8,7 @@ secrets, S3, migrations, and restore drills are verified on the target host.
 - Docker Engine with Compose v2
 - A private S3-compatible bucket and a least-privilege credential or workload IAM role
 - TLS certificate and key in `deploy/certs/tls.crt` and `deploy/certs/tls.key`
+- A real DNS name in `PUBLIC_HOST`; it must match the certificate and is the only Host accepted by Nginx
 - `deploy/.env.production` copied from `.env.production.example` and filled from a secret manager
 
 ## First administrator
@@ -39,10 +40,10 @@ cd app/server && mvn -DskipTests package
 cd ../..
 cp deploy/.env.production.example deploy/.env.production
 cp deploy/prometheus/alertmanager.example.yml deploy/prometheus/alertmanager.yml
-# Fill secrets and a real Alertmanager receiver before starting
+# Fill PUBLIC_HOST, secrets and a real Alertmanager receiver before starting
 ./deploy/scripts/preflight.sh
 docker compose --env-file deploy/.env.production -f deploy/docker-compose.yml up -d --build
-curl -k https://localhost/actuator/health/readiness
+curl --resolve "$PUBLIC_HOST:443:127.0.0.1" "https://$PUBLIC_HOST/actuator/health/readiness"
 ```
 
 `.env.production` is used for Compose interpolation and is explicitly injected into the

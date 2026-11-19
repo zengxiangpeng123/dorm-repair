@@ -13,7 +13,7 @@ RUN cd student-web && npm run build && cd ../worker-web && npm run build && cd .
 RUN node tests/check-three-apps.mjs
 
 FROM nginx:1.27-alpine
-COPY deploy/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/nginx/nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /src/student-web/dist /usr/share/nginx/html/student
 COPY --from=build /src/worker-web/dist /usr/share/nginx/html/worker
 COPY --from=build /src/admin-web/dist /usr/share/nginx/html/admin
