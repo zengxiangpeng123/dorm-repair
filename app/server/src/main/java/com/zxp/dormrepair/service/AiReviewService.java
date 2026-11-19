@@ -8,6 +8,7 @@ import com.zxp.dormrepair.domain.WorkOrder;
 import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.store.AiReviewTaskRepository;
 import com.zxp.dormrepair.store.OrderRepository;
+import com.zxp.dormrepair.store.ScheduledTaskLock;
 import java.util.Set;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutorService;
@@ -39,14 +40,17 @@ public class AiReviewService {
     private final AiClient ai;
     private final OrderRepository store;
     private final AiReviewTaskRepository tasks;
+    private final ScheduledTaskLock taskLock;
     private final ExecutorService pool;
     @org.springframework.beans.factory.annotation.Value("${app.ai.review-claim-timeout-minutes:30}")
     private long reviewClaimTimeoutMinutes = 30;
 
-    public AiReviewService(AiClient ai, OrderRepository store, AiReviewTaskRepository tasks) {
+    public AiReviewService(AiClient ai, OrderRepository store, AiReviewTaskRepository tasks,
+                           ScheduledTaskLock taskLock) {
         this.ai = ai;
         this.store = store;
         this.tasks = tasks;
+        this.taskLock = taskLock;
         AtomicInteger seq = new AtomicInteger();
         ThreadFactory tf = r -> {
             Thread t = new Thread(r, "ai-review-" + seq.incrementAndGet());
@@ -147,11 +151,16 @@ public class AiReviewService {
     /** 定期收口进程崩溃后遗留的复核任务；不重放模型，保留规则定级。 */
     @Scheduled(fixedDelay = 600000L, initialDelay = 60000L)
     public void failStaleTasks() {
-        String staleBefore = TimeUtil.fmt(TimeUtil.nowMs()
-                - Math.max(1, reviewClaimTimeoutMinutes) * 60_000L);
-        int failed = tasks.failStale(staleBefore, "AI_REVIEW_ABANDONED",
-                "AI 复核任务超时未完成，进程可能已中断；已保留规则定级");
-        if (failed > 0) log.warn("已将 {} 个中断的 AI 复核任务标记为 FAILED", failed);
+        boolean ran = taskLock.runExclusive("ai-review-cleanup", 0, () -> {
+            String staleBefore = TimeUtil.fmt(TimeUtil.nowMs()
+                    - Math.max(1, reviewClaimTimeoutMinutes) * 60_000L);
+            int failed = tasks.failStale(staleBefore, "AI_REVIEW_ABANDONED",
+                    "AI 复核任务超时未完成，进程可能已中断；已保留规则定级");
+            if (failed > 0) log.warn("已将 {} 个中断的 AI 复核任务标记为 FAILED", failed);
+        });
+        if (!ran) {
+            log.debug("AI 复核收口：其他实例正在执行，本轮跳过");
+        }
     }
 
     private static String sha256(String text) {

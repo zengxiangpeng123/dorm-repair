@@ -1,6 +1,7 @@
 package com.zxp.dormrepair.file;
 
 import com.zxp.dormrepair.common.TimeUtil;
+import com.zxp.dormrepair.store.ScheduledTaskLock;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -19,24 +20,30 @@ public class FileCleanupService {
     private final FileStorage storage;
     private final int retentionHours;
     private final int batchSize;
+    private final ScheduledTaskLock taskLock;
 
     @Value("${app.file.cleanup.claim-timeout-minutes:30}")
     private int claimTimeoutMinutes = 30;
 
     public FileCleanupService(FileRepository repository, FileStorage storage,
                               @Value("${app.file.cleanup.retention-hours:24}") int retentionHours,
-                              @Value("${app.file.cleanup.batch-size:100}") int batchSize) {
+                              @Value("${app.file.cleanup.batch-size:100}") int batchSize,
+                              ScheduledTaskLock taskLock) {
         this.repository = repository;
         this.storage = storage;
         this.retentionHours = Math.max(1, retentionHours);
         this.batchSize = Math.max(1, batchSize);
+        this.taskLock = taskLock;
     }
 
     /** 每小时执行；手动接口也可调用同一逻辑。 */
     @Scheduled(fixedDelay = 3600000L, initialDelay = 60000L)
     public void tick() {
         try {
-            sweep(TimeUtil.now());
+            boolean ran = taskLock.runExclusive("file-cleanup", 0, () -> sweep(TimeUtil.now()));
+            if (!ran) {
+                log.debug("孤儿文件清理：其他实例正在执行，本轮跳过");
+            }
         } catch (RuntimeException e) {
             log.warn("孤儿文件清理失败：{}", e.getMessage());
         }

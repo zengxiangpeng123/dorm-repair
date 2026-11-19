@@ -9,6 +9,7 @@ import com.zxp.dormrepair.auth.InMemoryAuthSessionRepository;
 import com.zxp.dormrepair.auth.TokenStore;
 import com.zxp.dormrepair.domain.Actor;
 import com.zxp.dormrepair.statemachine.ActorType;
+import com.zxp.dormrepair.store.InMemoryScheduledTaskLock;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +20,7 @@ class AuthMaintenanceTest {
     void cleanupRemovesExpiredAndRevokedSessions() throws Exception {
         var repo = new InMemoryAuthSessionRepository();
         var store = new TokenStore(repo, new com.zxp.dormrepair.auth.InMemoryUserRepository());
-        var maintenance = new AuthMaintenanceService(store);
+        var maintenance = new AuthMaintenanceService(store, new InMemoryScheduledTaskLock());
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
 
         store.issue(student, "S001", 60_000);

@@ -8,6 +8,7 @@ import com.zxp.dormrepair.statemachine.OrderStatus;
 import com.zxp.dormrepair.statemachine.StateMachine;
 import com.zxp.dormrepair.store.OrderRepository;
 import com.zxp.dormrepair.store.ReworkReviewRepository;
+import com.zxp.dormrepair.store.ScheduledTaskLock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,20 +37,25 @@ public class TimerService {
     private final OrderStateService state;
     private final ConfigService config;
     private final ReworkReviewRepository reviews;
+    private final ScheduledTaskLock taskLock;
 
     public TimerService(OrderRepository store, OrderStateService state, ConfigService config,
-                        ReworkReviewRepository reviews) {
+                        ReworkReviewRepository reviews, ScheduledTaskLock taskLock) {
         this.store = store;
         this.state = state;
         this.config = config;
         this.reviews = reviews;
+        this.taskLock = taskLock;
     }
 
     /** 30 秒扫一次。演示环境里也可以手动调 /demo/advance 立刻跑一遍。 */
     @Scheduled(fixedDelay = 30000L, initialDelay = 15000L)
     public void tick() {
         try {
-            sweep(TimeUtil.now());
+            boolean ran = taskLock.runExclusive("timer-sweep", 0, () -> sweep(TimeUtil.now()));
+            if (!ran) {
+                log.debug("定时扫描：其他实例正在执行，本轮跳过");
+            }
         } catch (RuntimeException e) {
             log.warn("定时扫描失败：{}", e.getMessage());
         }

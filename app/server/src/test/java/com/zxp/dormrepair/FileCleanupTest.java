@@ -12,6 +12,7 @@ import com.zxp.dormrepair.file.FileService;
 import com.zxp.dormrepair.file.InMemoryFileRepository;
 import com.zxp.dormrepair.file.InMemoryFileStorage;
 import com.zxp.dormrepair.statemachine.ActorType;
+import com.zxp.dormrepair.store.InMemoryScheduledTaskLock;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import javax.imageio.ImageIO;
@@ -27,7 +28,7 @@ class FileCleanupTest {
         var repo = new InMemoryFileRepository();
         var storage = new InMemoryFileStorage();
         var files = new FileService(storage, repo);
-        var cleanup = new FileCleanupService(repo, storage, 1, 100);
+        var cleanup = new FileCleanupService(repo, storage, 1, 100, new InMemoryScheduledTaskLock());
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
 
         FileRecord old = files.upload(png("old.png", 3, 2), student, "BEFORE");
@@ -47,7 +48,7 @@ class FileCleanupTest {
         var repo = new InMemoryFileRepository();
         var storage = new InMemoryFileStorage();
         var files = new FileService(storage, repo);
-        var cleanup = new FileCleanupService(repo, storage, 1, 100);
+        var cleanup = new FileCleanupService(repo, storage, 1, 100, new InMemoryScheduledTaskLock());
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
         FileRecord stale = files.upload(png("stale.png", 5, 2), student, "BEFORE");
 
@@ -65,7 +66,7 @@ class FileCleanupTest {
         var repo = new InMemoryFileRepository();
         var storage = new InMemoryFileStorage();
         var files = new FileService(storage, repo);
-        var cleanup = new FileCleanupService(repo, storage, 1, 100);
+        var cleanup = new FileCleanupService(repo, storage, 1, 100, new InMemoryScheduledTaskLock());
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
         FileRecord old = files.upload(png("already-gone.png", 6, 2), student, "BEFORE");
         storage.delete(old.objectKey());
@@ -87,7 +88,7 @@ class FileCleanupTest {
             }
         };
         var files = new FileService(storage, repo);
-        var cleanup = new FileCleanupService(repo, storage, 1, 100);
+        var cleanup = new FileCleanupService(repo, storage, 1, 100, new InMemoryScheduledTaskLock());
         Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
         FileRecord old = files.upload(png("retry.png", 7, 2), student, "BEFORE");
 
