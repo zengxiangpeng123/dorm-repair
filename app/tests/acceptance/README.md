@@ -29,3 +29,15 @@ The scripts write `report.json`, `security-report.json`, `resilience-report.json
 `people-report.json`, and `load-report.json`. Load checks fail above 1% errors or P95 2000 ms. The AI outage drill
 must be performed separately: stop the AI process, submit a real order, verify
 `levelSource=FALLBACK`, then restart AI and verify `/health`.
+
+Opt-in backend integration checks:
+
+```powershell
+# A local MySQL test database is required.
+$env:RUN_MYSQL_LOCK_TEST='true'; cd app/server; mvn -Dtest=ScheduledTaskLockMySqlTest test
+
+# A local S3-compatible bucket is required; defaults target MinIO on port 19000.
+$env:RUN_S3_STORAGE_TEST='true'; cd app/server; mvn -Dtest=S3FileStorageMySqlTest test
+```
+
+These checks are skipped in the normal build because they depend on external services.
