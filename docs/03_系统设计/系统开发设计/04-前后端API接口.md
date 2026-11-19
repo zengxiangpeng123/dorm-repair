@@ -289,7 +289,7 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 
 `GET /orders/{no}`：`data=OrderView`。
 
-`GET /orders/{no}/events`：`data={items:OrderEvent[],total:number}`。
+`GET /orders/{no}/events?page=1&pageSize=50`：`data={items:OrderEvent[],total,page,pageSize,hasMore}`。事件按 `seq` 正序返回，`pageSize` 上限 200。
 
 ### 7.2.1 管理员返修审查队列
 
@@ -297,7 +297,7 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 
 ### 7.2.2 管理员 AI 复核审计
 
-`GET /admin/ai-reviews?limit=50`（管理员，只读）：返回 `data={items:AiReviewTaskView[],total:number}`，`limit` 范围 1–100。
+`GET /admin/ai-reviews?page=1&pageSize=50`（管理员，只读）：返回 `data={items:AiReviewTaskView[],total,page,pageSize,hasMore}`。`pageSize` 范围 1–200；兼容旧参数 `limit`，未传分页时默认 50 条。
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -356,7 +356,9 @@ Idempotency-Key: <客户端生成的唯一字符串，建议 UUID>
 
 查询参数 `floors` 可重复或逗号分隔，如 `?floors=5&floors=4`。响应：`buildingId`、`buildingName`、`floors[{floor,orders:OrderView[]}]`、`emptyFloors:number[]`。
 
-### 7.5 例外清单 `GET /admin/exceptions`
+### 7.5 例外清单 `GET /admin/exceptions?kind=ALL|MISMATCH|OVER_BUDGET|REPEAT_REWORK|CANCEL_REQUEST`
+
+仅管理员可读。`kind` 省略或传 `ALL` 返回四类；指定类型时只筛选 `items` 和 `total`，`counts` 始终返回四类全量计数。非法值返回 400。
 
 响应：`items[]`、`counts`、`total`。`items[]` 字段：`id,kind,kindLabel,no,building,room,floor,location,status,statusLabel,detail,version`。
 
