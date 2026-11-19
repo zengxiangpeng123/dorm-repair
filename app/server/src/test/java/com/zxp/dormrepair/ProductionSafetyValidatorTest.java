@@ -16,7 +16,8 @@ class ProductionSafetyValidatorTest {
     private static ProductionSafetyValidator validator(String access, String secret, String session,
                                                         String aiBaseUrl, String s3Endpoint) {
         return new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password",
+                false, false, "mysql", "mysql",
+                "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password",
                 "s3", "dorm-files", s3Endpoint, access, secret, session, false,
                 aiBaseUrl, "model-x");
     }
@@ -25,29 +26,44 @@ class ProductionSafetyValidatorTest {
     @DisplayName("生产禁止演示模式、身份头、默认口令和本机 AI")
     void rejectsUnsafeProductionConfiguration() {
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                true, false, "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
+                true, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, true, "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, true, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "root", "123456", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "root", "123456", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "", "", "", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
+                false, false, "mysql", "mysql", "", "", "", "s3", "dorm-files", "https://s3.example.com", "", "", "", false, "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "local", "", "", "", "", "", false,
+                false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "local", "", "", "", "", "", false,
                 "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", true,
+                false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", true,
                 "https://ai.example.com", "model-x"));
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
+                false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password", "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
                 "http://127.0.0.1:8001", "model-x"));
+    }
+
+    @Test
+    @DisplayName("生产禁止内存仓储和内存文件元数据")
+    void rejectsInMemoryStorageInProduction() {
+        assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
+                false, false, "memory", "mysql",
+                "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password",
+                "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
+                "https://ai.example.com", "model-x"));
+        assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
+                false, false, "mysql", "memory",
+                "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=true", "app", "strong-password",
+                "s3", "dorm-files", "https://s3.example.com", "", "", "", false,
+                "https://ai.example.com", "model-x"));
     }
 
     @Test
     @DisplayName("生产数据库必须启用 TLS 并校验服务端证书")
     void rejectsUnverifiedDatabaseTls() {
         assertThrows(IllegalStateException.class, () -> new ProductionSafetyValidator(
-                false, false, "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=false",
+                false, false, "mysql", "mysql", "jdbc:mysql://db/app?useSSL=true&verifyServerCertificate=false",
                 "app", "strong-password", "s3", "dorm-files", "https://s3.example.com",
                 "", "", "", false, "https://ai.example.com", "model-x"));
     }

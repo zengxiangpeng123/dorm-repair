@@ -29,6 +29,8 @@ public class ProductionSafetyValidator {
     public ProductionSafetyValidator(
             @Value("${app.demo:false}") boolean demo,
             @Value("${app.auth.allow-header:false}") boolean allowHeader,
+            @Value("${app.store:mysql}") String store,
+            @Value("${app.file.metadata:mysql}") String fileMetadata,
             @Value("${spring.datasource.url:}") String datasourceUrl,
             @Value("${spring.datasource.username:}") String username,
             @Value("${spring.datasource.password:}") String password,
@@ -46,6 +48,12 @@ public class ProductionSafetyValidator {
         }
         if (allowHeader) {
             throw new IllegalStateException("生产环境禁止开启 app.auth.allow-header");
+        }
+        if (!"mysql".equalsIgnoreCase(store)) {
+            throw new IllegalStateException("生产环境 app.store 必须是 mysql，禁止内存仓储");
+        }
+        if (!"mysql".equalsIgnoreCase(fileMetadata)) {
+            throw new IllegalStateException("生产环境 app.file.metadata 必须是 mysql");
         }
         if (datasourceUrl.isBlank() || username.isBlank() || password.isBlank()) {
             throw new IllegalStateException("生产环境必须显式配置数据库 URL、账号和口令");

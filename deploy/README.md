@@ -54,7 +54,7 @@ uses the same subpath as its `base`, and Nginx falls back to that app's own
 
 ## Database TLS
 
-Production database TLS is controlled by `DB_USE_SSL` and
+Production startup requires `APP_STORE=mysql` and `APP_FILE_METADATA=mysql`; memory repositories are rejected under the `prod` profile. Production database TLS is controlled by `DB_USE_SSL` and
 `DB_ALLOW_PUBLIC_KEY_RETRIEVAL`. Use `DB_USE_SSL=true`; only disable certificate
 verification for an explicitly trusted private network and document the exception.
 

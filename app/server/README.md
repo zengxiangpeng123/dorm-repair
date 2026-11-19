@@ -18,7 +18,7 @@ java -jar target/dorm-repair-server-1.0.0.jar
 ## 怎么证明它对
 
 ```bash
-mvn -q test                                    # 110 项：状态机、API、鉴权、返修审查、文件治理、AI 兜底
+mvn -q test                                    # 111 项：状态机、API、鉴权、返修审查、文件治理、AI 兜底
 pwsh -NoProfile -File tests/m1-chain.ps1       # 13 项：主链、非法边、乐观锁和权限
 pwsh -NoProfile -File tests/m2-mysql.ps1       # 16 项：真库落盘与重启
 pwsh -NoProfile -File tests/m3-ai.ps1          # 20 项：AI 接上与断线兜底
@@ -26,7 +26,7 @@ pwsh -NoProfile -File tests/m4-rework.ps1      # 26 项：兼容返修 + 新审�
 pwsh -NoProfile -File tests/m5-auth.ps1        # 36 项：真 Bearer Token 和角色权限
 ```
 
-期望：`Tests run: 110, Failures: 0`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
+期望：`Tests run: 111, Failures: 0`；M1–M5 分别为 `13/16/20/26/36 通过，0 失败`。
 
 ## 数据库（M2）
 

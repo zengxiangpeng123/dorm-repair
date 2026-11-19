@@ -9,7 +9,7 @@
 
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
-| M1 | Spring Boot 4 骨架 + 状态机内核 + 一条链 | ✅ JUnit 110 项 + 验收套件 |
+| M1 | Spring Boot 4 骨架 + 状态机内核 + 一条链 | ✅ JUnit 111 项 + 验收套件 |
 | M2 | MySQL 8 + MyBatis-Plus，三端人员分表与迁移版本管理 | ✅ 新库 21 表（含迁移记录表）、旧库迁移与重复执行验收 |
 | M3 | Python AI 定级服务，规则闸门与模型兜底 | ✅ 真实模型联调 + 29 项 pytest |
 | M4 | 学生、师傅、管理端三个独立 Vue 应用 | ✅ 三端构建与隔离检查通过 |
@@ -83,7 +83,7 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 
 | 要证明的事 | 一条命令 | 期望 |
 |---|---|---|
-| 9 状态 14 转移，状态机与业务闭环回归 | `cd app\server; mvn -q test` | `Tests run: 110, Failures: 0` |
+| 9 状态 14 转移，状态机与业务闭环回归 | `cd app\server; mvn -q test` | `Tests run: 111, Failures: 0` |
 | 一条链真跑通（打真服务，不是 mock） | `pwsh -NoProfile -File app\server\tests\m1-chain.ps1` | `13 通过 / 0 失败` |
 | 重启之后数据还在（真 MySQL） | `pwsh -NoProfile -File app\server\tests\m2-mysql.ps1` | `16 通过 / 0 失败` |
 | AI 接上了；**杀掉 AI 之后建单仍成功**走兜底 | `pwsh -NoProfile -File app\server\tests\m3-ai.ps1` | `20 通过 / 0 失败` |
