@@ -15,7 +15,7 @@ $values = @{}
 Get-Content $envPath | ForEach-Object {
     if ($_ -match '^([A-Z0-9_]+)=(.*)$') { $values[$matches[1]] = $matches[2] }
 }
-$required = @('PUBLIC_HOST','DB_ROOT_PASSWORD','DB_USER','DB_PASSWORD','BACKUP_DB_USER','BACKUP_DB_PASSWORD','DB_NAME','APP_FILE_S3_ENDPOINT','APP_FILE_S3_BUCKET','AI_BASE_URL','AI_MODEL','AI_API_KEY')
+$required = @('PUBLIC_HOST','DB_ROOT_PASSWORD','DB_USER','DB_PASSWORD','MIGRATION_DB_USER','MIGRATION_DB_PASSWORD','BACKUP_DB_USER','BACKUP_DB_PASSWORD','DB_NAME','APP_FILE_S3_ENDPOINT','APP_FILE_S3_BUCKET','AI_BASE_URL','AI_MODEL','AI_API_KEY')
 foreach ($key in $required) {
     $value = $values[$key]
     if ([string]::IsNullOrWhiteSpace($value)) { Fail "$key is empty" }
@@ -34,6 +34,7 @@ if ($values['APP_FILE_METADATA'] -ne 'mysql') { Fail 'APP_FILE_METADATA must be 
 if ($values['DB_USE_SSL'] -ne 'true') { Fail 'DB_USE_SSL must be true in production' }
 if ($values['DB_SSL_VERIFY_SERVER_CERTIFICATE'] -ne 'true') { Fail 'DB_SSL_VERIFY_SERVER_CERTIFICATE must be true in production' }
 if ($values['BACKUP_DB_USER'] -eq $values['DB_USER']) { Fail 'BACKUP_DB_USER must be a dedicated backup account, not the runtime DB_USER' }
+if ($values['MIGRATION_DB_USER'] -eq $values['DB_USER'] -or $values['MIGRATION_DB_USER'] -eq $values['BACKUP_DB_USER']) { Fail 'MIGRATION_DB_USER must be distinct from DB_USER and BACKUP_DB_USER' }
 $mysql = Get-Command mysql -ErrorAction SilentlyContinue
 if (-not $mysql) { Fail 'mysql client is required to verify the production schema' }
 $dbHost = if ($values['DB_HOST']) { $values['DB_HOST'] } else { '127.0.0.1' }

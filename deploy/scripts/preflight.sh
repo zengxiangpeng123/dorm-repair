@@ -15,7 +15,7 @@ fail() { echo "preflight: $*" >&2; exit 1; }
 grep -q 'alert.example.com' "$ALERT_FILE" && fail "replace the example Alertmanager receiver"
 
 required=(
-  PUBLIC_HOST DB_ROOT_PASSWORD DB_USER DB_PASSWORD BACKUP_DB_USER BACKUP_DB_PASSWORD DB_NAME
+  PUBLIC_HOST DB_ROOT_PASSWORD DB_USER DB_PASSWORD MIGRATION_DB_USER MIGRATION_DB_PASSWORD BACKUP_DB_USER BACKUP_DB_PASSWORD DB_NAME
   APP_FILE_S3_ENDPOINT APP_FILE_S3_BUCKET
   AI_BASE_URL AI_MODEL AI_API_KEY
 )
@@ -52,6 +52,8 @@ grep -q '^DB_SSL_VERIFY_SERVER_CERTIFICATE=true' "$ENV_FILE" || fail "DB_SSL_VER
 db_user="$(grep -E '^DB_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 backup_user="$(grep -E '^BACKUP_DB_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 [ "$db_user" != "$backup_user" ] || fail "BACKUP_DB_USER must be a dedicated backup account, not the runtime DB_USER"
+migration_user="$(grep -E '^MIGRATION_DB_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+[ "$migration_user" != "$db_user" ] && [ "$migration_user" != "$backup_user" ] || fail "MIGRATION_DB_USER must be distinct from DB_USER and BACKUP_DB_USER"
 
 echo "checking database schema (read-only)"
 command -v mysql >/dev/null 2>&1 || fail "mysql client is required to verify the production schema"

@@ -1,13 +1,13 @@
 param(
     [string]$DbHost = $env:DB_HOST,
-    [string]$DbUser = $env:DB_USER,
-    [string]$DbPassword = $env:DB_PASSWORD,
+    [string]$DbUser = $(if ($env:MIGRATION_DB_USER) { $env:MIGRATION_DB_USER } else { $env:DB_USER }),
+    [string]$DbPassword = $(if ($env:MIGRATION_DB_PASSWORD) { $env:MIGRATION_DB_PASSWORD } else { $env:DB_PASSWORD }),
     [string]$DbName = $(if ($env:DB_NAME) { $env:DB_NAME } else { 'dorm_repair' }),
     [string]$MigrationsDir = '../app/server/src/main/resources/db/migrations'
 )
 $ErrorActionPreference = 'Stop'
 if (-not $DbHost -or -not $DbUser -or -not $DbPassword) {
-    throw 'DB_HOST, DB_USER and DB_PASSWORD are required'
+    throw 'DB_HOST and MIGRATION_DB_USER/MIGRATION_DB_PASSWORD (or DB_USER/DB_PASSWORD for local use) are required'
 }
 if (-not (Test-Path $MigrationsDir)) {
     throw "migration directory not found: $MigrationsDir"

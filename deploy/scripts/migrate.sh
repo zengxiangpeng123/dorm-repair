@@ -2,14 +2,14 @@
 set -euo pipefail
 
 : "${DB_HOST:?DB_HOST required}"
-: "${DB_USER:?DB_USER required}"
-: "${DB_PASSWORD:?DB_PASSWORD required}"
+: "${MIGRATION_DB_USER:=${DB_USER:?DB_USER or MIGRATION_DB_USER required}}"
+: "${MIGRATION_DB_PASSWORD:=${DB_PASSWORD:?DB_PASSWORD or MIGRATION_DB_PASSWORD required}}"
 : "${DB_NAME:=dorm_repair}"
 
 MYSQL_CNF="$(mktemp)"
 trap 'rm -f "$MYSQL_CNF"' EXIT
 chmod 600 "$MYSQL_CNF"
-printf '[client]\nhost=%s\nuser=%s\npassword=%s\n' "$DB_HOST" "$DB_USER" "$DB_PASSWORD" > "$MYSQL_CNF"
+printf '[client]\nhost=%s\nuser=%s\npassword=%s\n' "$DB_HOST" "$MIGRATION_DB_USER" "$MIGRATION_DB_PASSWORD" > "$MYSQL_CNF"
 
 MYSQL=(mysql --defaults-extra-file="$MYSQL_CNF" --default-character-set=utf8mb4 "$DB_NAME")
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-../app/server/src/main/resources/db/migrations}"

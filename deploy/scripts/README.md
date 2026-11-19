@@ -4,7 +4,7 @@ Run migrations against an existing pre-split database after a verified backup an
 starting the new application version.
 
 ```bash
-export DB_HOST=mysql DB_USER=dorm_app DB_PASSWORD='...' DB_NAME=dorm_repair
+export DB_HOST=mysql MIGRATION_DB_USER=dorm_migrator MIGRATION_DB_PASSWORD='...' DB_NAME=dorm_repair
 ./migrate.sh
 ```
 
@@ -13,6 +13,7 @@ The runner records each migration filename and SHA-256 checksum in
 Migration files must never hard-code a database name. Fresh installations use
 `schema.sql` only and must not run the legacy migration set.
 
-Production backup credentials are separate from the runtime application account. Configure
-`BACKUP_DB_USER` / `BACKUP_DB_PASSWORD` with only the privileges needed by `mysqldump` and
-restore verification; `preflight` rejects using the runtime `DB_USER` as the backup account.
+Production migration and backup credentials are separate from the runtime application
+account. Configure `MIGRATION_DB_USER` / `MIGRATION_DB_PASSWORD` for DDL changes and
+`BACKUP_DB_USER` / `BACKUP_DB_PASSWORD` for dumps; `preflight` rejects reusing the runtime
+`DB_USER` for either privileged operation.
