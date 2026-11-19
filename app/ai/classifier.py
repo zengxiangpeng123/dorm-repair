@@ -15,29 +15,53 @@
 
 from __future__ import annotations
 
+import os
+import time
 from typing import Any
 
 import llm
 import rules
 from rules import LEVELS
 
-_CACHE: dict[str, dict[str, Any]] = {}
+# 缓存的是“模型对同一描述的判定”，不是工单事实。模型/规则升级或配置切换后
+# 旧结论不能无限期沿用；默认 1 小时过期，可用 AI_CACHE_TTL_S 调整。
+_CACHE: dict[str, tuple[float, str, dict[str, Any]]] = {}
 _CACHE_MAX = 200
+
+
+def _cache_ttl_s() -> float:
+    try:
+        return max(1.0, float(os.getenv("AI_CACHE_TTL_S", "3600")))
+    except ValueError:
+        return 3600.0
+
+
+def _cache_key(prefix: str, key: str) -> str:
+    cfg = llm._cfg()
+    return "|".join((prefix, cfg["model"], cfg["base_url"], key))
 
 
 def _cache_get(key: str) -> dict[str, Any] | None:
     hit = _CACHE.get(key)
     if hit is None:
         return None
-    out = dict(hit)
+    created_at, version, value = hit
+    if version != _cache_version() or time.monotonic() - created_at > _cache_ttl_s():
+        _CACHE.pop(key, None)
+        return None
+    out = dict(value)
     out["source"] = "cache"
     return out
+
+
+def _cache_version() -> str:
+    return f"{llm._cfg()['model']}|{llm._cfg()['base_url']}"
 
 
 def _cache_put(key: str, value: dict[str, Any]) -> None:
     if len(_CACHE) >= _CACHE_MAX:
         _CACHE.pop(next(iter(_CACHE)))
-    _CACHE[key] = dict(value)
+    _CACHE[key] = (time.monotonic(), _cache_version(), dict(value))
 
 
 def _higher(a: str, b: str) -> str:
@@ -60,7 +84,7 @@ def classify(desc: str, fallback_category: str | None = None,
     if _gate_hit(rule_verdict):
         out = rule_verdict.to_dict()
         out.update({"source": "rule-gate", "model": None, "latencyMs": 0})
-        _cache_put(f"{fallback_category}|{text}", out)
+        _cache_put(_cache_key("gate", f"{fallback_category}|{text}"), out)
         return out
 
     # 1.5 有人要求"先给个快的"：学生提交这一步不能等模型，模型另开一路复核
@@ -75,7 +99,7 @@ def classify(desc: str, fallback_category: str | None = None,
         out.update({"source": "rule-only", "model": None, "latencyMs": 0})
         return out
 
-    key = f"{fallback_category}|{text}"
+    key = _cache_key("llm", f"{fallback_category}|{text}")
     cached = _cache_get(key)
     if cached is not None:
         return cached
@@ -132,4 +156,5 @@ def stats() -> dict[str, Any]:
         "model": llm._cfg()["model"] if llm.enabled() else None,
         "baseUrl": llm._cfg()["base_url"] if llm.enabled() else None,
         "cached": len(_CACHE),
+        "cacheTtlSeconds": _cache_ttl_s(),
     }

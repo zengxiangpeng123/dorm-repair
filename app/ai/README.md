@@ -21,6 +21,7 @@ AI_BASE_URL=http://127.0.0.1:3065/v1
 AI_MODEL=raccoon/sn-deepseek-v4-1-flash-1017
 AI_API_KEY=sk-...
 AI_TIMEOUT_S=20
+AI_CACHE_TTL_S=3600
 ```
 
 模型限流、超时或非法 JSON 时，服务自动退回规则结果，不阻断建单。

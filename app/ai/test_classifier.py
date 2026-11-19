@@ -95,6 +95,24 @@ def test_cache_hits_once(monkeypatch):
     classifier.classify("网口没反应")
     assert len(calls) == 1
 
+def test_cache_expires(monkeypatch):
+    calls = _fake(monkeypatch, _ok("网络", "普通"))
+    monkeypatch.setenv("AI_CACHE_TTL_S", "1")
+    classifier.classify("网口没反应")
+    first = next(iter(classifier._CACHE.values()))
+    classifier._CACHE[next(iter(classifier._CACHE))] = (first[0] - 2, first[1], first[2])
+    classifier.classify("网口没反应")
+    assert len(calls) == 2
+
+
+def test_cache_invalidates_when_model_changes(monkeypatch):
+    calls = _fake(monkeypatch, _ok("网络", "普通"))
+    classifier.classify("网口没反应")
+    monkeypatch.setattr(llm, "_cfg", lambda: {"model": "other-model", "base_url": "http://other"})
+    classifier.classify("网口没反应")
+    assert len(calls) == 2
+
+
 def test_fallback_is_not_cached_after_provider_recovers(monkeypatch):
     """一次限流不能被缓存成永久结果；供应商恢复后应重新询问模型。"""
     calls = []
