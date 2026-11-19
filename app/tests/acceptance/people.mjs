@@ -28,13 +28,13 @@ const suffix = String(Date.now()).slice(-8)
 const id = 'W9' + suffix
 const password = 'Strong-Worker-2026'
 const admin = (await login('A001', 'dorm@2026')).json.data.token
-let created = false
+const temporaryWorkerIds = []
 try {
   const create = await req('POST', base + '/admin/users', {
     token: admin,
     body: { id, role: 'WORKER', name: '生命周期验收师傅', team: '综合班', buildings: ['B7'], password }
   })
-  created = true
+  temporaryWorkerIds.push(id)
   check('管理员创建临时师傅', create.json?.data?.id === id, id)
 
   const workerToken = (await login(id, password)).json.data.token
@@ -47,8 +47,8 @@ try {
 
   const stale = await req('GET', base + '/my/orders', { token: workerToken, expected: [401] })
   check('停用后旧令牌失效', stale.response.status === 401)
-  await login(id, password, [403])
-  check('停用后禁止登录', true)
+  const disabledLogin = await login(id, password, [401])
+  check('停用后禁止登录且不泄露账号状态', disabledLogin.json?.error?.code === 'UNAUTHORIZED')
 
   const enabled = await req('POST', base + '/admin/users/' + id + '/active', {
     token: admin, body: { active: true }
@@ -68,11 +68,19 @@ try {
   })
   check('管理员不能停用自己', self.json?.error?.code === 'CANNOT_DISABLE_SELF')
 } finally {
-  if (created) {
-    const restored = await req('POST', base + '/admin/users/' + id + '/active', {
-      token: admin, body: { active: true }
+  for (const workerId of temporaryWorkerIds) {
+    const disabled = await req('POST', base + '/admin/users/' + workerId + '/active', {
+      token: admin, body: { active: false }
     }).catch(() => null)
-    if (!restored) console.warn('WARN 临时账号恢复失败：' + id)
+    if (!disabled) console.warn('WARN 临时账号停用失败：' + workerId)
+  }
+  const users = await req('GET', base + '/admin/users', { token: admin }).catch(() => null)
+  for (const worker of users?.json?.data?.items || []) {
+    if (worker.id?.startsWith('W9')) {
+      await req('POST', base + '/admin/users/' + worker.id + '/active', {
+        token: admin, body: { active: false }
+      }).catch(() => null)
+    }
   }
 }
 report.finishedAt = new Date().toISOString()

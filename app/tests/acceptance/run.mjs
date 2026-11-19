@@ -81,13 +81,30 @@ async function main() {
   record('真实工单提交与快速定级', Boolean(order.no && order.version), `${order.no} ${order.status}`)
 
   let current = (await request('GET', base + `/orders/${order.no}`, { token: student })).json.data
-  if (current.status === 'PENDING') {
-    current = (await request('POST', base + `/orders/${order.no}/assign`, { token: admin, body: { version: current.version, workerId: 'W0428' } })).json.data
+  if (current.status === 'ASSIGNED' && current.workerId !== accounts.worker.account) {
+    current = (await request('POST', base + `/orders/${order.no}/assign`, {
+      token: admin, body: { version: current.version, workerId: accounts.worker.account }
+    })).json.data
+  } else if (current.status === 'PENDING') {
+    current = (await request('POST', base + `/orders/${order.no}/assign`, {
+      token: admin, body: { version: current.version, workerId: accounts.worker.account }
+    })).json.data
   }
-  record('派工', ['ASSIGNED', 'REPAIRING'].includes(current.status), current.status)
+  record('派工', ['ASSIGNED', 'REPAIRING'].includes(current.status) && current.workerId === accounts.worker.account, `${current.status} -> ${current.workerId || 'none'}`)
 
+  if (current.status === 'ASSIGNED' && process.env.ACCEPTANCE_OTHER_WORKER) {
+    const otherWorker = await request('POST', base + '/auth/login', {
+      body: { account: process.env.ACCEPTANCE_OTHER_WORKER, password: process.env.ACCEPTANCE_OTHER_WORKER_PASSWORD || 'dorm@2026' }
+    })
+    const notOwner = await request('POST', base + `/orders/${order.no}/arrive`, {
+      token: otherWorker.json.data.token, body: { version: current.version }, expected: [403]
+    })
+    record('非本单师傅不能到门', notOwner.json?.error?.code === 'NOT_OWNER', notOwner.json?.error?.code)
+  }
   if (current.status === 'ASSIGNED') {
-    current = (await request('POST', base + `/orders/${order.no}/arrive`, { token: worker, body: { version: current.version } })).json.data
+    current = (await request('POST', base + `/orders/${order.no}/arrive`, {
+      token: worker, body: { version: current.version }
+    })).json.data
   }
   record('师傅到门', current.status === 'REPAIRING', current.status)
 
