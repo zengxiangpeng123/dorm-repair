@@ -53,6 +53,19 @@ class ReworkReviewTest {
     }
 
     @Test
+    @DisplayName("例外清单支持按 kind 过滤，同时保留四类计数")
+    void exceptionListCanFilterByKind() {
+        var all = queries.exceptions("ALL");
+        var repeat = queries.exceptions("REPEAT_REWORK");
+
+        assertEquals(all.get("counts"), repeat.get("counts"));
+        @SuppressWarnings("unchecked")
+        var repeatItems = (List<Map<String, Object>>) repeat.get("items");
+        assertTrue(repeatItems.stream().allMatch(m -> "REPEAT_REWORK".equals(m.get("kind"))));
+        assertEquals(repeatItems.size(), repeat.get("total"));
+    }
+
+    @Test
     @DisplayName("学生申请返修不改变状态，管理员批准后才生成 -R1")
     void approveCreatesRework() {
         WorkOrder original = verifyingOrder();

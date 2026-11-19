@@ -7,7 +7,7 @@ export const adminApi = {
   list: (params) => api.get('/orders', params),
   detail: (no) => api.get(`/orders/${no}`),
   dashboard: () => api.get('/admin/dashboard'),
-  exceptions: () => api.get('/admin/exceptions'),
+  exceptions: (kind = 'ALL') => api.get('/admin/exceptions', { kind }),
   config: () => api.get('/admin/config'),
   saveConfig: (body) => api.put('/admin/config', body),
   reworkReviews: () => api.get('/admin/rework-reviews'),

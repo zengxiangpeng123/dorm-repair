@@ -91,11 +91,12 @@ public class QueryController {
         return ApiResponses.ok(query.aiReviewTasks(page, size));
     }
 
-    /** 四类例外（只有管理端能看） */
+    /** 四类例外（只有管理端能看）；kind=ALL 或指定四类之一。 */
     @GetMapping("/admin/exceptions")
-    public Map<String, Object> exceptions(HttpServletRequest http) {
+    public Map<String, Object> exceptions(@RequestParam(defaultValue = "ALL") String kind,
+                                          HttpServletRequest http) {
         ActorResolver.require(ActorResolver.resolve(http), ActorType.ADMIN);
-        return ApiResponses.ok(query.exceptions());
+        return ApiResponses.ok(query.exceptions(kind));
     }
 
     /** 看板：零人工完成率两套口径、平均修复时长、返修率、按楼栋、计时器 */

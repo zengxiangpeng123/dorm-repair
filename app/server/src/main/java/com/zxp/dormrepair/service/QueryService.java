@@ -197,6 +197,16 @@ public class QueryService {
 
     /** 四类例外。前三类不动状态，第四类（学生申请撤销）才是唯一由人决定的入口。 */
     public Map<String, Object> exceptions() {
+        return exceptions("ALL");
+    }
+
+    /** kind=ALL 返回四类；指定 kind 时只返回该类，counts 始终保留四类总数。 */
+    public Map<String, Object> exceptions(String kind) {
+        String selected = kind == null ? "ALL" : kind.trim().toUpperCase();
+        if (!List.of("ALL", "MISMATCH", "OVER_BUDGET", "REPEAT_REWORK", "CANCEL_REQUEST").contains(selected)) {
+            throw com.zxp.dormrepair.common.BizException.badRequest(
+                    "kind 只能是 ALL、MISMATCH、OVER_BUDGET、REPEAT_REWORK 或 CANCEL_REQUEST");
+        }
         int budget = config.budgetLine();
         List<Map<String, Object>> items = new ArrayList<>();
 
@@ -238,7 +248,10 @@ public class QueryService {
         for (String k : List.of("MISMATCH", "OVER_BUDGET", "REPEAT_REWORK", "CANCEL_REQUEST")) {
             counts.put(k, (int) items.stream().filter(m -> k.equals(m.get("kind"))).count());
         }
-        return Map.of("items", items, "counts", counts, "total", items.size());
+        List<Map<String, Object>> filtered = "ALL".equals(selected)
+                ? items
+                : items.stream().filter(m -> selected.equals(m.get("kind"))).toList();
+        return Map.of("items", filtered, "counts", counts, "total", filtered.size());
     }
 
     private Map<String, Object> item(String kind, String kindLabel, WorkOrder o, String detail) {
