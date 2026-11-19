@@ -176,6 +176,21 @@ class AiReviewAuditTest {
     }
 
     @Test
+    @DisplayName("AI 审计分页返回真实总数而不是当前页长度")
+    void auditPaginationKeepsExactTotal() {
+        for (int i = 0; i < 7; i++) {
+            tasks.create("BX-PAGE-" + i, 1, "hash-" + i, "model-x", "provider-x");
+        }
+
+        AiReviewTaskRepository.Page page = tasks.page(2, 3);
+
+        assertEquals(7, page.total());
+        assertEquals(3, page.items().size());
+        assertEquals(2, page.page());
+        assertEquals(3, page.pageSize());
+    }
+
+    @Test
     @DisplayName("事务未提交时不创建 AI 复核任务，提交后才投递")
     void reviewWaitsForTransactionCommit() {
         when(ai.model()).thenReturn("model-x");

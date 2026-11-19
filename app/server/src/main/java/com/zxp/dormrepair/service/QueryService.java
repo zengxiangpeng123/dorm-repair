@@ -185,10 +185,14 @@ public class QueryService {
         return Map.of("items", items, "total", items.size());
     }
 
-    /** 管理端查看 AI 复核审计；只读、最多 100 条。 */
-    public Map<String, Object> aiReviewTasks(int limit) {
-        var items = aiTasks.recent(limit);
-        return Map.of("items", items, "total", items.size());
+    /** 管理端查看 AI 复核审计；只读，服务端分页。 */
+    public Map<String, Object> aiReviewTasks(int page, int pageSize) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(pageSize, 200));
+        var result = aiTasks.page(safePage, safeSize);
+        return Map.of("items", result.items(), "total", result.total(),
+                "page", result.page(), "pageSize", result.pageSize(),
+                "hasMore", (long) result.page() * result.pageSize() < result.total());
     }
 
     /** 四类例外。前三类不动状态，第四类（学生申请撤销）才是唯一由人决定的入口。 */

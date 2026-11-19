@@ -10,7 +10,7 @@ public interface AiReviewTaskRepository {
     AiReviewTask create(String orderNo, int orderVersion, String inputHash, String model, String provider);
     Optional<AiReviewTask> find(String id);
     Optional<AiReviewTask> latest(String orderNo);
-    List<AiReviewTask> recent(int limit);
+    Page page(int page, int pageSize);
     void markRunning(String id, int attempts);
     void markResult(String id, AiReviewTaskStatus status, int attempts, String errorCode, String errorMessage,
                     String category, String level, Double confidence, String basis, String source,
@@ -20,4 +20,7 @@ public interface AiReviewTaskRepository {
     /** 把进程中断后超过租约的 PENDING/RUNNING 任务标记为失败。 */
     int failStale(String staleBefore, String errorCode, String errorMessage);
     void clear();
+
+    record Page(List<AiReviewTask> items, int total, int page, int pageSize) {
+    }
 }

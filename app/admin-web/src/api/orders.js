@@ -11,7 +11,7 @@ export const adminApi = {
   config: () => api.get('/admin/config'),
   saveConfig: (body) => api.put('/admin/config', body),
   reworkReviews: () => api.get('/admin/rework-reviews'),
-  aiReviews: (limit = 50) => api.get('/admin/ai-reviews', { limit }),
+  aiReviews: (page = 1, pageSize = 50) => api.get('/admin/ai-reviews', { page, pageSize }),
   reworkReview: (no, body) => api.post(`/orders/${no}/rework-review`, body),
   adminCancel: (no, body) => api.post(`/orders/${no}/admin-cancel`, body),
   partsArrived: (no, body) => api.post(`/orders/${no}/parts-arrived`, body),

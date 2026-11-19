@@ -52,10 +52,17 @@ public class MybatisAiReviewTaskRepository implements AiReviewTaskRepository {
     }
 
     @Override
-    public List<AiReviewTask> recent(int limit) {
-        return mapper.selectList(Wrappers.<AiReviewTaskRow>query()
-                        .orderByDesc("requested_at").last("LIMIT " + Math.max(1, Math.min(limit, 100))))
+    public Page page(int page, int pageSize) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(pageSize, 200));
+        Long count = mapper.selectCount(null);
+        int total = count == null ? 0 : count.intValue();
+        int offset = Math.min(total, (safePage - 1) * safeSize);
+        List<AiReviewTask> items = offset >= total ? List.of() : mapper.selectList(
+                        Wrappers.<AiReviewTaskRow>query().orderByDesc("requested_at")
+                                .last("LIMIT " + safeSize + " OFFSET " + offset))
                 .stream().map(this::toTask).toList();
+        return new Page(items, total, safePage, safeSize);
     }
 
     @Override

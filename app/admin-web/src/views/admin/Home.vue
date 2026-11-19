@@ -14,7 +14,7 @@ const orders = ref([])
 const cfg = ref(null)
 const meta = ref(null)
 const reviews = ref({ items: [], total: 0 })
-const aiReviews = ref({ items: [], total: 0 })
+const aiReviews = ref({ items: [], total: 0, page: 1, pageSize: 50, hasMore: false })
 const reviewSel = ref(null)
 const reviewDecision = ref('APPROVE')
 const reviewReason = ref('')
@@ -50,7 +50,7 @@ async function load () {
       adminApi.config(),
       adminApi.meta(),
       adminApi.reworkReviews(),
-      adminApi.aiReviews(50)
+      adminApi.aiReviews(1, 50)
     ])
     dash.value = d
     ex.value = e
@@ -59,7 +59,7 @@ async function load () {
     cfgDraft.value = { budgetLine: c.budgetLine, verifyHours: c.verifyHours, archiveDays: c.archiveDays }
     meta.value = m
     reviews.value = rv || { items: [], total: 0 }
-    aiReviews.value = ar || { items: [], total: 0 }
+    aiReviews.value = ar || { items: [], total: 0, page: 1, pageSize: 50, hasMore: false }
     err.value = ''
   } catch (e2) {
     err.value = describeError(e2)
@@ -248,7 +248,7 @@ onMounted(load)
         <section class="panel ai-audit-panel">
           <header>
             <b>AI 复核审计</b><span class="spacer" />
-            <span class="hint">最近 {{ aiReviews?.total || 0 }} 条 · 只读 · 不参与工单状态</span>
+            <span class="hint">共 {{ aiReviews?.total || 0 }} 条 · 当前第 {{ aiReviews?.page || 1 }} 页 · 只读 · 不参与工单状态</span>
           </header>
           <div class="ai-audit-scroll">
             <table class="dt ai-audit-table">

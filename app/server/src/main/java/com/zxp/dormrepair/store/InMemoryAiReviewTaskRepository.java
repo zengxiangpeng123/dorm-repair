@@ -39,9 +39,14 @@ public class InMemoryAiReviewTaskRepository implements AiReviewTaskRepository {
     }
 
     @Override
-    public List<AiReviewTask> recent(int limit) {
-        return tasks.values().stream().sorted(Comparator.comparing(AiReviewTask::requestedAt).reversed())
-                .limit(Math.max(1, Math.min(limit, 100))).toList();
+    public Page page(int page, int pageSize) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.max(1, Math.min(pageSize, 200));
+        var ordered = tasks.values().stream()
+                .sorted(Comparator.comparing(AiReviewTask::requestedAt).reversed()).toList();
+        int from = Math.min(ordered.size(), (safePage - 1) * safeSize);
+        int to = Math.min(ordered.size(), from + safeSize);
+        return new Page(ordered.subList(from, to), ordered.size(), safePage, safeSize);
     }
 
     @Override

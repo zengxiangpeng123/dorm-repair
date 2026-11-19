@@ -82,10 +82,13 @@ public class QueryController {
 
     /** AI 复核审计记录；只给管理端。 */
     @GetMapping("/admin/ai-reviews")
-    public Map<String, Object> aiReviews(@RequestParam(defaultValue = "50") int limit,
+    public Map<String, Object> aiReviews(@RequestParam(defaultValue = "1") int page,
+                                         @RequestParam(required = false) Integer pageSize,
+                                         @RequestParam(required = false) Integer limit,
                                          HttpServletRequest http) {
         ActorResolver.require(ActorResolver.resolve(http), ActorType.ADMIN);
-        return ApiResponses.ok(query.aiReviewTasks(limit));
+        int size = pageSize != null ? pageSize : (limit != null ? limit : 50);
+        return ApiResponses.ok(query.aiReviewTasks(page, size));
     }
 
     /** 四类例外（只有管理端能看） */
