@@ -255,6 +255,20 @@ class OrderFlowTest {
     }
 
     @Test
+    @DisplayName("到访未遇原因必须来自枚举，非法原因不改变工单")
+    void noShowRejectsUnknownReason() throws Exception {
+        String no = pending().get("no").asText();
+        assign(no, 1);
+        Resp invalid = call("POST", "/orders/" + no + "/no-show",
+                "{\"version\":2,\"reason\":\"随便写的理由\"}", "worker", "W0428");
+
+        assertEquals(422, invalid.status, invalid.body);
+        assertEquals("NO_SHOW_REASON_INVALID", invalid.error().get("reason").asText());
+        JsonNode current = call("GET", "/orders/" + no, null, "admin", "A001").data();
+        assertEquals("ASSIGNED", current.get("status").asText());
+    }
+
+    @Test
     @DisplayName("楼栋批量派工允许部分成功，已派单进入 skipped")
     void buildingAssignReturnsPerOrderResults() throws Exception {
         JsonNode list = call("GET", "/orders?status=PENDING&page=1&pageSize=200",

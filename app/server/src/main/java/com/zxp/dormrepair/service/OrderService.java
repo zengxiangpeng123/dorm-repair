@@ -257,7 +257,11 @@ public class OrderService {
         if (!actor.id().equals(cur.getWorkerId())) {
             throw BizException.notOwner("这张单不是你的：" + no);
         }
-        String reason = isBlank(req.reason()) ? "KNOCK_NO_ANSWER" : req.reason();
+        String reason = isBlank(req.reason()) ? "KNOCK_NO_ANSWER" : req.reason().trim();
+        if (!java.util.Set.of("KNOCK_NO_ANSWER", "CALL_UNREACHABLE", "STUDENT_NOT_IN", "DOOR_LOCKED")
+                .contains(reason)) {
+            throw BizException.precondition("到访未遇原因不在允许范围内", "NO_SHOW_REASON_INVALID");
+        }
         return OrderView.of(state.transit(no, OrderEvent.NO_SHOW, actor,
                 "到访未遇：" + reason, req.version(), o -> {
                     o.setWorkerId(null);
