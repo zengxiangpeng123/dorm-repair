@@ -13,3 +13,7 @@ RESTORE_CONFIRM=dorm_repair ./restore.sh /backup/dorm_repair-YYYYMMDD-HHMMSS.sql
 
 Run a restore drill against a separate database before production. Keep at least 14 daily
 backups, encrypt the backup bucket, and record the restore time and row counts.
+
+When `S3_BUCKET` is set, `S3_BACKUP_RETENTION_DAYS` controls server-side retention of
+database dumps under `db/`. Keep bucket versioning and lifecycle rules enabled as the
+provider-side safety net; local retention is controlled by `BACKUP_RETENTION_DAYS`.
