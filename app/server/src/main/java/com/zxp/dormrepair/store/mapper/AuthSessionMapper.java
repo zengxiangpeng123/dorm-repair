@@ -3,6 +3,7 @@ package com.zxp.dormrepair.store.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zxp.dormrepair.store.entity.AuthSessionRow;
 import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
@@ -19,4 +20,20 @@ public interface AuthSessionMapper extends BaseMapper<AuthSessionRow> {
 
     @Delete("DELETE FROM t_auth_session WHERE expires_at_ms <= #{nowMs} OR revoked_at_ms IS NOT NULL")
     int deleteExpired(@Param("nowMs") long nowMs);
+
+    @Select("SELECT COUNT(*) FROM t_auth_session WHERE account=#{account} " +
+            "AND revoked_at_ms IS NULL AND expires_at_ms > #{nowMs}")
+    int countActive(@Param("account") String account, @Param("nowMs") long nowMs);
+
+    @Select("SELECT GET_LOCK(CONCAT('dorm-auth-', #{account}), 5)")
+    Integer lockAccount(@Param("account") String account);
+
+    @Update("UPDATE t_auth_session SET revoked_at_ms=#{nowMs} " +
+            "WHERE account=#{account} AND revoked_at_ms IS NULL AND expires_at_ms > #{nowMs} " +
+            "ORDER BY issued_at_ms ASC LIMIT #{count}")
+    int revokeOldest(@Param("account") String account, @Param("nowMs") long nowMs,
+                     @Param("count") int count);
+
+    @Select("SELECT RELEASE_LOCK(CONCAT('dorm-auth-', #{account}))")
+    Integer unlockAccount(@Param("account") String account);
 }

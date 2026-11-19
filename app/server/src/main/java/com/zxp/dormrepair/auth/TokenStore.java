@@ -27,10 +27,18 @@ public class TokenStore {
     private static final SecureRandom RANDOM = new SecureRandom();
     private final AuthSessionRepository sessions;
     private final UserRepository users;
+    private final int maxActiveSessions;
 
-    public TokenStore(AuthSessionRepository sessions, UserRepository users) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public TokenStore(AuthSessionRepository sessions, UserRepository users,
+                      @org.springframework.beans.factory.annotation.Value("${app.auth.max-active-sessions:5}") int maxActiveSessions) {
         this.sessions = sessions;
         this.users = users;
+        this.maxActiveSessions = Math.max(1, maxActiveSessions);
+    }
+
+    public TokenStore(AuthSessionRepository sessions, UserRepository users) {
+        this(sessions, users, 5);
     }
 
     public Session issue(Actor actor, String account, long ttlMillis) {
@@ -40,7 +48,7 @@ public class TokenStore {
         long now = System.currentTimeMillis();
         long expiresAt = now + ttlMillis;
         sessions.save(hash(token), account, actor.type().name(), actor.name(),
-                actor.id(), now, expiresAt);
+                actor.id(), now, expiresAt, maxActiveSessions);
         return new Session(token, actor, account, now, expiresAt);
     }
 

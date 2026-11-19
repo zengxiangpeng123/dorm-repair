@@ -38,6 +38,7 @@ app:
     password: ${BOOTSTRAP_ADMIN_PASSWORD:}
   auth:
     ttl-hours: ${APP_AUTH_TTL_HOURS:8}
+    max-active-sessions: ${APP_AUTH_MAX_ACTIVE_SESSIONS:5}
     login-max-failures: ${APP_AUTH_LOGIN_MAX_FAILURES:5}
     login-block-minutes: ${APP_AUTH_LOGIN_BLOCK_MINUTES:15}
     login-source-max-failures: ${APP_AUTH_LOGIN_SOURCE_MAX_FAILURES:20}

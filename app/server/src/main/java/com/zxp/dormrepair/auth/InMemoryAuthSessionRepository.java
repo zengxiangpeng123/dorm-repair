@@ -3,6 +3,8 @@ package com.zxp.dormrepair.auth;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -14,12 +16,30 @@ public class InMemoryAuthSessionRepository implements AuthSessionRepository {
     }
 
     private final Map<String, Row> rows = new ConcurrentHashMap<>();
+    private final Map<String, Long> sequence = new ConcurrentHashMap<>();
+    private final AtomicLong nextSequence = new AtomicLong();
 
     @Override
     public void save(String tokenHash, String account, String role, String name,
-                     String accountId, long issuedAtMs, long expiresAtMs) {
-        rows.put(tokenHash, new Row(new StoredSession(tokenHash, account, role, name,
-                accountId, issuedAtMs, expiresAtMs), 0L));
+                     String accountId, long issuedAtMs, long expiresAtMs, int maxActive) {
+        synchronized (this) {
+            rows.put(tokenHash, new Row(new StoredSession(tokenHash, account, role, name,
+                    accountId, issuedAtMs, expiresAtMs), 0L));
+            sequence.put(tokenHash, nextSequence.incrementAndGet());
+            var active = rows.entrySet().stream()
+                    .filter(e -> account.equals(e.getValue().session().account()))
+                    .filter(e -> e.getValue().revokedAtMs() == 0
+                            && e.getValue().session().expiresAtMs() > issuedAtMs)
+                    .sorted(Comparator.comparingLong(e -> sequence.getOrDefault(e.getKey(), 0L)))
+                    .toList();
+            int excess = active.size() - Math.max(1, maxActive);
+            for (int i = 0; i < excess; i++) {
+                String old = active.get(i).getKey();
+                Row row = rows.get(old);
+                if (row != null) rows.put(old, new Row(row.session(), issuedAtMs));
+                sequence.remove(old);
+            }
+        }
     }
 
     @Override
@@ -56,8 +76,12 @@ public class InMemoryAuthSessionRepository implements AuthSessionRepository {
     @Override
     public int deleteExpired(long nowMs) {
         int before = rows.size();
-        rows.entrySet().removeIf(e -> e.getValue().revokedAtMs() > 0
-                || e.getValue().session().expiresAtMs() <= nowMs);
+        rows.entrySet().removeIf(e -> {
+            boolean remove = e.getValue().revokedAtMs() > 0
+                    || e.getValue().session().expiresAtMs() <= nowMs;
+            if (remove) sequence.remove(e.getKey());
+            return remove;
+        });
         return before - rows.size();
     }
 

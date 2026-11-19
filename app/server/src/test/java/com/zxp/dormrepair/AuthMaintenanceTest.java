@@ -33,6 +33,21 @@ class AuthMaintenanceTest {
     }
 
     @Test
+    @DisplayName("同一账号只保留最近指定数量的活动会话")
+    void keepsOnlyNewestActiveSessions() {
+        var repo = new InMemoryAuthSessionRepository();
+        var store = new TokenStore(repo, new com.zxp.dormrepair.auth.InMemoryUserRepository(), 2);
+        Actor student = new Actor(ActorType.STUDENT, "S001", "张同学");
+        TokenStore.Session first = store.issue(student, "S001", 60_000);
+        TokenStore.Session second = store.issue(student, "S001", 60_000);
+        TokenStore.Session third = store.issue(student, "S001", 60_000);
+
+        assertNull(store.resolve(first.token()));
+        assertNotNull(store.resolve(second.token()));
+        assertNotNull(store.resolve(third.token()));
+    }
+
+    @Test
     @DisplayName("账号停用后已有令牌立即失效")
     void disabledAccountInvalidatesExistingToken() {
         var users = new com.zxp.dormrepair.auth.InMemoryUserRepository();

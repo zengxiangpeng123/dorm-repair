@@ -6,6 +6,7 @@ import com.zxp.dormrepair.store.mapper.AuthSessionMapper;
 import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @ConditionalOnProperty(name = "app.store", havingValue = "mysql")
@@ -18,18 +19,32 @@ public class MybatisAuthSessionRepository implements AuthSessionRepository {
     }
 
     @Override
+    @Transactional
     public void save(String tokenHash, String account, String role, String name,
-                     String accountId, long issuedAtMs, long expiresAtMs) {
-        AuthSessionRow row = new AuthSessionRow();
-        row.setTokenHash(tokenHash);
-        row.setAccount(account);
-        row.setRole(role);
-        row.setName(name);
-        row.setAccountId(accountId);
-        row.setIssuedAtMs(issuedAtMs);
-        row.setExpiresAtMs(expiresAtMs);
-        row.setRevokedAtMs(null);
-        mapper.insert(row);
+                     String accountId, long issuedAtMs, long expiresAtMs, int maxActive) {
+        // 同一账号的登录串行化，避免并发登录各自看到“未超限”而突破会话上限。
+        Integer locked = mapper.lockAccount(account);
+        if (locked == null || locked != 1) {
+            throw new IllegalStateException("登录会话并发锁获取失败");
+        }
+        try {
+            AuthSessionRow row = new AuthSessionRow();
+            row.setTokenHash(tokenHash);
+            row.setAccount(account);
+            row.setRole(role);
+            row.setName(name);
+            row.setAccountId(accountId);
+            row.setIssuedAtMs(issuedAtMs);
+            row.setExpiresAtMs(expiresAtMs);
+            row.setRevokedAtMs(null);
+            mapper.insert(row);
+            int excess = mapper.countActive(account, issuedAtMs) - Math.max(1, maxActive);
+            if (excess > 0) {
+                mapper.revokeOldest(account, issuedAtMs, excess);
+            }
+        } finally {
+            mapper.unlockAccount(account);
+        }
     }
 
     @Override

@@ -9,8 +9,9 @@ public interface AuthSessionRepository {
                          String accountId, long issuedAtMs, long expiresAtMs) {
     }
 
+    /** 保存新会话；同一账号只保留最近 maxActive 个活动会话。 */
     void save(String tokenHash, String account, String role, String name,
-              String accountId, long issuedAtMs, long expiresAtMs);
+              String accountId, long issuedAtMs, long expiresAtMs, int maxActive);
 
     Optional<StoredSession> findActive(String tokenHash, long nowMs);
 

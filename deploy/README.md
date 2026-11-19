@@ -94,8 +94,8 @@ runtime account that still has `CREATE`, `DROP`, `ALTER`, `ALL PRIVILEGES`, or `
 Login failures are limited per account and client address. Defaults are five failures in a
 15-minute window; successful login clears the counter. Expired and revoked sessions are
 purged every 60 minutes. Configure with `APP_AUTH_LOGIN_MAX_FAILURES`,
-`APP_AUTH_LOGIN_BLOCK_MINUTES`, `APP_AUTH_SESSION_CLEANUP_MINUTES`, and
-`APP_AUTH_TTL_HOURS`.
+`APP_AUTH_LOGIN_BLOCK_MINUTES`, `APP_AUTH_SESSION_CLEANUP_MINUTES`,
+`APP_AUTH_MAX_ACTIVE_SESSIONS`, and `APP_AUTH_TTL_HOURS`.
 
 ## Operations
 
