@@ -20,7 +20,7 @@
 - 旧共享前端 `app\web` 仅保留为兼容与原型参考，不再作为三端正式入口。
 - 原型（零依赖假数据，双击就开）：`prototype\index.html` —— 视觉定稿的依据，留着当"改过不止一版"的证据。
 
-`app\screens\vue\` 是 Vue 版的 15 张截图（1440 桌面宽 / 430 手机宽），覆盖登录、学生申请返修、管理端待审与审查弹层。`app\screens\` 里那 11 张是已退役的原生页面，只作视觉参照。
+`app\screens\three-apps\` 是三端拆分后的 12 张验收截图（学生 4、师傅 4、管理端 4），覆盖报修、任务、返修审查弹层与人员管理。`app\screens\vue\` 和 `app\screens\` 里的旧截图只作视觉参照。
 
 ---
 
@@ -126,7 +126,7 @@ cd app\admin-web;   npm run dev   # http://localhost:5175
 │  ├─ worker-web\                师傅独立应用 :5174
 │  ├─ admin-web\                 管理端独立应用 :5175
 │  ├─ web\packages\contract\     只读共享契约
-│  └─ screens\                   上一版界面截图（只作参照）；vue\ 是上一版共享界面
+│  └─ screens\                   截图证据；three-apps\ 为当前三端验收图，vue\ 为旧版共享界面
 └─ ..\rules\                     AI 开发规则 7 篇（技术栈 / 目录 / 口径 / 代码 / 测试 / 协作）
 ```
 
