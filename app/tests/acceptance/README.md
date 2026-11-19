@@ -23,7 +23,7 @@ node app/tests/shoot-three-apps.mjs
 node app/tests/acceptance/run-all.mjs
 ```
 
-截图验收需要三端开发服务器（5173/5174/5175）和 Playwright。通过 `PLAYWRIGHT_MODULE` 指向已安装的 Playwright，或在本机安装后直接运行。隔离测试库可用 `ACCEPTANCE_RESET_RATE_LIMIT=1` 在预检阶段清理登录失败计数。
+截图验收需要三端开发服务器（5173/5174/5175）和 Playwright。通过 `PLAYWRIGHT_MODULE` 指向已安装的 Playwright，或在本机安装后直接运行。默认输出到被忽略的 `app/tests/acceptance/screenshots/`；只有显式设置 `SCREENSHOT_DIR=app/screens/three-apps` 才更新正式归档。隔离测试库可用 `ACCEPTANCE_RESET_RATE_LIMIT=1` 在预检阶段清理登录失败计数。
 
 The scripts write `report.json`, `security-report.json`, `resilience-report.json`,
 `people-report.json`, and `load-report.json`. Load checks fail above 1% errors or P95 2000 ms. The AI outage drill

@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const API = (process.env.ACCEPTANCE_BASE_URL || 'http://127.0.0.1:8082/api/v1').replace(/\/$/, '')
-const OUT = path.resolve(process.env.SCREENSHOT_DIR || 'app/screens/three-apps')
+const OUT = path.resolve(process.env.SCREENSHOT_DIR || 'app/tests/acceptance/screenshots')
 function resolveBrowser() {
   if (process.env.BROWSER_PATH) return process.env.BROWSER_PATH
   const candidates = process.platform === 'win32'
