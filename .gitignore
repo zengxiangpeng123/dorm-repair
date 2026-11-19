@@ -54,3 +54,4 @@ app/worker-web/.build-tmp/
 # Acceptance runtime evidence (contains environment-specific test data)
 app/tests/acceptance/*-report.json
 app/tests/acceptance/report.json
+app/tests/acceptance/screenshots/

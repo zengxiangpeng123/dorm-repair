@@ -20,7 +20,11 @@ let failed = 0
 for (const [cmd, args] of commands) {
   if (args.includes('app/tests/acceptance/load.mjs')) waitForRateLimitWindow()
   console.log('\n> ' + cmd + ' ' + args.join(' '))
-  const r = spawnSync(cmd, args, { stdio: 'inherit', env: process.env })
+  const childEnv = { ...process.env }
+  if (args.includes('app/tests/shoot-three-apps.mjs')) {
+    childEnv.SCREENSHOT_DIR = childEnv.ACCEPTANCE_SCREENSHOT_DIR || 'app/tests/acceptance/screenshots'
+  }
+  const r = spawnSync(cmd, args, { stdio: 'inherit', env: childEnv })
   if (r.status !== 0) failed++
 }
 console.log('\nACCEPTANCE SUITE ' + (failed ? 'FAIL' : 'PASS'))
