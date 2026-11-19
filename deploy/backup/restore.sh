@@ -34,4 +34,6 @@ if [ "${table_count:-0}" -lt 20 ]; then
   echo "restore failed: expected at least 20 base tables after import, got ${table_count:-0}" >&2
   exit 1
 fi
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+"$script_dir/verify.sh"
 echo "restore complete: $1 (base tables=$table_count)"
