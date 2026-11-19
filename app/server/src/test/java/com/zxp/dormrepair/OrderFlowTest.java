@@ -255,6 +255,27 @@ class OrderFlowTest {
     }
 
     @Test
+    @DisplayName("楼栋批量派工允许部分成功，已派单进入 skipped")
+    void buildingAssignReturnsPerOrderResults() throws Exception {
+        JsonNode list = call("GET", "/orders?status=PENDING&page=1&pageSize=200",
+                null, "admin", "A001").data();
+        java.util.Set<String> pending = new java.util.HashSet<>();
+        for (JsonNode item : list.get("items")) pending.add(item.get("no").asText());
+        assertTrue(pending.size() >= 2, "seed 中应至少有两张待派工单");
+
+        JsonNode result = call("POST", "/buildings/B7/assign",
+                "{\"workerId\":\"W0428\"}", "admin", "A001").data();
+
+        assertTrue(result.get("ok").size() > 0, result.toString());
+        for (JsonNode no : result.get("ok")) {
+            assertTrue(pending.contains(no.asText()), "批量派工不应处理非待派工单：" + no);
+        }
+        JsonNode again = call("POST", "/buildings/B7/assign",
+                "{\"workerId\":\"W0428\"}", "admin", "A001").data();
+        assertTrue(again.get("skipped").size() > 0, again.toString());
+    }
+
+    @Test
     @DisplayName("事件流按 page/pageSize 分页并返回真实总数")
     void eventStreamPaginates() throws Exception {
         JsonNode list = call("GET", "/orders?page=1&pageSize=200", null, "admin", "A001").data();

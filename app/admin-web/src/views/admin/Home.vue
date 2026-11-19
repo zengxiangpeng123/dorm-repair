@@ -79,6 +79,22 @@ async function saveCfg () {
   }
 }
 
+async function assignPendingBuilding (buildingId) {
+  busy.value = 'assign-' + buildingId
+  err.value = ''
+  try {
+    const result = await adminApi.assignBuilding(buildingId)
+    keeper.value = `${buildingId} 批量派工：成功 ${result.ok?.length || 0} 单，失败 ${result.failed?.length || 0} 单，跳过 ${result.skipped?.length || 0} 单`
+    window.clearTimeout(keeperTimer)
+    keeperTimer = window.setTimeout(() => { keeper.value = '' }, 5000)
+    await load()
+  } catch (e) {
+    err.value = describeError(e)
+  } finally {
+    busy.value = ''
+  }
+}
+
 async function partsArrived (item) {
   busy.value = 'parts-' + item.no
   err.value = ''
@@ -360,7 +376,13 @@ onMounted(load)
                 <thead><tr><th>楼栋</th><th class="r">在办</th><th class="r">已完成</th><th class="r">例外</th></tr></thead>
                 <tbody>
                   <tr v-for="b in dash?.byBuilding || []" :key="b.buildingId">
-                    <td>{{ b.buildingName }}</td>
+                    <td>
+                      {{ b.buildingName }}
+                      <button class="dbtn sm" :disabled="busy === 'assign-' + b.buildingId"
+                              @click="assignPendingBuilding(b.buildingId)">
+                        {{ busy === 'assign-' + b.buildingId ? '派工中…' : '批量派待派单' }}
+                      </button>
+                    </td>
                     <td class="r num">{{ b.active }}</td>
                     <td class="r num">{{ b.done }}</td>
                     <td class="r num">{{ b.exceptions }}</td>

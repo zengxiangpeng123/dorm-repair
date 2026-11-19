@@ -172,6 +172,46 @@ public class OrderService {
                 }));
     }
 
+    /**
+     * 楼栋级批量派工：逐单调用 assign，允许部分成功；每单自己的版本/状态/师傅校验独立生效。
+     * 空批次返回空结果，不把“没有待派单”当成失败。
+     */
+    public java.util.Map<String, Object> assignBuilding(String buildingId, TransitRequest req, Actor actor) {
+        java.util.List<String> ok = new java.util.ArrayList<>();
+        java.util.List<java.util.Map<String, Object>> failed = new java.util.ArrayList<>();
+        java.util.List<String> skipped = new java.util.ArrayList<>();
+        for (WorkOrder o : store.all()) {
+            if (!buildingId.equals(o.getBuilding())) continue;
+            if (o.getStatus() != OrderStatus.PENDING) {
+                if (o.getStatus() == OrderStatus.ASSIGNED || o.getStatus() == OrderStatus.REPAIRING
+                        || o.getStatus() == OrderStatus.PARTS) {
+                    skipped.add(o.getNo());
+                }
+                continue;
+            }
+            try {
+                // 批量请求里的 version 只属于单张单；不能把同一版本套到整批。
+                TransitRequest perOrder = new TransitRequest(o.getVersion(), req.note(), req.reason(),
+                        req.signerName(), req.photosAfter(), req.photoIdsAfter(), req.partsName(),
+                        req.partsAmount(), req.partsEta(), req.workerId(), req.workerName());
+                assign(o.getNo(), perOrder, actor);
+                ok.add(o.getNo());
+            } catch (BizException e) {
+                java.util.Map<String, Object> item = new java.util.LinkedHashMap<>();
+                item.put("no", o.getNo());
+                item.put("reason", e.extra().getOrDefault("reason", e.code()));
+                item.put("message", e.getMessage());
+                failed.add(item);
+            }
+        }
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("buildingId", buildingId);
+        result.put("ok", ok);
+        result.put("failed", failed);
+        result.put("skipped", skipped);
+        return result;
+    }
+
     public OrderView arrive(String no, TransitRequest req, Actor actor) {
         WorkOrder cur = store.require(no);
         if (!actor.id().equals(cur.getWorkerId())) {

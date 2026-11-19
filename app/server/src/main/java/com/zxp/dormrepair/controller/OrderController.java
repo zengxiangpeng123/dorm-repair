@@ -61,6 +61,17 @@ public class OrderController {
                         com.zxp.dormrepair.statemachine.ActorType.SYSTEM)));
     }
 
+    /** 楼栋批量派工；逐单独立事务，返回 ok/failed/skipped。 */
+    @PostMapping("/buildings/{id}/assign")
+    public Map<String, Object> assignBuilding(@PathVariable String id,
+                                              @RequestBody(required = false) TransitRequest req,
+                                              HttpServletRequest http) {
+        return ApiResponses.ok(orders.assignBuilding(id, orEmpty(req),
+                com.zxp.dormrepair.common.ActorResolver.require(actor(http),
+                        com.zxp.dormrepair.statemachine.ActorType.ADMIN,
+                        com.zxp.dormrepair.statemachine.ActorType.SYSTEM)));
+    }
+
     @PostMapping("/orders/{no}/arrive")
     public Map<String, Object> arrive(@PathVariable String no,
                                       @RequestBody(required = false) TransitRequest req,
