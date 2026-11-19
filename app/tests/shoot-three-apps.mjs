@@ -9,7 +9,18 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const API = (process.env.ACCEPTANCE_BASE_URL || 'http://127.0.0.1:8082/api/v1').replace(/\/$/, '')
 const OUT = path.resolve(process.env.SCREENSHOT_DIR || 'app/screens/three-apps')
-const BROWSER = process.env.BROWSER_PATH || 'C:/Users/15173/AppData/Local/ms-playwright/chromium-1091/chrome-win/chrome.exe'
+function resolveBrowser() {
+  if (process.env.BROWSER_PATH) return process.env.BROWSER_PATH
+  const candidates = process.platform === 'win32'
+    ? [
+        path.join(process.env.LOCALAPPDATA || '', 'ms-playwright/chromium-1091/chrome-win/chrome.exe'),
+        'C:/Program Files/Google/Chrome/Application/chrome.exe',
+        'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+      ]
+    : ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser']
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || candidates[0]
+}
+const BROWSER = resolveBrowser()
 const PASSWORD = process.env.ACCEPTANCE_PASSWORD || 'dorm@2026'
 const report = { startedAt: new Date().toISOString(), screenshots: [], passed: 0, failed: 0 }
 

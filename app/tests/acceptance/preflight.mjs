@@ -25,7 +25,18 @@ try {
   require.resolve(process.env.PLAYWRIGHT_MODULE || 'playwright')
   check('Playwright 模块可用', true, process.env.PLAYWRIGHT_MODULE || 'playwright')
 } catch { check('Playwright 模块可用', false, '设置 PLAYWRIGHT_MODULE 或安装 playwright') }
-const browser = process.env.BROWSER_PATH || 'C:/Users/15173/AppData/Local/ms-playwright/chromium-1091/chrome-win/chrome.exe'
+function resolveBrowser() {
+  if (process.env.BROWSER_PATH) return process.env.BROWSER_PATH
+  const candidates = process.platform === 'win32'
+    ? [
+        path.join(process.env.LOCALAPPDATA || '', 'ms-playwright/chromium-1091/chrome-win/chrome.exe'),
+        'C:/Program Files/Google/Chrome/Application/chrome.exe',
+        'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+      ]
+    : ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser']
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || candidates[0]
+}
+const browser = resolveBrowser()
 check('Chromium 可执行文件存在', fs.existsSync(browser), browser)
 check('截图源 PNG 存在', fs.existsSync(path.join(root, 'app/screens/vue/student-home.png')), 'app/screens/vue/student-home.png')
 await http('后端健康', 'http://127.0.0.1:8082/api/v1/health')
